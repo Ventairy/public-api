@@ -1,0 +1,27 @@
+#!/bin/sh
+
+echo "🔍 Validating commit message..."
+
+npx --yes @commitlint/cli --config @commitlint/config-conventional --edit "$1"
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Commit message does not follow conventional commit format."
+  echo ""
+  echo "💡 Expected format: <type>(<scope>): <description>"
+  echo ""
+  echo "Valid types:"
+  echo "  feat     - new feature"
+  echo "  fix      - bug fix"
+  echo "  docs     - documentation"
+  echo "  style    - formatting"
+  echo "  refactor - code refactoring"
+  echo "  test     - adding tests"
+  echo "  chore    - maintenance"
+  echo ""
+  echo "Examples:"
+  echo "  feat(auth): add wallet signing support"
+  echo "  fix(payments): handle timeout on provider retry"
+  echo ""
+  exit 1
+fi

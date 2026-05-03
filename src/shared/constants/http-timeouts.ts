@@ -1,0 +1,5 @@
+export const HTTP_TIMEOUTS = {
+  DEFAULT_MS: 10_000,
+  PROVIDER_REQUEST_MS: 15_000,
+  HEALTH_CHECK_MS: 5_000,
+} as const;

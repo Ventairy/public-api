@@ -1,0 +1,19 @@
+title = "gitleaks config"
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(api[_-]?key|apikey|secret|token|password|passwd)\s*[:=]\s*['"]?[a-zA-Z0-9_\-]{20,}['"]?'''
+tags = ["key", "API"]
+
+[[rules]]
+id = "cloudflare-api-token"
+description = "Cloudflare API Token"
+regex = '''cf[_-]?(api[_-]?token|d1[_-]?api[_-]?token)\s*[:=]\s*['"]?[a-zA-Z0-9_\-]{20,}['"]?'''
+tags = ["key", "cloudflare"]
+
+[allowlist]
+paths = [
+  '''^\.env\.example$''',
+  '''^\.gitleaks\.toml$''',
+]
