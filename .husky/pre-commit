@@ -1,1 +1,1 @@
-npm run lint && npm run typecheck && npm run test && npx lint-staged
+bun run lint && bun run typecheck && bun run test && bunx lint-staged

@@ -2,7 +2,7 @@
 
 echo "🔍 Validating commit message..."
 
-npx --yes @commitlint/cli --config @commitlint/config-conventional --edit "$1"
+bunx @commitlint/cli --config @commitlint/config-conventional --edit "$1"
 
 if [ $? -ne 0 ]; then
   echo ""
