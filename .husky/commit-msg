@@ -1,8 +1,10 @@
 #!/bin/sh
 
+export PATH="$HOME/.bun/bin:$PATH"
+
 echo "🔍 Validating commit message..."
 
-bunx @commitlint/cli --config @commitlint/config-conventional --edit "$1"
+bunx @commitlint/cli --edit "$1"
 
 if [ $? -ne 0 ]; then
   echo ""
