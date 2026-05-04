@@ -4,7 +4,7 @@
 		"type-enum": [
 			2,
 			"always",
-			["feat", "fix", "refactor", "perf", "test", "build", "ci", "chore", "docs", "revert"]
+			["feat", "fix", "refactor", "perf", "test", "build", "ci", "chore", "docs", "revert", "agent"]
 		],
 		"subject-case": [2, "never", ["upper-case"]],
 		"subject-max-length": [2, "always", 100]

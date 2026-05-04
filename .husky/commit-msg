@@ -20,6 +20,7 @@ if [ $? -ne 0 ]; then
   echo "  refactor - code refactoring"
   echo "  test     - adding tests"
   echo "  chore    - maintenance"
+  echo "  agent    - agent related changes"
   echo ""
   echo "Examples:"
   echo "  feat(auth): add wallet signing support"
