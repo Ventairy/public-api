@@ -27,7 +27,8 @@
 			"@core/*": ["src/core/*"],
 			"@shared/*": ["src/shared/*"],
 			"@modules/*": ["src/modules/*"],
-			"@db/*": ["src/db/*"]
+			"@db/*": ["src/db/*"],
+			"@auth/*": ["src/auth/*"]
 		}
 	},
 	"include": ["src/**/*"],

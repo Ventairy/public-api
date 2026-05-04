@@ -1,12 +1,11 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import {
-	drizzle,
-	type SqliteRemoteDatabase,
-	type AsyncRemoteCallback,
-} from "drizzle-orm/sqlite-proxy";
+import { drizzle, type SqliteRemoteDatabase, type AsyncRemoteCallback } from "drizzle-orm/sqlite-proxy";
 import * as schema from "@db/schema";
 import { DATABASE_CONFIG_KEY, type DatabaseConfig } from "../config";
+
+const SELECT_COLUMN_NAMES_REGEX = /(?:select|returning)\s+([\s\S]+?)(?:\s+from|\s*$)/i;
+const COLUMN_NAME_REGEX = /"?(\w+)"?/g;
 
 @Injectable()
 export class DrizzleService implements OnModuleDestroy {
@@ -27,7 +26,8 @@ export class DrizzleService implements OnModuleDestroy {
 
 		const remoteCallback: AsyncRemoteCallback = async (sql, params, method) => {
 			const result = await this.executeD1Query(sql, params, method);
-			return { rows: result };
+			const positionalRows = this._toPositionalRows(sql, result);
+			return { rows: positionalRows };
 		};
 
 		this.db = drizzle<typeof schema>(remoteCallback, { schema });
@@ -65,6 +65,37 @@ export class DrizzleService implements OnModuleDestroy {
 		}
 
 		return firstResult.results;
+	}
+
+	private _toPositionalRows(sql: string, namedRows: unknown[]): unknown[] {
+		if (!namedRows || namedRows.length === 0) {
+			return namedRows;
+		}
+
+		const columnNames = this._extractColumnNames(sql);
+		if (columnNames.length === 0) return namedRows;
+
+		return namedRows.map((row) => {
+			const namedRow = row as Record<string, unknown>;
+			return columnNames.map((columnName) => namedRow[columnName]);
+		});
+	}
+
+	private _extractColumnNames(sql: string): string[] {
+		const columnsMatch = sql.match(SELECT_COLUMN_NAMES_REGEX);
+		if (!columnsMatch?.[1]) return [];
+
+		const columnsFragment = columnsMatch[1];
+		const columnNames: string[] = [];
+		let match: RegExpExecArray | null = null;
+
+		while ((match = COLUMN_NAME_REGEX.exec(columnsFragment)) !== null) {
+			if (match[1]) {
+				columnNames.push(match[1]);
+			}
+		}
+
+		return columnNames;
 	}
 
 	async onModuleDestroy(): Promise<void> {

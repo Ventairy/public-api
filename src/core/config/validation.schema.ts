@@ -12,8 +12,7 @@ export const validationSchema = Joi.object({
   CF_D1_DATABASE_ID: Joi.string().required(),
   CF_D1_API_TOKEN: Joi.string().required(),
 
-  UNKEY_API_ID: Joi.string().required(),
-  UNKEY_ROOT_KEY: Joi.string().required(),
+
 
   BLINDPAY_API_KEY: Joi.string().required(),
 

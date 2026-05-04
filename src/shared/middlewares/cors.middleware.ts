@@ -6,15 +6,17 @@ import { APP_CONFIG_KEY, type AppConfig } from "@core/config";
 
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
-	private readonly allowedDomainSuffixes: string[];
+	private readonly _allowedDomainSuffixes: string[];
+	private readonly _nodeEnvironment: string;
 
-	constructor(private readonly configService: ConfigService) {
-		const appConfiguration = this.configService.get<AppConfig>(APP_CONFIG_KEY);
+	constructor(private readonly _configService: ConfigService) {
+		const appConfiguration = this._configService.get<AppConfig>(APP_CONFIG_KEY);
 		if (!appConfiguration) throw new Error("Application configuration is missing");
 
-		this.allowedDomainSuffixes = (appConfiguration.corsAllowedDomains ?? []).map((domain) =>
+		this._allowedDomainSuffixes = (appConfiguration.corsAllowedDomains ?? []).map((domain) =>
 			domain.trim().toLowerCase(),
 		);
+		this._nodeEnvironment = appConfiguration.nodeEnv;
 	}
 
 	use(request: Request, response: Response, next: NextFunction): void {
@@ -26,19 +28,14 @@ export class CorsMiddleware implements NestMiddleware {
 		}
 
 		const allowedMethods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
-		const allowedHeaders = [
-			"Content-Type",
-			"Authorization",
-			"X-Api-Key",
-			"X-Request-Id",
-			"Idempotency-Key",
-		];
+		const allowedHeaders = ["Content-Type", "Authorization", "X-Api-Key", "X-Request-Id", "Idempotency-Key"];
 
+		const isDevelopment = this._nodeEnvironment === "development";
 		const originHostname = this.extractHostname(origin);
 
-		const isAllowed = this.allowedDomainSuffixes.some(
-			(suffix) => originHostname === suffix || originHostname.endsWith(`.${suffix}`),
-		);
+		const isAllowed =
+			isDevelopment ||
+			this._allowedDomainSuffixes.some((suffix) => originHostname === suffix || originHostname.endsWith(`.${suffix}`));
 
 		if (!isAllowed) {
 			response.status(403).json({

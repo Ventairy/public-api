@@ -3,10 +3,12 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { CoreModule } from './core';
+import { UsersModule } from './modules/users';
 
 @Module({
   imports: [
     CoreModule,
+    UsersModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,

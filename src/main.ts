@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { NestFactory, Reflector } from "@nestjs/core";
+import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
@@ -11,13 +11,7 @@ import { AppModule } from "./app.module";
 import { APP_CONFIG_KEY, type AppConfig } from "./core/config";
 import { CorsMiddleware } from "./shared/middlewares/cors.middleware";
 import { AllExceptionsFilter } from "./shared/filters";
-import {
-	LoggingInterceptor,
-	TransformInterceptor,
-	TimeoutInterceptor,
-	AuditInterceptor,
-} from "./shared/interceptors";
-import { ApiKeyGuard } from "./shared/guards";
+import { LoggingInterceptor, TransformInterceptor, TimeoutInterceptor, AuditInterceptor } from "./shared/interceptors";
 
 async function bootstrap(): Promise<void> {
 	const application = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -53,9 +47,6 @@ async function bootstrap(): Promise<void> {
 		}),
 	);
 
-	const reflector = application.get(Reflector);
-	application.useGlobalGuards(new ApiKeyGuard(reflector, configService));
-
 	application.useGlobalFilters(new AllExceptionsFilter());
 
 	const clsService = application.get(ClsService);
@@ -72,7 +63,6 @@ async function bootstrap(): Promise<void> {
 			.setTitle("Ventairy API")
 			.setDescription("Cross-border payment orchestration — fiat in, stablecoins out")
 			.setVersion("1.0")
-			.addApiKey({ type: "apiKey", name: "X-Api-Key", in: "header" }, "ApiKeyAuth")
 			.build();
 		const document = SwaggerModule.createDocument(application, documentConfiguration);
 

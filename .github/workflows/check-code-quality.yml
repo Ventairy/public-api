@@ -1,13 +1,13 @@
-name: CI
+name: Check Code Quality
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
-    branches: [main]
+    branches: [main, staging, development]
 
 jobs:
-  ci:
+  check-code-quality:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check migrations in sync
+        run: bun run db:generate && git diff --exit-code src/db/migrations/
+
       - name: Lint
         run: bun run lint
 
@@ -38,8 +41,9 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Secret scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      #  WAITING FOR LICENSE
+      # - name: Secret scan
+      #   uses: gitleaks/gitleaks-action@v2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}

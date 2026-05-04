@@ -1,5 +1,5 @@
 export { Public, CurrentActor, AuditAction } from './decorators';
-export { ApiKeyGuard } from './guards';
+
 export {
   LoggingInterceptor,
   TransformInterceptor,

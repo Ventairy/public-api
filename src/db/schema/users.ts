@@ -1,13 +1,20 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { VENTAIRY_KYC_STATUS, type VentairyKycStatus } from "@shared/constants/ventairy-kyc-status";
 
-export const users = sqliteTable("users", {
-	walletId: text("walletId").primaryKey(),
-	name: text("name").notNull(),
-	isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-	createdAt: text("created_at")
+export const usersTable = sqliteTable("users", {
+	id: text("id").primaryKey(),
+	wallet_address: text("wallet_address").notNull().unique(),
+	ventairy_kyc_status: text("ventairy_kyc_status")
+		.notNull()
+		.$type<VentairyKycStatus>()
+		.default(VENTAIRY_KYC_STATUS.PENDING),
+	created_at: text("created_at")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	updatedAt: text("updated_at")
+	updated_at: text("updated_at")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 });
+
+export type UserRow = typeof usersTable.$inferSelect;
+export type NewUserRow = typeof usersTable.$inferInsert;

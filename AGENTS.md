@@ -29,7 +29,10 @@ When writing or modifying code in this repository, you MUST adhere to the follow
 - **Simplicity & Flattening:** ALWAYS prefer early returns (`guard clauses`). NEVER deeply nest `if/else` statements.
 - **Strong Typing:** Assume strict typing is mandatory. Do not use `any` or bypass the type checker.
 - **No Magic Numbers:** Extract all constants, fee rates, and status codes into named, exported constants or enums.
+- **No Hardcoded Strings:** NEVER type string literals directly in code. Always use constants or typed strings. Extract header names, error codes, status values, and any repeated strings into named constants to prevent typos and ensure consistency.
 - **Predictability:** Functions must be pure where possible. Side effects must be isolated and explicitly named.
+- **Minimalism:** NEVER add code that is not explicitly required for the current task. Every line must serve a purpose. Remove unused imports, variables, fields, functions, and dead code. If it's not used, delete it.
+- **Private Convention:** ALWAYS prefix private class members (properties and methods) with underscore (`_`). Example: `private _verifyToken()` not `private verifyToken()`. This clearly distinguishes internal implementation from public API.
 
 ---
 
