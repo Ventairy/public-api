@@ -6,6 +6,7 @@ import { HttpModule } from "./http";
 import { HealthModule } from "../modules/health";
 import { SchedulerModule } from "./scheduler";
 import { ObservabilityModule } from "./observability";
+import { MiddlewareModule } from "../shared/middlewares";
 
 @Global()
 @Module({
@@ -17,6 +18,7 @@ import { ObservabilityModule } from "./observability";
 		HealthModule,
 		SchedulerModule,
 		ObservabilityModule,
+		MiddlewareModule,
 	],
 	exports: [
 		ConfigModule,
@@ -26,6 +28,7 @@ import { ObservabilityModule } from "./observability";
 		HealthModule,
 		SchedulerModule,
 		ObservabilityModule,
+		MiddlewareModule,
 	],
 })
 export class CoreModule {}

@@ -5,7 +5,7 @@ import { ConfigService } from "@nestjs/config";
 import { Request } from "express";
 
 import { IS_PUBLIC_KEY } from "@shared/decorators/public.decorator";
-import { type UnkeyConfig, unkeyConfig } from "@core/config";
+import { UNKEY_CONFIG_KEY, type UnkeyConfig } from "@core/config";
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -15,7 +15,7 @@ export class ApiKeyGuard implements CanActivate {
 		private readonly reflector: Reflector,
 		private readonly configService: ConfigService,
 	) {
-		const unkeyConfiguration = this.configService.get<UnkeyConfig>(unkeyConfig.KEY);
+		const unkeyConfiguration = this.configService.get<UnkeyConfig>(UNKEY_CONFIG_KEY);
 
 		if (!unkeyConfiguration) throw new Error("Unkey configuration is missing");
 

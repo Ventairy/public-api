@@ -2,14 +2,14 @@ import { Injectable, NestMiddleware } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Request, Response, NextFunction } from "express";
 
-import { type AppConfig, appConfig } from "@core/config";
+import { APP_CONFIG_KEY, type AppConfig } from "@core/config";
 
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
 	private readonly allowedDomainSuffixes: string[];
 
 	constructor(private readonly configService: ConfigService) {
-		const appConfiguration = this.configService.get<AppConfig>(appConfig.KEY);
+		const appConfiguration = this.configService.get<AppConfig>(APP_CONFIG_KEY);
 		if (!appConfiguration) throw new Error("Application configuration is missing");
 
 		this.allowedDomainSuffixes = (appConfiguration.corsAllowedDomains ?? []).map((domain) =>

@@ -8,7 +8,7 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { ClsService } from "nestjs-cls";
 
 import { AppModule } from "./app.module";
-import { type AppConfig, appConfig } from "./core/config";
+import { APP_CONFIG_KEY, type AppConfig } from "./core/config";
 import { CorsMiddleware } from "./shared/middlewares/cors.middleware";
 import { AllExceptionsFilter } from "./shared/filters";
 import {
@@ -25,14 +25,12 @@ async function bootstrap(): Promise<void> {
 	});
 
 	const configService = application.get(ConfigService);
-	const appConfiguration = configService.get<AppConfig>(appConfig.KEY);
+	const appConfiguration = configService.get<AppConfig>(APP_CONFIG_KEY);
 	if (!appConfiguration) {
 		throw new Error("Application configuration is missing");
 	}
 
 	application.enableShutdownHooks();
-
-	application.setGlobalPrefix(appConfiguration.apiPrefix);
 
 	application.enableVersioning({
 		type: VersioningType.URI,
@@ -83,7 +81,7 @@ async function bootstrap(): Promise<void> {
 			yamlDocumentUrl: "/openapi.yaml",
 		});
 	}
-	await application.listen(appConfiguration.port);
+	await application.listen(appConfiguration.port, "0.0.0.0");
 }
 
 bootstrap();

@@ -5,7 +5,7 @@
 	"type": "module",
 	"description": "Cross-border payment orchestration layer — fiat in, stablecoins out",
 	"scripts": {
-		"build": "nest build",
+		"build": "nest build && tsc-alias",
 		"start": "nest start --exec bun",
 		"start:dev": "nest start --watch --exec bun",
 		"start:debug": "nest start --debug --watch --exec bun",
@@ -72,6 +72,7 @@
 		"prettier": "3.5.3",
 		"supertest": "7.1.0",
 		"ts-loader": "9.5.2",
+		"tsc-alias": "^1.8.17",
 		"tsconfig-paths": "4.2.0",
 		"typescript": "5.8.3",
 		"typescript-eslint": "^8.59.1",

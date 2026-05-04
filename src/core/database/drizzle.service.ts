@@ -6,7 +6,7 @@ import {
 	type AsyncRemoteCallback,
 } from "drizzle-orm/sqlite-proxy";
 import * as schema from "@db/schema";
-import { type DatabaseConfig, databaseConfig } from "../config";
+import { DATABASE_CONFIG_KEY, type DatabaseConfig } from "../config";
 
 @Injectable()
 export class DrizzleService implements OnModuleDestroy {
@@ -17,7 +17,7 @@ export class DrizzleService implements OnModuleDestroy {
 	private readonly apiToken: string;
 
 	constructor(private readonly configService: ConfigService) {
-		const dbConfig = this.configService.get<DatabaseConfig>(databaseConfig.KEY);
+		const dbConfig = this.configService.get<DatabaseConfig>(DATABASE_CONFIG_KEY);
 
 		if (!dbConfig) throw new Error("Database configuration is missing");
 
