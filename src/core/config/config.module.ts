@@ -3,7 +3,6 @@ import { ConfigModule as NestConfigModule } from "@nestjs/config";
 
 import { appConfig } from "./app.config";
 import { databaseConfig } from "./database.config";
-import { providersConfig } from "./providers.config";
 
 import { validationSchema } from "./validation.schema";
 
@@ -14,7 +13,7 @@ import { validationSchema } from "./validation.schema";
 			isGlobal: true,
 			envFilePath: ".env",
 			ignoreEnvFile: process.env["NODE_ENV"] === "test",
-			load: [appConfig, databaseConfig, providersConfig],
+			load: [appConfig, databaseConfig],
 			validationSchema: process.env["NODE_ENV"] === "test" ? undefined : validationSchema,
 			validationOptions: {
 				abortEarly: true,

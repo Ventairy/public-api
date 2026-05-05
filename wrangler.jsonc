@@ -1,5 +1,5 @@
 {
-	"name": "ventairy-api",
+	"name": "ventairy-internal-api",
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-05-05",
 	"compatibility_flags": ["nodejs_compat"],
@@ -39,10 +39,10 @@
 	},
 	"env": {
 		"staging": {
-			"name": "ventairy-api-staging",
+			"name": "ventairy-internal-api-staging",
 			"routes": [
 				{
-					"pattern": "staging.api.ventairy.com",
+					"pattern": "staging.internal-api.ventairy.com",
 					"custom_domain": true
 				}
 			],
@@ -72,7 +72,7 @@
 			"name": "ventairy-api-production",
 			"routes": [
 				{
-					"pattern": "api.ventairy.com",
+					"pattern": "internal-api.ventairy.com",
 					"custom_domain": true
 				}
 			],

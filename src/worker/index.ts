@@ -41,7 +41,6 @@ export default {
 						CF_ACCOUNT_ID: environment.CF_ACCOUNT_ID,
 						CF_D1_DATABASE_ID: environment.CF_D1_DATABASE_ID,
 						CF_D1_API_TOKEN: environment.CF_D1_API_TOKEN,
-						BLINDPAY_API_KEY: environment.BLINDPAY_API_KEY,
 						LOG_LEVEL: environment.LOG_LEVEL,
 					},
 				},

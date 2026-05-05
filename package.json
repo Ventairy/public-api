@@ -1,9 +1,9 @@
 {
-	"name": "ventairy-api",
+	"name": "ventairy-internal-api",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Cross-border payment orchestration layer — fiat in, stablecoins out",
+	"description": "Ventairy API to be used internally from Ventairy Products only",
 	"engines": {
 		"node": ">=25.0.0",
 		"bun": ">=1"

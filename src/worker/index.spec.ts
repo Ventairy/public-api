@@ -22,7 +22,6 @@ describe('Worker fetch handler', () => {
 		CF_ACCOUNT_ID: 'test-account',
 		CF_D1_DATABASE_ID: 'test-db',
 		CF_D1_API_TOKEN: 'test-token',
-		BLINDPAY_API_KEY: 'test-key',
 		LOG_LEVEL: 'debug',
 	};
 

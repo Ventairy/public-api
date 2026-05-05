@@ -11,7 +11,7 @@ import { AppModule } from "./app.module";
 import { APP_CONFIG_KEY, type AppConfig } from "./core/config";
 import { AllExceptionsFilter } from "./shared/filters";
 import { CustomValidationPipe } from "./shared/pipes";
-import { LoggingInterceptor, TransformInterceptor, TimeoutInterceptor, AuditInterceptor } from "./shared/interceptors";
+import { LoggingInterceptor, TransformInterceptor, TimeoutInterceptor } from "./shared/interceptors";
 
 async function bootstrap(): Promise<void> {
 	const application = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -33,7 +33,6 @@ async function bootstrap(): Promise<void> {
 
 	application.use(helmet());
 
-
 	application.useGlobalPipes(new CustomValidationPipe());
 
 	const clsService = application.get(ClsService);
@@ -43,15 +42,10 @@ async function bootstrap(): Promise<void> {
 		new LoggingInterceptor(),
 		new TransformInterceptor(clsService),
 		new TimeoutInterceptor(),
-		new AuditInterceptor(clsService),
 	);
 
 	const { DocumentBuilder, SwaggerModule } = await import("@nestjs/swagger");
-	const documentConfiguration = new DocumentBuilder()
-		.setTitle("Ventairy API")
-		.setDescription("Cross-border payment orchestration — fiat in, stablecoins out")
-		.setVersion("1.0")
-		.build();
+	const documentConfiguration = new DocumentBuilder().setTitle("Ventairy Internal API").setVersion("1.0").build();
 	const document = SwaggerModule.createDocument(application, documentConfiguration);
 
 	SwaggerModule.setup("docs", application, document, {
