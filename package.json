@@ -21,6 +21,7 @@
 		"test:watch": "vitest",
 		"test:cov": "vitest run --coverage",
 		"test:e2e": "vitest run --config ./test/vitest-e2e.config.ts",
+		"test:worker": "vitest run --config ./vitest-worker.config.ts",
 		"db:generate": "drizzle-kit generate",
 		"db:push": "drizzle-kit push",
 		"db:deploy": "bun run scripts/deploy-migrations.ts",

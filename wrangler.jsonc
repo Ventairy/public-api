@@ -1,4 +1,5 @@
 {
+	"name": "ventairy-api",
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-05-05",
 	"compatibility_flags": ["nodejs_compat"],
