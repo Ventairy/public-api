@@ -13,6 +13,7 @@ export class ApiContainer extends Container {
 	override defaultPort = CONTAINER_PORT;
 	override sleepAfter = SLEEP_AFTER;
 	override pingEndpoint = PING_ENDPOINT;
+	override entrypoint = ["bun", "dist/main.js"];
 
 	override onStart(): void {
 		console.log(`[ApiContainer] Instance "${CONTAINER_NAME}" started on port ${CONTAINER_PORT}`);
@@ -33,6 +34,17 @@ export default {
 
 		try {
 			await containerInstance.startAndWaitForPorts({
+				startOptions: {
+					envVars: {
+						NODE_ENV: environment.NODE_ENV,
+						PORT: environment.PORT,
+						CF_ACCOUNT_ID: environment.CF_ACCOUNT_ID,
+						CF_D1_DATABASE_ID: environment.CF_D1_DATABASE_ID,
+						CF_D1_API_TOKEN: environment.CF_D1_API_TOKEN,
+						BLINDPAY_API_KEY: environment.BLINDPAY_API_KEY,
+						LOG_LEVEL: environment.LOG_LEVEL,
+					},
+				},
 				cancellationOptions: {
 					instanceGetTimeoutMS: START_TIMEOUT_MS,
 					portReadyTimeoutMS: PORT_READY_TIMEOUT_MS,
