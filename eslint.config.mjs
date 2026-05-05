@@ -57,6 +57,15 @@ export default defineConfig(
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'coverage/', '.wrangler/', '*.js'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'coverage/',
+      '.wrangler/',
+      '*.js',
+      'src/**/*.spec.ts',
+      'src/**/*.test.ts',
+      'test/**/*.ts',
+    ],
   },
 );

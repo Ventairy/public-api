@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe, VersioningType } from "@nestjs/common";
+import { VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
 import { NestExpressApplication } from "@nestjs/platform-express";
@@ -11,6 +11,7 @@ import { AppModule } from "./app.module";
 import { APP_CONFIG_KEY, type AppConfig } from "./core/config";
 import { CorsMiddleware } from "./shared/middlewares/cors.middleware";
 import { AllExceptionsFilter } from "./shared/filters";
+import { CustomValidationPipe } from "./shared/pipes";
 import { LoggingInterceptor, TransformInterceptor, TimeoutInterceptor, AuditInterceptor } from "./shared/interceptors";
 
 async function bootstrap(): Promise<void> {
@@ -36,23 +37,14 @@ async function bootstrap(): Promise<void> {
 	const corsMiddleware = application.get(CorsMiddleware);
 	application.use(corsMiddleware.use.bind(corsMiddleware));
 
-	application.useGlobalPipes(
-		new ValidationPipe({
-			whitelist: true,
-			forbidNonWhitelisted: true,
-			transform: true,
-			transformOptions: {
-				enableImplicitConversion: true,
-			},
-		}),
-	);
-
-	application.useGlobalFilters(new AllExceptionsFilter());
+	application.useGlobalPipes(new CustomValidationPipe());
 
 	const clsService = application.get(ClsService);
+	application.useGlobalFilters(new AllExceptionsFilter(clsService));
+
 	application.useGlobalInterceptors(
 		new LoggingInterceptor(),
-		new TransformInterceptor(),
+		new TransformInterceptor(clsService),
 		new TimeoutInterceptor(),
 		new AuditInterceptor(clsService),
 	);

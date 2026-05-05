@@ -107,4 +107,47 @@ describe("CorsMiddleware", () => {
 			expect(mockNext).toHaveBeenCalled();
 		});
 	});
+
+	describe("Edge Cases", () => {
+		it("should call next() if no origin is present", () => {
+			const req = { headers: {}, method: "GET" } as Request;
+			const res = mockResponse();
+
+			middleware.use(req, res, mockNext);
+
+			expect(mockNext).toHaveBeenCalled();
+			expect(res.setHeader).not.toHaveBeenCalled();
+		});
+
+		it("should return 204 for OPTIONS request", () => {
+			const req = {
+				headers: { origin: "https://ventairy.com" },
+				method: "OPTIONS",
+			} as Request;
+			const res = mockResponse();
+
+			middleware.use(req, res, mockNext);
+
+			expect(res.status).toHaveBeenCalledWith(204);
+			expect(res.end).toHaveBeenCalled();
+			expect(mockNext).not.toHaveBeenCalled();
+		});
+
+		it("should handle invalid origin URL", () => {
+			const req = {
+				headers: { origin: "invalid-url" },
+				method: "GET",
+			} as Request;
+			const res = mockResponse();
+
+			middleware.use(req, res, mockNext);
+
+			expect(res.status).toHaveBeenCalledWith(403);
+		});
+
+    it("should throw error if config is missing", () => {
+      const emptyConfig = { get: vi.fn().mockReturnValue(null) } as unknown as ConfigService;
+      expect(() => new CorsMiddleware(emptyConfig)).toThrow("Application configuration is missing");
+    });
+	});
 });

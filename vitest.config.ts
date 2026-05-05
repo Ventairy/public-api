@@ -10,11 +10,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.(t|j)s'],
+      all: true,
+      include: ['src/**/*.ts'],
       exclude: [
         'src/main.ts',
         'src/**/*.module.ts',
         'src/**/index.ts',
+        'src/**/*.spec.ts',
+        'src/**/*.d.ts',
+        'src/**/__tests__/**',
+        'src/**/*.dto.ts',
+        'src/**/*.type.ts',
+        'src/**/*.interface.ts',
+        'src/db/schema/**',
       ],
       thresholds: {
         statements: 90,

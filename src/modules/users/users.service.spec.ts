@@ -89,15 +89,9 @@ describe("UsersService", () => {
 		});
 
 		it("should throw UserAlreadyExistsException on unique constraint violation", async () => {
-			mockDb.returning.mockRejectedValue(
-				new Error(
-					"SqliteError: UNIQUE constraint failed: users.wallet_address",
-				),
-			);
+			mockDb.returning.mockRejectedValue(new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"));
 
-			await expect(service.createUser(validWalletAddress)).rejects.toThrow(
-				UserAlreadyExistsException,
-			);
+			await expect(service.createUser(validWalletAddress)).rejects.toThrow(UserAlreadyExistsException);
 			await expect(service.createUser(validWalletAddress)).rejects.toThrow(
 				`A user with wallet address ${validWalletAddress} already exists`,
 			);
@@ -107,17 +101,13 @@ describe("UsersService", () => {
 			const genericError = new Error("Connection timeout");
 			mockDb.returning.mockRejectedValue(genericError);
 
-			await expect(service.createUser(validWalletAddress)).rejects.toThrow(
-				genericError,
-			);
+			await expect(service.createUser(validWalletAddress)).rejects.toThrow(genericError);
 		});
 
 		it("should throw when insert returns an empty array", async () => {
 			mockDb.returning.mockResolvedValue([]);
 
-			await expect(service.createUser(validWalletAddress)).rejects.toThrow(
-				"User insert returned no rows",
-			);
+			await expect(service.createUser(validWalletAddress)).rejects.toThrow("User insert returned no rows");
 		});
 	});
 });
