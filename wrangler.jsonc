@@ -45,6 +45,14 @@
 				"PORT": "3000",
 				"LOG_LEVEL": "debug"
 			},
+			"containers": [
+				{
+					"class_name": "ApiContainer",
+					"image": "./Dockerfile",
+					"instance_type": "basic",
+					"max_instances": 1
+				}
+			],
 			"durable_objects": {
 				"bindings": [
 					{
@@ -67,6 +75,14 @@
 				"PORT": "3000",
 				"LOG_LEVEL": "info"
 			},
+			"containers": [
+				{
+					"class_name": "ApiContainer",
+					"image": "./Dockerfile",
+					"instance_type": "basic",
+					"max_instances": 1
+				}
+			],
 			"durable_objects": {
 				"bindings": [
 					{
