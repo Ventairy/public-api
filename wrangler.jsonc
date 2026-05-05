@@ -69,7 +69,7 @@
 			}
 		},
 		"production": {
-			"name": "ventairy-api-production",
+			"name": "ventairy-interal-api-production",
 			"routes": [
 				{
 					"pattern": "internal-api.ventairy.com",
