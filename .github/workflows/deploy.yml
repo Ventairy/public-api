@@ -88,8 +88,8 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          packageManager: bun
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: npm
           wranglerVersion: "4"
           command: deploy --env ${{ needs.resolve-environment.outputs.environment }} --secrets-file .secrets.env
         env:
