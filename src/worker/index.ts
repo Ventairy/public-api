@@ -5,7 +5,9 @@ import type { Env } from "./env";
 const CONTAINER_NAME = "api";
 const CONTAINER_PORT = 3000;
 const SLEEP_AFTER = "30m";
-const PING_ENDPOINT = "http://localhost:3000/v1/health/live";
+const PING_ENDPOINT = "localhost/v1/health/live";
+const START_TIMEOUT_MS = 60_000;
+const PORT_READY_TIMEOUT_MS = 60_000;
 
 export class ApiContainer extends Container {
 	override defaultPort = CONTAINER_PORT;
@@ -29,8 +31,28 @@ export default {
 	async fetch(request: Request, environment: Env): Promise<Response> {
 		const containerInstance = getContainer(environment.API_CONTAINER as never, CONTAINER_NAME);
 
-		await containerInstance.startAndWaitForPorts();
+		try {
+			await containerInstance.startAndWaitForPorts({
+				cancellationOptions: {
+					instanceGetTimeoutMS: START_TIMEOUT_MS,
+					portReadyTimeoutMS: PORT_READY_TIMEOUT_MS,
+				},
+			});
 
-		return containerInstance.fetch(request);
+			return containerInstance.fetch(request);
+		} catch (error) {
+			console.error("[ApiContainer] Failed to start container:", error);
+
+			return new Response(
+				JSON.stringify({
+					message: "Container startup failed",
+					error: error instanceof Error ? error.message : "Unknown error",
+				}),
+				{
+					status: 503,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
 	},
 };
