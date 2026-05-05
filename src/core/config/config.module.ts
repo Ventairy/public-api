@@ -12,9 +12,10 @@ import { validationSchema } from "./validation.schema";
 	imports: [
 		NestConfigModule.forRoot({
 			isGlobal: true,
-			envFilePath: '.env',
+			envFilePath: ".env",
+			ignoreEnvFile: process.env["NODE_ENV"] === "test",
 			load: [appConfig, databaseConfig, providersConfig],
-			validationSchema,
+			validationSchema: process.env["NODE_ENV"] === "test" ? undefined : validationSchema,
 			validationOptions: {
 				abortEarly: true,
 				allowUnknown: true,
