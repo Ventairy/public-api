@@ -40,12 +40,6 @@
 	"env": {
 		"staging": {
 			"name": "ventairy-internal-api-staging",
-			"routes": [
-				{
-					"pattern": "staging.internal-api.ventairy.com",
-					"custom_domain": true
-				}
-			],
 			"vars": {
 				"NODE_ENV": "staging",
 				"PORT": "3000",
@@ -69,13 +63,7 @@
 			}
 		},
 		"production": {
-			"name": "ventairy-interal-api-production",
-			"routes": [
-				{
-					"pattern": "internal-api.ventairy.com",
-					"custom_domain": true
-				}
-			],
+			"name": "ventairy-internal-api-production",
 			"vars": {
 				"NODE_ENV": "production",
 				"PORT": "3000",
