@@ -11,9 +11,7 @@ export class UsersController {
 	@Post("create")
 	@HttpCode(HttpStatus.CREATED)
 	@ApiCreateUserDocs()
-	public async create(
-		@Body() body: CreateUserInputDto,
-	): Promise<CreateUserOutputDto> {
+	public async create(@Body() body: CreateUserInputDto): Promise<CreateUserOutputDto> {
 		return this.usersService.createUser(body.walletAddress);
 	}
 }

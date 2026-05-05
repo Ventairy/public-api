@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { usersTable, type UserRow } from "@db/schema/users";
+import { usersTable, type UserRow } from "@db/schema/users-table";
 import { DrizzleService } from "@core/database/drizzle.service";
 import { VENTAIRY_KYC_STATUS } from "@shared/constants/ventairy-kyc-status";
 import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
