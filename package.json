@@ -4,6 +4,10 @@
 	"private": true,
 	"type": "module",
 	"description": "Cross-border payment orchestration layer — fiat in, stablecoins out",
+	"engines": {
+		"node": ">=25.0.0",
+		"bun": ">=1"
+	},
 	"scripts": {
 		"build": "nest build && tsc-alias",
 		"start": "nest start --exec bun",
