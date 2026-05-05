@@ -1,0 +1,80 @@
+{
+	"name": "ventairy-api",
+	"main": "src/worker/index.ts",
+	"compatibility_date": "2026-05-05",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": false,
+	"containers": [
+		{
+			"class_name": "ApiContainer",
+			"image": "./Dockerfile",
+			"instance_type": "basic",
+			"max_instances": 1
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "ApiContainer",
+				"name": "API_CONTAINER"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["ApiContainer"]
+		}
+	],
+	"vars": {
+		"NODE_ENV": "development",
+		"PORT": "3000",
+		"LOG_LEVEL": "debug"
+	},
+	"env": {
+		"staging": {
+			"name": "ventairy-api-staging",
+			"routes": [
+				{
+					"pattern": "staging.api.ventairy.com",
+					"custom_domain": true
+				}
+			],
+			"vars": {
+				"NODE_ENV": "staging",
+				"PORT": "3000",
+				"LOG_LEVEL": "debug"
+			},
+			"durable_objects": {
+				"bindings": [
+					{
+						"class_name": "ApiContainer",
+						"name": "API_CONTAINER"
+					}
+				]
+			}
+		},
+		"production": {
+			"name": "ventairy-api-production",
+			"routes": [
+				{
+					"pattern": "api.ventairy.com",
+					"custom_domain": true
+				}
+			],
+			"vars": {
+				"NODE_ENV": "production",
+				"PORT": "3000",
+				"LOG_LEVEL": "info"
+			},
+			"durable_objects": {
+				"bindings": [
+					{
+						"class_name": "ApiContainer",
+						"name": "API_CONTAINER"
+					}
+				]
+			}
+		}
+	}
+}

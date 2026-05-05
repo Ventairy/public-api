@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"target": "ES2022",
+		"outDir": "./dist/worker",
+		"baseUrl": "./",
+		"skipLibCheck": true,
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noFallthroughCasesInSwitch": true,
+		"useUnknownInCatchVariables": true,
+		"forceConsistentCasingInFileNames": true,
+		"noImplicitReturns": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"types": ["@cloudflare/workers-types/experimental"]
+	},
+	"include": ["src/worker/**/*"],
+	"exclude": ["node_modules", "dist"]
+}

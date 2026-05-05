@@ -4,6 +4,15 @@
 	"semi": true,
 	"printWidth": 120,
 	"tabWidth": 2,
+	"useTabs": true,
 	"arrowParens": "always",
-	"endOfLine": "lf"
+	"endOfLine": "lf",
+	"overrides": [
+		{
+			"files": ["*.json", "*.jsonc"],
+			"options": {
+				"trailingComma": "none"
+			}
+		}
+	]
 }

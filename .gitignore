@@ -25,6 +25,7 @@ coverage/
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
+.dev.vars.*
 .mf/
 
 # Bun

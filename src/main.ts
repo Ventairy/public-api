@@ -9,7 +9,6 @@ import { ClsService } from "nestjs-cls";
 
 import { AppModule } from "./app.module";
 import { APP_CONFIG_KEY, type AppConfig } from "./core/config";
-import { CorsMiddleware } from "./shared/middlewares/cors.middleware";
 import { AllExceptionsFilter } from "./shared/filters";
 import { CustomValidationPipe } from "./shared/pipes";
 import { LoggingInterceptor, TransformInterceptor, TimeoutInterceptor, AuditInterceptor } from "./shared/interceptors";
@@ -34,8 +33,6 @@ async function bootstrap(): Promise<void> {
 
 	application.use(helmet());
 
-	const corsMiddleware = application.get(CorsMiddleware);
-	application.use(corsMiddleware.use.bind(corsMiddleware));
 
 	application.useGlobalPipes(new CustomValidationPipe());
 
@@ -49,20 +46,18 @@ async function bootstrap(): Promise<void> {
 		new AuditInterceptor(clsService),
 	);
 
-	if (appConfiguration.swaggerEnabled) {
-		const { DocumentBuilder, SwaggerModule } = await import("@nestjs/swagger");
-		const documentConfiguration = new DocumentBuilder()
-			.setTitle("Ventairy API")
-			.setDescription("Cross-border payment orchestration — fiat in, stablecoins out")
-			.setVersion("1.0")
-			.build();
-		const document = SwaggerModule.createDocument(application, documentConfiguration);
+	const { DocumentBuilder, SwaggerModule } = await import("@nestjs/swagger");
+	const documentConfiguration = new DocumentBuilder()
+		.setTitle("Ventairy API")
+		.setDescription("Cross-border payment orchestration — fiat in, stablecoins out")
+		.setVersion("1.0")
+		.build();
+	const document = SwaggerModule.createDocument(application, documentConfiguration);
 
-		SwaggerModule.setup("docs", application, document, {
-			jsonDocumentUrl: "/openapi.json",
-			yamlDocumentUrl: "/openapi.yaml",
-		});
-	}
+	SwaggerModule.setup("docs", application, document, {
+		jsonDocumentUrl: "/openapi.json",
+		yamlDocumentUrl: "/openapi.yaml",
+	});
 	await application.listen(appConfiguration.port, "0.0.0.0");
 }
 
