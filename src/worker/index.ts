@@ -42,6 +42,9 @@ export default {
 						CF_D1_DATABASE_ID: environment.CF_D1_DATABASE_ID,
 						CF_D1_API_TOKEN: environment.CF_D1_API_TOKEN,
 						LOG_LEVEL: environment.LOG_LEVEL,
+						SIWE_DOMAIN: environment.SIWE_DOMAIN,
+						SIWE_URI: environment.SIWE_URI,
+						SIWE_NONCE_TTL_SECONDS: environment.SIWE_NONCE_TTL_SECONDS,
 					},
 				},
 				cancellationOptions: {

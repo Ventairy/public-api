@@ -3,13 +3,27 @@ import { usersTable, type UserRow } from "@db/schema/users-table";
 import { DrizzleService } from "@core/database/drizzle.service";
 import { VENTAIRY_KYC_STATUS } from "@shared/constants/ventairy-kyc-status";
 import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
+import { SiweVerifierService } from "@modules/auth/verification/siwe-verifier.service";
 import { CreateUserOutputDto } from "./dto/create-user-output.dto";
 
 @Injectable()
 export class UsersService {
-	constructor(private readonly drizzleService: DrizzleService) {}
+	constructor(
+		private readonly drizzleService: DrizzleService,
+		private readonly siweVerifierService: SiweVerifierService,
+	) {}
 
-	public async createUser(walletAddress: string): Promise<CreateUserOutputDto> {
+	public async createUser(
+		walletAddress: string,
+		siweMessage: string,
+		siweSignature: string,
+	): Promise<CreateUserOutputDto> {
+		await this.siweVerifierService.verify({
+			walletAddress,
+			message: siweMessage,
+			signature: siweSignature,
+		});
+
 		const normalizedWalletAddress = walletAddress.toLowerCase();
 		const newUserId = this._generateUserId();
 

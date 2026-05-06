@@ -1,3 +1,10 @@
 export { DomainException } from "./domain.exception";
+export { InvalidSiweSignatureException as InvalidSignatureException } from "./invalid-siwe-signature.exception";
+export { NonceExpiredException } from "./nonce-expired.exception";
+export { NonceNotFoundException } from "./nonce-not-found.exception";
+export { SignerMismatchException } from "./signer-mismatch.exception";
+export { NonceWalletMismatchException } from "./nonce-wallet-mismatch.exception";
+export { SignatureVerificationUnavailableException } from "./signature-verification-unavailable.exception";
+export { SiweMessageInvalidException } from "./siwe-message-invalid.exception";
 export { UserAlreadyExistsException } from "./user-already-exists.exception";
 export { ValidationException } from "./validation.exception";

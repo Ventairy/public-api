@@ -27,7 +27,7 @@ const VALIDATION_HINT_MAP: Record<string, string> = {
 	isDateString: "Provide a date string in ISO 8601 format (e.g. 2026-05-04T22:18:44.869Z).",
 	isDefined: "This field is required and must be provided.",
 	whitelistValidation: "Remove this field — it is not accepted by the API.",
-	isHexadecimal: "Provide a valid hexadecimal string.",
+	isHexadecimal: "Provide a valid hexadecimal string (e.g. 0x...).",
 	isDecimal: "Provide a valid decimal number.",
 	isBase64: "Provide a valid Base64-encoded string.",
 };

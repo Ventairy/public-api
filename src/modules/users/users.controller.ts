@@ -12,6 +12,6 @@ export class UsersController {
 	@HttpCode(HttpStatus.CREATED)
 	@ApiCreateUserDocs()
 	public async create(@Body() body: CreateUserInputDto): Promise<CreateUserOutputDto> {
-		return this.usersService.createUser(body.walletAddress);
+		return this.usersService.createUser(body.walletAddress, body.siwe.message, body.siwe.signature);
 	}
 }

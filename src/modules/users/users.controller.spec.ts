@@ -14,7 +14,7 @@ describe("UsersController", () => {
 	});
 
 	describe("create", () => {
-		it("should delegate to usersService.createUser with the body walletAddress", async () => {
+		it("should delegate to usersService.createUser with walletAddress, message, and signature", async () => {
 			const expectedResult = {
 				id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
 				wallet_address: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
@@ -26,10 +26,13 @@ describe("UsersController", () => {
 
 			const result = await controller.create({
 				walletAddress: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
+				siwe: { message: "siwe-message", signature: "0xabc123" },
 			});
 
 			expect(usersService.createUser).toHaveBeenCalledWith(
 				"0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
+				"siwe-message",
+				"0xabc123",
 			);
 			expect(result).toEqual(expectedResult);
 		});

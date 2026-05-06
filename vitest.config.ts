@@ -39,7 +39,7 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, 'src/shared'),
       '@modules': path.resolve(__dirname, 'src/modules'),
       '@db': path.resolve(__dirname, 'src/db'),
-      '@auth': path.resolve(__dirname, 'src/auth'),
+      '@auth': path.resolve(__dirname, 'src/modules/auth'),
     },
   },
 });
