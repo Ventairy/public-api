@@ -8,7 +8,7 @@ import { ApiCreateNonceDocs } from "./docs/api-create-nonce-docs.decorator";
 export class AuthController {
 	constructor(private readonly walletAuthService: WalletAuthService) {}
 
-	@Post("wallet/nonce")
+	@Post("wallet/nonce/create")
 	@HttpCode(HttpStatus.CREATED)
 	@ApiCreateNonceDocs()
 	public async createNonce(@Body() body: NonceInputDto): Promise<NonceOutputDto> {

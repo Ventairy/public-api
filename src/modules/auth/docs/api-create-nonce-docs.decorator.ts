@@ -6,7 +6,8 @@ export function ApiCreateNonceDocs(): MethodDecorator & ClassDecorator {
 	return applyDecorators(
 		ApiOperation({
 			summary: "Generate SIWE wallet nonce",
-			description: "Creates a single-use, wallet-bound nonce for ERC-4361 (Sign-In with Ethereum) message signing. The nonce expires after 3 minutes and must be included in the SIWE message when calling POST /v1/users/create.",
+			description:
+				"Creates a single-use, wallet-bound nonce for ERC-4361 (Sign-In with Ethereum) message signing. The nonce expires after some time.",
 		}),
 		ApiResponse({
 			status: HttpStatus.CREATED,
