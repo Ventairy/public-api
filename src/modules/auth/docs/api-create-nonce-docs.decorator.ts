@@ -5,7 +5,7 @@ import { NonceOutputDto } from "../dto/nonce-output.dto";
 export function ApiCreateNonceDocs(): MethodDecorator & ClassDecorator {
 	return applyDecorators(
 		ApiOperation({
-			summary: "Generate SIWE wallet nonce",
+			summary: "Generate nonce for wallet message signing",
 			description: "Creates a single-use, wallet-bound nonce for message signing. The nonce expires after a set time.",
 		}),
 		ApiResponse({
