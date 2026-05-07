@@ -18,8 +18,8 @@ export class WalletNonceService {
 		ttlSeconds: number,
 	): Promise<{
 		nonce: string;
-		expires_at: string;
-		wallet_address: string;
+		expiresAt: string;
+		walletAddress: string;
 	}> {
 		const normalizedWalletAddress = walletAddress.toLowerCase();
 		const nonce = this._generateNonce();
@@ -36,10 +36,11 @@ export class WalletNonceService {
 
 		return {
 			nonce,
-			expires_at: expiresAt.toISOString(),
-			wallet_address: normalizedWalletAddress,
+			expiresAt: expiresAt.toISOString(),
+			walletAddress: normalizedWalletAddress,
 		};
 	}
+
 
 	public async findNonce(nonce: string): Promise<SignatureNonceRow | undefined> {
 		const rows = await this.drizzleService.db

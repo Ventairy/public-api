@@ -4,13 +4,13 @@ import { DomainException } from "./domain.exception";
 
 export class SignatureVerificationUnavailableException extends DomainException {
 	constructor() {
-		super(
-			ERROR_CODES.SIGNATURE_VERIFICATION_UNAVAILABLE,
-			"Signature verification is currently unavailable due to a blockchain RPC failure.",
-			HttpStatus.SERVICE_UNAVAILABLE,
-			{
+		super({
+			domainCode: ERROR_CODES.SIGNATURE_VERIFICATION_UNAVAILABLE,
+			message: "Signature verification is currently unavailable due to a blockchain RPC failure.",
+			statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+			details: {
 				hint: "The blockchain RPC nodes could not be reached. Retry the request after a short delay.",
 			},
-		);
+		});
 	}
 }

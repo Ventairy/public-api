@@ -1,4 +1,4 @@
-import * as Joi from "joi";
+import Joi from "joi";
 
 export const validationSchema = Joi.object({
 	NODE_ENV: Joi.string().valid("development", "production", "test", "staging").default("development"),
@@ -13,4 +13,9 @@ export const validationSchema = Joi.object({
 	SIWE_DOMAIN: Joi.string().required(),
 	SIWE_URI: Joi.string().required(),
 	SIWE_NONCE_TTL_SECONDS: Joi.number().integer().min(30).max(600).required(),
+
+	R2_ENDPOINT: Joi.string().required(),
+	R2_BUSINESS_FILES_ACCESS_KEY_ID: Joi.string().required(),
+	R2_BUSINESS_FILES_SECRET_ACCESS_KEY: Joi.string().required(),
+	R2_BUSINESS_FILES_BUCKET_NAME: Joi.string().required(),
 });

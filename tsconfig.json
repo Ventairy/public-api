@@ -23,7 +23,6 @@
 		"noImplicitReturns": true,
 		"noPropertyAccessFromIndexSignature": true,
 		"paths": {
-			"@app/*": ["src/*"],
 			"@core/*": ["src/core/*"],
 			"@shared/*": ["src/shared/*"],
 			"@modules/*": ["src/modules/*"],

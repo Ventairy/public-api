@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { usersTable, type UserRow } from "@db/schema/users-table";
+import { UserRow, usersTable } from "@db/schema/users-table";
+import { kycTable } from "@db/schema/kyc-table";
+import { eq } from "drizzle-orm";
 import { DrizzleService } from "@core/database/drizzle.service";
-import { VENTAIRY_KYC_STATUS } from "@shared/constants/ventairy-kyc-status";
 import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
 import { SiweVerifierService } from "@modules/auth/verification/siwe-verifier.service";
 import { CreateUserOutputDto } from "./dto/create-user-output.dto";
@@ -13,13 +14,18 @@ export class UsersService {
 		private readonly siweVerifierService: SiweVerifierService,
 	) {}
 
+	public async getUserDatabaseRow(userId: string): Promise<UserRow | null> {
+		const rows = await this.drizzleService.db.select().from(usersTable).where(eq(usersTable.id, userId));
+		return rows[0] ?? null;
+	}
+
 	public async createUser(
 		walletAddress: string,
 		siweMessage: string,
 		siweSignature: string,
 	): Promise<CreateUserOutputDto> {
 		await this.siweVerifierService.verify({
-			walletAddress,
+			expectedSignerWalletAddress: walletAddress,
 			message: siweMessage,
 			signature: siweSignature,
 		});
@@ -33,7 +39,6 @@ export class UsersService {
 				.values({
 					id: newUserId,
 					wallet_address: normalizedWalletAddress,
-					ventairy_kyc_status: VENTAIRY_KYC_STATUS.PENDING,
 				})
 				.returning();
 
@@ -41,7 +46,12 @@ export class UsersService {
 
 			if (!insertedRow) throw new Error("User insert returned no rows");
 
-			return this._toResponse(insertedRow);
+			await this.drizzleService.db.insert(kycTable).values({
+				id: crypto.randomUUID(),
+				user_id: newUserId,
+			});
+
+			return CreateUserOutputDto.fromDatabaseRow(insertedRow);
 		} catch (error) {
 			if (this._isUniqueViolation(error)) throw new UserAlreadyExistsException(normalizedWalletAddress);
 
@@ -60,15 +70,5 @@ export class UsersService {
 				: String(error);
 
 		return message.includes("UNIQUE constraint failed") && message.includes("wallet_address");
-	}
-
-	private _toResponse(row: UserRow): CreateUserOutputDto {
-		return {
-			id: row.id,
-			wallet_address: row.wallet_address,
-			ventairy_kyc_status: row.ventairy_kyc_status,
-			created_at: row.created_at,
-			updated_at: row.updated_at,
-		};
 	}
 }

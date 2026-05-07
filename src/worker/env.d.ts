@@ -10,4 +10,8 @@ export interface Env {
 	SIWE_DOMAIN: string;
 	SIWE_URI: string;
 	SIWE_NONCE_TTL_SECONDS: string;
+	R2_ENDPOINT: string;
+	R2_BUSINESS_FILES_ACCESS_KEY_ID: string;
+	R2_BUSINESS_FILES_SECRET_ACCESS_KEY: string;
+	R2_BUSINESS_FILES_BUCKET_NAME: string;
 }

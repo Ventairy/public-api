@@ -6,19 +6,13 @@ import { SIWE_CONFIG_KEY, type SiweConfig } from "@core/config";
 import { parseAndValidateSiweMessage } from "@shared/siwe/siwe-utils";
 import { getBlockchainByChainId } from "@shared/blockchain";
 import { WalletNonceService } from "@modules/auth/wallet/wallet-nonce.service";
-import { InvalidSiweSignatureException } from "@app/shared/exceptions/invalid-siwe-signature.exception";
+import { InvalidSiweSignatureException } from "@shared/exceptions/invalid-siwe-signature.exception";
 import { NonceExpiredException } from "@shared/exceptions/nonce-expired.exception";
 import { NonceNotFoundException } from "@shared/exceptions/nonce-not-found.exception";
 import { SignerMismatchException } from "@shared/exceptions/signer-mismatch.exception";
 import { NonceWalletMismatchException } from "@shared/exceptions/nonce-wallet-mismatch.exception";
 import { SignatureVerificationUnavailableException } from "@shared/exceptions/signature-verification-unavailable.exception";
 import { SiweMessageInvalidException } from "@shared/exceptions/siwe-message-invalid.exception";
-
-export interface SiweVerificationParams {
-	walletAddress: string;
-	message: string;
-	signature: string;
-}
 
 @Injectable()
 export class SiweVerifierService {
@@ -27,34 +21,45 @@ export class SiweVerifierService {
 		private readonly configService: ConfigService,
 	) {}
 
-	public async verify(params: SiweVerificationParams): Promise<void> {
+	public async verify(params: {
+		expectedSignerWalletAddress: string;
+		message: string;
+		signature: string;
+	}): Promise<void> {
 		const siweConfig = this.configService.get<SiweConfig>(SIWE_CONFIG_KEY);
 		if (!siweConfig) throw new Error("SIWE configuration is missing");
 
-		const normalizedWalletAddress = params.walletAddress.toLowerCase();
+		const lowercasedExpectedSignerAddress = params.expectedSignerWalletAddress.toLowerCase();
 
 		const siweMessage = parseAndValidateSiweMessage(params.message, {
 			siweConfig,
-			expectedWalletAddress: normalizedWalletAddress,
+			expectedWalletAddress: lowercasedExpectedSignerAddress,
 		});
 
 		const nonceRow = await this.nonceService.findNonce(siweMessage.nonce);
 		if (!nonceRow) throw new NonceNotFoundException(siweMessage.nonce);
 
-		if (nonceRow.wallet_address !== normalizedWalletAddress) {
-			throw new NonceWalletMismatchException(normalizedWalletAddress, nonceRow.wallet_address);
+		if (nonceRow.wallet_address !== lowercasedExpectedSignerAddress) {
+			throw new NonceWalletMismatchException({
+				requestedWalletAddress: lowercasedExpectedSignerAddress,
+				nonceWalletAddress: nonceRow.wallet_address,
+			});
 		}
 
 		const expiresAt = new Date(nonceRow.expires_at);
-		if (expiresAt.getTime() < Date.now()) throw new NonceExpiredException(siweMessage.nonce, siweConfig.nonceTtlSeconds);
+		if (expiresAt.getTime() < Date.now())
+			throw new NonceExpiredException({ nonce: siweMessage.nonce, ttlSeconds: siweConfig.nonceTtlSeconds });
 
 		await this._verifySignatureOnChain(siweMessage, params.signature as Hex);
 
-		if (siweMessage.address.toLowerCase() !== normalizedWalletAddress) {
-			throw new SignerMismatchException(normalizedWalletAddress, siweMessage.address.toLowerCase());
+		if (siweMessage.address.toLowerCase() !== lowercasedExpectedSignerAddress) {
+			throw new SignerMismatchException({
+				expectedWalletAddress: lowercasedExpectedSignerAddress,
+				actualWalletAddress: siweMessage.address.toLowerCase(),
+			});
 		}
 
-		await this.nonceService.deleteNonce(siweMessage.nonce, normalizedWalletAddress);
+		await this.nonceService.deleteNonce(siweMessage.nonce, lowercasedExpectedSignerAddress);
 	}
 
 	private async _verifySignatureOnChain(siweMessage: SiweMessage, signature: Hex): Promise<void> {

@@ -1,2 +1,8 @@
 export { ERROR_CODES, type ErrorCode } from "./error-codes";
-export { VENTAIRY_KYC_STATUS, type VentairyKycStatus } from "./ventairy-kyc-status";
+export { VentairyKycStatus as VentairyKycStatus } from "../enums/ventairy-kyc-status";
+export { BusinessFileType } from "../enums/business-file-type";
+export { BusinessControllerFileType } from "../enums/business-controller-file-type";
+export { BusinessControllerRole as ControllerRole } from "../enums/business-controller-role";
+export { AddressProofType as ProofAddressType } from "../enums/address-proof-type";
+export { PersonalIdentificationDocumentType as IdentificationDocumentType } from "../enums/personal-identification-document-type";
+export { R2BucketType } from "../enums/r2-bucket-type";

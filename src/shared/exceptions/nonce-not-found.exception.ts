@@ -4,14 +4,14 @@ import { DomainException } from "./domain.exception";
 
 export class NonceNotFoundException extends DomainException {
 	constructor(nonce: string) {
-		super(
-			ERROR_CODES.NONCE_NOT_FOUND,
-			"The provided nonce does not exist or has already been consumed.",
-			HttpStatus.NOT_FOUND,
-			{
+		super({
+			domainCode: ERROR_CODES.NONCE_NOT_FOUND,
+			message: "The provided nonce does not exist or has already been consumed.",
+			statusCode: HttpStatus.NOT_FOUND,
+			details: {
 				context: { nonce },
 				hint: "Request a new nonce before attempting user creation. Each nonce is single-use.",
 			},
-		);
+		});
 	}
 }

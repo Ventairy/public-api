@@ -45,6 +45,10 @@ export default {
 						SIWE_DOMAIN: environment.SIWE_DOMAIN,
 						SIWE_URI: environment.SIWE_URI,
 						SIWE_NONCE_TTL_SECONDS: environment.SIWE_NONCE_TTL_SECONDS,
+						R2_ENDPOINT: environment.R2_ENDPOINT,
+						R2_BUSINESS_FILES_ACCESS_KEY_ID: environment.R2_BUSINESS_FILES_ACCESS_KEY_ID,
+						R2_BUSINESS_FILES_SECRET_ACCESS_KEY: environment.R2_BUSINESS_FILES_SECRET_ACCESS_KEY,
+						R2_BUSINESS_FILES_BUCKET_NAME: environment.R2_BUSINESS_FILES_BUCKET_NAME,
 					},
 				},
 				cancellationOptions: {

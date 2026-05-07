@@ -90,9 +90,14 @@ describe("AllExceptionsFilter", () => {
 
 		class TestDomainException extends DomainException {
 			constructor() {
-				super(ERROR_CODES.BAD_REQUEST, "Something went wrong", HttpStatus.BAD_REQUEST, {
-					context: { foo: "bar" },
-					hint: "Try again",
+				super({
+					domainCode: ERROR_CODES.BAD_REQUEST,
+					message: "Something went wrong",
+					statusCode: HttpStatus.BAD_REQUEST,
+					details: {
+						context: { foo: "bar" },
+						hint: "Try again",
+					},
 				});
 			}
 		}
@@ -313,9 +318,14 @@ describe("AllExceptionsFilter", () => {
 			}),
 		} as unknown as ArgumentsHost;
 
-		const exception = new MockDomainException(ERROR_CODES.BAD_REQUEST, "Msg", 400, {
-			hint: "Do this",
-			context: { key: "val" },
+		const exception = new MockDomainException({
+			domainCode: ERROR_CODES.BAD_REQUEST,
+			message: "Msg",
+			statusCode: 400,
+			details: {
+				hint: "Do this",
+				context: { key: "val" },
+			},
 		});
 
 		const filter = new AllExceptionsFilter(clsService as any);
@@ -427,7 +437,11 @@ describe("AllExceptionsFilter", () => {
 			}),
 		} as unknown as ArgumentsHost;
 
-		const exception = new MockDomainException(ERROR_CODES.BAD_REQUEST, "Msg", 400);
+		const exception = new MockDomainException({
+			domainCode: ERROR_CODES.BAD_REQUEST,
+			message: "Msg",
+			statusCode: 400,
+		});
 
 		const filter = new AllExceptionsFilter(clsService as any);
 		filter.catch(exception, mockHost);
@@ -452,7 +466,12 @@ describe("AllExceptionsFilter", () => {
 			}),
 		} as unknown as ArgumentsHost;
 
-		const exception = new MockDomainException(ERROR_CODES.BAD_REQUEST, "Msg", 400, {} as any);
+		const exception = new MockDomainException({
+			domainCode: ERROR_CODES.BAD_REQUEST,
+			message: "Msg",
+			statusCode: 400,
+			details: {} as any,
+		});
 
 		const filter = new AllExceptionsFilter(clsService as any);
 		filter.catch(exception, mockHost);
@@ -504,8 +523,13 @@ describe("AllExceptionsFilter", () => {
 		} as unknown as ArgumentsHost;
 
 		const fieldErrors = [{ path: "field", message: "error", constraint: "rule" }];
-		const exception = new MockDomainException(ERROR_CODES.BAD_REQUEST, "Msg", 400, {
-			errors: fieldErrors,
+		const exception = new MockDomainException({
+			domainCode: ERROR_CODES.BAD_REQUEST,
+			message: "Msg",
+			statusCode: 400,
+			details: {
+				errors: fieldErrors,
+			},
 		});
 
 		const filter = new AllExceptionsFilter(clsService as any);

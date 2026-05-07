@@ -33,12 +33,7 @@ export class DrizzleService implements OnModuleDestroy {
 		this.db = drizzle<typeof schema>(remoteCallback, { schema });
 	}
 
-	private async executeD1Query(
-		sql: string,
-		parameters: unknown[],
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_method: string,
-	): Promise<unknown[]> {
+	private async executeD1Query(sql: string, parameters: unknown[], _method: string): Promise<unknown[]> {
 		const url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/d1/database/${this.databaseId}/query`;
 
 		const response = await fetch(url, {

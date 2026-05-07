@@ -25,6 +25,7 @@ export default defineConfig(
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-extraneous-class': 'off',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/explicit-function-return-type': [
@@ -39,6 +40,7 @@ export default defineConfig(
         },
         { selector: 'function', format: ['camelCase', 'PascalCase'] },
         { selector: 'typeLike', format: ['PascalCase'] },
+        { selector: 'enum', format: ['PascalCase'] },
         { selector: 'enumMember', format: ['UPPER_CASE'] },
       ],
     },

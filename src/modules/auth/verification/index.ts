@@ -1,1 +1,1 @@
-export { SiweVerifierService, type SiweVerificationParams } from "./siwe-verifier.service";
+export { SiweVerifierService } from "./siwe-verifier.service";

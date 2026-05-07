@@ -34,8 +34,8 @@ describe("WalletAuthService", () => {
 		it("should delegate to WalletNonceService and return nonce output", async () => {
 			const expectedOutput = {
 				nonce: "TESTNONCE123",
-				expires_at: "2026-05-05T12:00:00.000Z",
-				wallet_address: validWalletAddress,
+				expiresAt: "2026-05-05T12:00:00.000Z",
+				walletAddress: validWalletAddress,
 			};
 			mockNonceService.createNonce.mockResolvedValue(expectedOutput);
 
@@ -48,8 +48,8 @@ describe("WalletAuthService", () => {
 		it("should trigger fire-and-forget cleanup", async () => {
 			mockNonceService.createNonce.mockResolvedValue({
 				nonce: "TESTNONCE123",
-				expires_at: "2026-05-05T12:00:00.000Z",
-				wallet_address: validWalletAddress,
+				expiresAt: "2026-05-05T12:00:00.000Z",
+				walletAddress: validWalletAddress,
 			});
 
 			await service.createNonce(validWalletAddress);

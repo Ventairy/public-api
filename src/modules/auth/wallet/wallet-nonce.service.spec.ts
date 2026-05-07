@@ -40,8 +40,8 @@ describe("WalletNonceService", () => {
 			);
 			expect(result).toEqual({
 				nonce: expect.any(String),
-				expires_at: expect.any(String),
-				wallet_address: validWalletAddress,
+				expiresAt: expect.any(String),
+				walletAddress: validWalletAddress,
 			});
 		});
 
@@ -68,7 +68,7 @@ describe("WalletNonceService", () => {
 
 			const result = await service.createNonce(validWalletAddress, 180);
 
-			const expiresAtMs = new Date(result.expires_at).getTime();
+			const expiresAtMs = new Date(result.expiresAt).getTime();
 			expect(expiresAtMs).toBeGreaterThanOrEqual(beforeCreate + ttlMs - 1000);
 			expect(expiresAtMs).toBeLessThanOrEqual(beforeCreate + ttlMs + 2000);
 		});

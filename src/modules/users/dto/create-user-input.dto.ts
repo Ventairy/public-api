@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Transform, Type } from "class-transformer";
-import { IsEthereumAddress, IsString, ValidateNested } from "class-validator";
+import { IsDefined, IsEthereumAddress, IsString, ValidateNested } from "class-validator";
 import { SiweVerificationInputDto } from "@modules/auth/dto/siwe-verification-input.dto";
 
 export class CreateUserInputDto {
@@ -18,11 +18,14 @@ export class CreateUserInputDto {
 	walletAddress!: string;
 
 	@ApiProperty({
+		name: "siwe",
 		description: "ERC-4361 (SIWE) message and signature proving wallet ownership.",
 		type: SiweVerificationInputDto,
 	})
 	@Expose({ name: "siwe" })
+	@IsDefined()
 	@ValidateNested()
 	@Type(() => SiweVerificationInputDto)
 	siwe!: SiweVerificationInputDto;
 }
+
