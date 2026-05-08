@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ExecutionContext, CallHandler } from "@nestjs/common";
+import { ExecutionContext, CallHandler, StreamableFile } from "@nestjs/common";
 import { TransformInterceptor } from "../transform.interceptor";
 import { of } from "rxjs";
 import { ClsService } from "nestjs-cls";
@@ -46,6 +46,17 @@ describe("TransformInterceptor", () => {
 		const result$ = interceptor.intercept(mockContext, mockCallHandler);
 		const result = await result$.toPromise();
 
-		expect(result?.meta.requestId).toBe("unknown");
+		expect((result! as any).meta.requestId).toBe("unknown");
+	});
+
+	it("should return StreamableFile directly without wrapping it in an envelope", async () => {
+		const streamableFile = new StreamableFile(Buffer.from("test"));
+		mockCallHandler.handle = vi.fn().mockReturnValue(of(streamableFile));
+
+		const result$ = interceptor.intercept(mockContext, mockCallHandler);
+		const result = await result$.toPromise();
+
+		expect(result).toBeInstanceOf(StreamableFile);
+		expect(result).toBe(streamableFile);
 	});
 });

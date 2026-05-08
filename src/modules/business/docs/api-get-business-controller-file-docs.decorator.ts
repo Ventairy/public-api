@@ -1,5 +1,5 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiQuery, ApiParam } from "@nestjs/swagger";
+import { ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiProduces } from "@nestjs/swagger";
 import { BusinessControllerFileType } from "@shared/constants";
 
 export function ApiGetBusinessControllerFileDocs(): MethodDecorator & ClassDecorator {
@@ -9,20 +9,25 @@ export function ApiGetBusinessControllerFileDocs(): MethodDecorator & ClassDecor
 			description:
 				"Streams a business controller file from storage identified by user ID, controller ID, and file type. Returns the file with its original content type and filename.",
 		}),
-		ApiParam({ name: "userId", description: "ID of the user who owns the business", format: "uuid" }),
+		ApiProduces("application/octet-stream", "application/pdf", "image/png", "image/jpeg"),
+		ApiParam({ name: "user_id", description: "ID of the user who owns the business", format: "uuid" }),
 		ApiParam({
-			name: "controllerId",
+			name: "controller_id",
 			description: "ID of the business controller who has partial ownership of the business.",
 			format: "uuid",
 		}),
 		ApiQuery({
-			name: "fileType",
+			name: "file_type",
 			description: "Type of business controller file to retrieve.",
 			enum: BusinessControllerFileType,
 		}),
 		ApiResponse({
 			status: HttpStatus.OK,
 			description: "File stream.",
+			schema: {
+				type: "string",
+				format: "binary",
+			},
 		}),
 		ApiResponse({
 			status: HttpStatus.NOT_FOUND,

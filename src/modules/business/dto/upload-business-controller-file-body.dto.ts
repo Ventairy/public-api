@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { Expose } from "class-transformer";
 import { IsEnum } from "class-validator";
 import { BusinessControllerFileType } from "@shared/constants";
 
@@ -10,6 +11,7 @@ export class UploadBusinessControllerFileBodyDto {
 		example: BusinessControllerFileType.IDENTIFICATION_FRONT,
 		required: true,
 	})
+	@Expose({ name: "file_type" })
 	@IsEnum(BusinessControllerFileType)
 	fileType!: BusinessControllerFileType;
 }

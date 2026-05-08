@@ -1,5 +1,6 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common";
-import { ApiConsumes, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiResponse } from "@nestjs/swagger";
+import { BusinessFileType } from "@shared/constants";
 import { UploadBusinessFileOutputDto } from "../dto/upload-business-file-output.dto";
 
 export function ApiUploadBusinessFileDocs(): MethodDecorator & ClassDecorator {
@@ -10,6 +11,25 @@ export function ApiUploadBusinessFileDocs(): MethodDecorator & ClassDecorator {
 				"Uploads a business file to business storage and saves its metadata. Files must not exceed 5MB. The file_type must be one of the allowed business file type categories.",
 		}),
 		ApiConsumes("multipart/form-data"),
+		ApiBody({
+			schema: {
+				type: "object",
+				properties: {
+					file: {
+						type: "string",
+						format: "binary",
+						description: "The business file to upload.",
+					},
+					file_type: {
+						type: "string",
+						enum: Object.values(BusinessFileType),
+						description: "Type category of the business file being uploaded.",
+					},
+				},
+				required: ["file", "file_type"],
+			},
+		}),
+		ApiParam({ name: "user_id", description: "ID of the user who owns the business", format: "uuid" }),
 		ApiResponse({
 			status: HttpStatus.CREATED,
 			description: "File uploaded successfully.",

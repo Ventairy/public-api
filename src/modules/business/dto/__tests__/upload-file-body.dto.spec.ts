@@ -7,7 +7,7 @@ import { UploadBusinessFileBodyDto } from "../upload-business-file-body.dto";
 describe("UploadFileBodyDto", () => {
 	it("should validate a correct dto", async () => {
 		const input = {
-			fileType: BusinessFileType.INCORPORATION_DOCUMENT,
+			file_type: BusinessFileType.INCORPORATION_DOCUMENT,
 		};
 
 		const dto = plainToInstance(UploadBusinessFileBodyDto, input);

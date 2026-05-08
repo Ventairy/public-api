@@ -7,12 +7,12 @@ export { NonceWalletMismatchException } from "./nonce-wallet-mismatch.exception"
 export { SignatureVerificationUnavailableException } from "./signature-verification-unavailable.exception";
 export { SiweMessageInvalidException } from "./siwe-message-invalid.exception";
 export { UserAlreadyExistsException } from "./user-already-exists.exception";
+export { UserNotFoundException } from "./user-not-found.exception";
 export { ValidationException } from "./validation.exception";
-export { FileTooLargeException as KycFileTooLargeException } from "./file-too-large.exception";
-export { BusinessFileNotFoundException as KycFileNotFoundException } from "./business-file-not-found.exception";
+export { FileTooLargeException } from "./file-too-large.exception";
+export { BusinessFileNotFoundException } from "./business-file-not-found.exception";
 export { BusinessControllerFileNotFoundException } from "./business-controller-file-not-found.exception";
 export { BusinessControllerNotFoundException } from "./business-controller-not-found.exception";
 export { KycSubmissionNotFoundException } from "./kyc-submission-not-found.exception";
 export { KycSubmissionLockedException } from "./kyc-submission-locked.exception";
 export { BusinessNotFoundException } from "./business-not-found.exception";
-export { UserNotFoundException } from "./user-not-found.exception";

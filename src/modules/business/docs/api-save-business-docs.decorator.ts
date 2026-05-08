@@ -1,13 +1,15 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common";
-import { ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { ApiOperation, ApiParam, ApiResponse } from "@nestjs/swagger";
 import { BusinessOutputDto } from "../dto/business-output.dto";
 
 export function ApiSaveBusinessDocs(): MethodDecorator & ClassDecorator {
 	return applyDecorators(
 		ApiOperation({
 			summary: "Save or update business data",
-			description: "Saves or updates business data and controllers. All fields are optional — send only the fields you want to update. Controllers are replaced entirely if provided.",
+			description:
+				"Saves or updates business data and controllers. All fields are optional — send only the fields you want to update. Controllers are replaced entirely if provided.",
 		}),
+		ApiParam({ name: "user_id", description: "ID of the user who owns the business", format: "uuid" }),
 		ApiResponse({
 			status: HttpStatus.OK,
 			description: "Business data saved successfully.",
