@@ -201,7 +201,6 @@ describe("BusinessAddressOutputDto", () => {
 		};
 
 		const result = BusinessAddressOutputDto.fromDatabaseRow(mockBusinessRow);
-		console.log("resultadopranos", result);
 		expect(result).toEqual({
 			countryCode: null,
 			street: null,
