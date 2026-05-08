@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
-import { NestFactory } from "@nestjs/core";
-import { VersioningType } from "@nestjs/common";
+import { NestFactory, Reflector } from "@nestjs/core";
+import { ClassSerializerInterceptor, VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
 import { NestExpressApplication } from "@nestjs/platform-express";
@@ -42,6 +42,7 @@ async function bootstrap(): Promise<void> {
 		new LoggingInterceptor(),
 		new TransformInterceptor(clsService),
 		new TimeoutInterceptor(),
+		new ClassSerializerInterceptor(application.get(Reflector), { excludeExtraneousValues: true }),
 	);
 
 	const { DocumentBuilder, SwaggerModule } = await import("@nestjs/swagger");

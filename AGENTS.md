@@ -58,10 +58,12 @@ When writing or modifying code in this repository, you MUST adhere to the follow
   - **Implementation (DTOs):** ALWAYS set both `@Expose({ name: "snake_case" })` and `@ApiProperty({ name: "snake_case" })` on every DTO property.
   - **Implementation (Controllers):** ALWAYS use `snake_case` in `@Param("param_name")` and `@Query("query_name")` while keeping the method argument in `camelCase`. Example: `@Param("user_id") userId: string`.
   - **Consistency:** Never use camelCase in API payloads or URL parameters.
+  - **Strict Output DTOs:** ALL Output DTOs (API responses) MUST be explicitly instantiable via a constructor. They MUST NOT use the `!` non-null assertion operator for properties. This ensures `class-transformer` correctly applies metadata during serialization and provides compile-time safety.
 
 - **Predictability:** Functions must be pure where possible. Side effects must be isolated and explicitly named.
 - **Minimalism:** NEVER add code that is not explicitly required for the current task. Every line must serve a purpose. Remove unused imports, variables, fields, functions, and dead code. If it's not used, delete it.
 - **Private Convention:** ALWAYS prefix private class members (properties and methods) with underscore (`_`). Example: `private _verifyToken()` not `private verifyToken()`. This clearly distinguishes internal implementation from public API.
+- **No Standalone Functions:** Functions must NEVER be exported as bare standalone exports. Always wrap them in a namespace object with `as const` or a class. Example: `export const ObjectUtils = { filterUndefined } as const;` instead of `export function filterUndefined()`. This provides a clear access path (`ObjectUtils.filterUndefined`) and groups related utilities together.
 
 ---
 
@@ -104,7 +106,28 @@ This project uses **Bun** as the JavaScript runtime and package manager. NEVER u
 
 ---
 
-## 6. SKILLS & WORKFLOW
+## 6. FOLDER-LEVEL AGENTS.md
+
+Every directory that represents a distinct module or concern MUST have its own `AGENTS.md` file explaining:
+
+- **Purpose:** What the folder is for and what problems it solves.
+- **Files:** A table listing each file with a brief description.
+- **Principles/Conventions:** Any folder-specific rules (e.g., "pure functions only", "no side effects").
+
+This ensures that AI agents can quickly understand the structure and intent of any folder without reading every file. The root `AGENTS.md` describes global conventions; folder-level `AGENTS.md` files describe local ones.
+
+**STRICT RULE:** Whenever you add a new file or a new public function to an existing file inside a folder, you MUST update that folder's `AGENTS.md` to reflect the change. This is not optional — the file table must always be an accurate, up-to-date inventory of the folder's contents. If you create a new folder, you MUST create its `AGENTS.md` at the same time.
+
+## 7. BUG FIX PROTOCOL
+
+**Every bug fix MUST include a regression test** that reproduces the bug and fails on the old code — proving the fix works and ensuring it never regresses.
+
+- **Write the test first** (or at minimum, verify the test fails against the unfixed code).
+- **The test must be specific to the bug** — not a generic "should work" test. Name it after the bug scenario (e.g., `"handles INSERT ... RETURNING * column extraction"`).
+- **The test must pass with the fix applied.** Run it as part of the commit that contains the fix.
+- **Exception:** Only skip if it's literally impossible to write a deterministic test (e.g., a race condition on an external API that can't be intercepted). This exception must be documented inline with the fix.
+
+## 8. SKILLS & WORKFLOW
 
 You are equipped with custom skills located in `.agents/skills/`. You MUST leverage these tools to enhance your capabilities:
 

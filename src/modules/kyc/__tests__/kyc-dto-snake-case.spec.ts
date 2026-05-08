@@ -1,96 +1,53 @@
 import { describe, it, expect } from "vitest";
-import { plainToInstance } from "class-transformer";
+import { instanceToPlain } from "class-transformer";
 import { KycSubmissionOutputDto } from "../dto/kyc-submission-output.dto";
 import { KycStatusOutputDto } from "../dto/kyc-status-output.dto";
+import { VentairyKycStatus } from "@shared/constants";
 
 describe("KycSubmissionOutputDto - Snake Case Mapping", () => {
-	it("should map snake_case user_id to camelCase userId", () => {
-		const payload = { user_id: "user-123" };
-		const dto = plainToInstance(KycSubmissionOutputDto, payload);
-
-		expect(dto.userId).toBe("user-123");
-	});
-
-	it("should map snake_case ventairy_kyc_status to camelCase ventairyKycStatus", () => {
-		const payload = { ventairy_kyc_status: "VERIFYING" };
-		const dto = plainToInstance(KycSubmissionOutputDto, payload);
-
-		expect(dto.ventairyKycStatus).toBe("VERIFYING");
-	});
-
-	it("should map snake_case submitted_at to camelCase submittedAt", () => {
-		const payload = { submitted_at: "2026-05-05T10:00:00.000Z" };
-		const dto = plainToInstance(KycSubmissionOutputDto, payload);
-
-		expect(dto.submittedAt).toBe("2026-05-05T10:00:00.000Z");
-	});
-
-	it("should map snake_case created_at to camelCase createdAt", () => {
-		const payload = { created_at: "2026-05-04T14:48:00.000Z" };
-		const dto = plainToInstance(KycSubmissionOutputDto, payload);
-
-		expect(dto.createdAt).toBe("2026-05-04T14:48:00.000Z");
-	});
-
-	it("should transform a full payload with all snake_case fields", () => {
-		const payload = {
+	it("should map camelCase to snake_case when serialized", () => {
+		const dto = new KycSubmissionOutputDto({
 			id: "sub-001",
-			user_id: "user-123",
-			ventairy_kyc_status: "VERIFYING",
-			submitted_at: "2026-05-05T10:00:00.000Z",
-			created_at: "2026-05-04T14:48:00.000Z",
-		};
-		const dto = plainToInstance(KycSubmissionOutputDto, payload);
+			userId: "user-123",
+			ventairyKycStatus: VentairyKycStatus.VERIFYING,
+			submittedAt: "2026-05-05T10:00:00.000Z",
+			createdAt: "2026-05-04T14:48:00.000Z",
+		});
 
-		expect(dto.id).toBe("sub-001");
-		expect(dto.userId).toBe("user-123");
-		expect(dto.ventairyKycStatus).toBe("VERIFYING");
-		expect(dto.submittedAt).toBe("2026-05-05T10:00:00.000Z");
-		expect(dto.createdAt).toBe("2026-05-04T14:48:00.000Z");
+		const plain = instanceToPlain(dto) as Record<string, unknown>;
+
+		expect(plain).toHaveProperty("id", "sub-001");
+		expect(plain).toHaveProperty("user_id", "user-123");
+		expect(plain).toHaveProperty("ventairy_kyc_status", "VERIFYING");
+		expect(plain).toHaveProperty("submitted_at", "2026-05-05T10:00:00.000Z");
+		expect(plain).toHaveProperty("created_at", "2026-05-04T14:48:00.000Z");
+		
+		expect(plain).not.toHaveProperty("userId");
+		expect(plain).not.toHaveProperty("ventairyKycStatus");
+		expect(plain).not.toHaveProperty("submittedAt");
+		expect(plain).not.toHaveProperty("createdAt");
 	});
 });
 
 describe("KycStatusOutputDto - Snake Case Mapping", () => {
-	it("should map snake_case user_id to camelCase userId", () => {
-		const payload = { user_id: "user-123" };
-		const dto = plainToInstance(KycStatusOutputDto, payload);
+	it("should map camelCase to snake_case when serialized", () => {
+		const dto = new KycStatusOutputDto({
+			userId: "user-123",
+			ventairyKycStatus: VentairyKycStatus.VERIFYING,
+			submittedAt: "2026-05-05T10:00:00.000Z",
+			createdAt: "2026-05-04T14:48:00.000Z",
+		});
 
-		expect(dto.userId).toBe("user-123");
-	});
+		const plain = instanceToPlain(dto) as Record<string, unknown>;
 
-	it("should map snake_case ventairy_kyc_status to camelCase ventairyKycStatus", () => {
-		const payload = { ventairy_kyc_status: "VERIFYING" };
-		const dto = plainToInstance(KycStatusOutputDto, payload);
-
-		expect(dto.ventairyKycStatus).toBe("VERIFYING");
-	});
-
-	it("should map snake_case submitted_at to camelCase submittedAt", () => {
-		const payload = { submitted_at: "2026-05-05T10:00:00.000Z" };
-		const dto = plainToInstance(KycStatusOutputDto, payload);
-
-		expect(dto.submittedAt).toBe("2026-05-05T10:00:00.000Z");
-	});
-
-	it("should map snake_case created_at to camelCase createdAt", () => {
-		const payload = { created_at: "2026-05-04T14:48:00.000Z" };
-		const dto = plainToInstance(KycStatusOutputDto, payload);
-
-		expect(dto.createdAt).toBe("2026-05-04T14:48:00.000Z");
-	});
-
-	it("should transform a full payload with all snake_case fields", () => {
-		const payload = {
-			user_id: "user-123",
-			ventairy_kyc_status: "VERIFYING",
-			submitted_at: "2026-05-05T10:00:00.000Z",
-			created_at: "2026-05-04T14:48:00.000Z",
-		};
-		const dto = plainToInstance(KycStatusOutputDto, payload);
-
-		expect(dto.userId).toBe("user-123");
-		expect(dto.ventairyKycStatus).toBe("VERIFYING");
-		expect(dto.submittedAt).toBe("2026-05-05T10:00:00.000Z");
-		expect(dto.createdAt).toBe("2026-05-04T14:48:00.000Z");
+		expect(plain).toHaveProperty("user_id", "user-123");
+		expect(plain).toHaveProperty("ventairy_kyc_status", "VERIFYING");
+		expect(plain).toHaveProperty("submitted_at", "2026-05-05T10:00:00.000Z");
+		expect(plain).toHaveProperty("created_at", "2026-05-04T14:48:00.000Z");
+		
+		expect(plain).not.toHaveProperty("userId");
+		expect(plain).not.toHaveProperty("ventairyKycStatus");
+		expect(plain).not.toHaveProperty("submittedAt");
+		expect(plain).not.toHaveProperty("createdAt");
 	});
 });

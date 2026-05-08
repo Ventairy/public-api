@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { drizzle, type SqliteRemoteDatabase, type AsyncRemoteCallback } from "drizzle-orm/sqlite-proxy";
+import { drizzle, type SqliteRemoteDatabase, type AsyncRemoteCallback, type AsyncBatchRemoteCallback } from "drizzle-orm/sqlite-proxy";
 import * as schema from "@db/schema";
 import { DATABASE_CONFIG_KEY, type DatabaseConfig } from "../config";
 
@@ -30,7 +30,17 @@ export class DrizzleService implements OnModuleDestroy {
 			return { rows: positionalRows };
 		};
 
-		this.db = drizzle<typeof schema>(remoteCallback, { schema });
+		const batchCallback: AsyncBatchRemoteCallback = async (batch) => {
+			const results: { rows: unknown[] }[] = [];
+			for (const query of batch) {
+				const namedRows = await this.executeD1Query(query.sql, query.params, query.method);
+				const positionalRows = this._toPositionalRows(query.sql, namedRows);
+				results.push({ rows: positionalRows });
+			}
+			return results;
+		};
+
+		this.db = drizzle<typeof schema>(remoteCallback, batchCallback, { schema });
 	}
 
 	private async executeD1Query(sql: string, parameters: unknown[], _method: string): Promise<unknown[]> {
@@ -68,7 +78,18 @@ export class DrizzleService implements OnModuleDestroy {
 		}
 
 		const columnNames = this._extractColumnNames(sql);
-		if (columnNames.length === 0) return namedRows;
+		if (columnNames.length === 0) {
+			const firstRow = namedRows[0] as Record<string, unknown> | undefined;
+			if (!firstRow) return namedRows;
+
+			const inferredColumns = Object.keys(firstRow);
+			if (inferredColumns.length === 0) return namedRows;
+
+			return namedRows.map((row) => {
+				const namedRow = row as Record<string, unknown>;
+				return inferredColumns.map((col) => namedRow[col]);
+			});
+		}
 
 		return namedRows.map((row) => {
 			const namedRow = row as Record<string, unknown>;

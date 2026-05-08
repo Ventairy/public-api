@@ -22,5 +22,4 @@ export const businessesTable = sqliteTable("businesses", {
 		.$defaultFn(() => new Date().toISOString()),
 });
 
-export type BusinessRow = typeof businessesTable.$inferSelect;
-export type NewBusinessRow = typeof businessesTable.$inferInsert;
+export type BusinessDatabaseRow = typeof businessesTable.$inferSelect;

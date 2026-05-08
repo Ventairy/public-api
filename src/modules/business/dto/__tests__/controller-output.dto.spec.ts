@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { BusinessControllerOutputDto } from "../business-controller-output.dto";
-import { BusinessControllerAddressOutputDto } from "../business-controller-address-output.dto";
-import { BusinessControllerIdentificationOutputDto } from "../business-controller-identification-output.dto";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 import {
+	BusinessFileType,
 	BusinessControllerFileType,
 	ProofAddressType,
 	ControllerRole,
 	IdentificationDocumentType,
 } from "@shared/constants";
+import { BusinessControllerOutputDto } from "../business-controller-output.dto";
+import { BusinessControllerAddressOutputDto } from "../business-controller-address-output.dto";
+import { BusinessControllerIdentificationOutputDto } from "../business-controller-identification-output.dto";
 
 describe("ControllerOutputDto", () => {
 	it("should map from database row correctly", () => {

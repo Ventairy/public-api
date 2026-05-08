@@ -2,20 +2,18 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { BusinessFileType, BusinessControllerFileType } from "@shared/constants";
 import { BusinessControllerOutputDto } from "./business-controller-output.dto";
-import { DatabaseOutputDto } from "@shared/dto";
-import { type BusinessRow } from "@db/schema/businesses-table";
+import { BusinessAddressOutputDto } from "./business-address-output.dto";
+import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 
-import { BusinessAddressOutputDto } from "./business-address-output.dto";
-
-export class BusinessOutputDto extends DatabaseOutputDto {
-	static override fromDatabaseRow(
-		row: BusinessRow,
+export class BusinessOutputDto {
+	static fromDatabaseRow(
+		row: BusinessDatabaseRow,
 		controllers: BusinessControllerDatabaseRow[],
 		businessFileTypes: BusinessFileType[],
 		controllerFileTypes: Map<string, BusinessControllerFileType[]>,
 	): BusinessOutputDto {
-		return {
+		return new BusinessOutputDto({
 			id: row.id,
 			legalName: row.legal_name,
 			fantasyName: row.fantasy_name,
@@ -30,16 +28,41 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 				BusinessControllerOutputDto.fromDatabaseRow(controller, controllerFileTypes.get(controller.id) ?? []),
 			),
 			createdAt: row.created_at,
-		};
+		});
+	}
+	constructor(data: {
+		id: string;
+		legalName: string | null;
+		fantasyName: string | null;
+		formationDate: string | null;
+		email: string | null;
+		taxId: string | null;
+		phoneNumber: string | null;
+		website: string | null;
+		address: BusinessAddressOutputDto | null;
+		fileTypesUploaded: BusinessFileType[];
+		controllers: BusinessControllerOutputDto[];
+		createdAt: string;
+	}) {
+		this.id = data.id;
+		this.legalName = data.legalName;
+		this.fantasyName = data.fantasyName;
+		this.formationDate = data.formationDate;
+		this.email = data.email;
+		this.taxId = data.taxId;
+		this.phoneNumber = data.phoneNumber;
+		this.website = data.website;
+		this.address = data.address;
+		this.fileTypesUploaded = data.fileTypesUploaded;
+		this.controllers = data.controllers;
+		this.createdAt = data.createdAt;
 	}
 	@ApiProperty({ name: "id", description: "Unique ID of the business record.", format: "uuid" })
 	@Expose({ name: "id" })
-	id!: string;
-
+	id: string;
 	@ApiProperty({ name: "legal_name", description: "Legal name of the business.", example: "Acme Corporation Ltd." })
 	@Expose({ name: "legal_name" })
-	legalName!: string | null;
-
+	legalName: string | null;
 	@ApiProperty({
 		name: "fantasy_name",
 		description: "Doing-business-as (fantasy) name.",
@@ -47,8 +70,7 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 		nullable: true,
 	})
 	@Expose({ name: "fantasy_name" })
-	fantasyName!: string | null;
-
+	fantasyName: string | null;
 	@ApiProperty({
 		name: "formation_date",
 		description: "Date the business was formed (ISO 8601).",
@@ -56,12 +78,10 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 		nullable: true,
 	})
 	@Expose({ name: "formation_date" })
-	formationDate!: string | null;
-
+	formationDate: string | null;
 	@ApiProperty({ name: "email", description: "Business email address.", example: "contact@acme.com", nullable: true })
 	@Expose({ name: "email" })
-	email!: string | null;
-
+	email: string | null;
 	@ApiProperty({
 		name: "tax_id",
 		description: "Business tax identification number.",
@@ -69,8 +89,7 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 		nullable: true,
 	})
 	@Expose({ name: "tax_id" })
-	taxId!: string | null;
-
+	taxId: string | null;
 	@ApiProperty({
 		name: "phone_number",
 		description: "Business phone number.",
@@ -78,12 +97,10 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 		nullable: true,
 	})
 	@Expose({ name: "phone_number" })
-	phoneNumber!: string | null;
-
+	phoneNumber: string | null;
 	@ApiProperty({ name: "website", description: "Business website URL.", example: "https://acme.com", nullable: true })
 	@Expose({ name: "website" })
-	website!: string | null;
-
+	website: string | null;
 	@ApiProperty({
 		name: "address",
 		description: "Business address details.",
@@ -91,8 +108,7 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 		nullable: true,
 	})
 	@Expose({ name: "address" })
-	address!: BusinessAddressOutputDto | null;
-
+	address: BusinessAddressOutputDto | null;
 	@ApiProperty({
 		name: "file_types_uploaded",
 		description: "List of business file types that have been uploaded already.",
@@ -100,8 +116,7 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 		enum: BusinessFileType,
 	})
 	@Expose({ name: "file_types_uploaded" })
-	fileTypesUploaded!: BusinessFileType[];
-
+	fileTypesUploaded: BusinessFileType[];
 	@ApiProperty({
 		name: "controllers",
 		description:
@@ -109,13 +124,12 @@ export class BusinessOutputDto extends DatabaseOutputDto {
 		type: [BusinessControllerOutputDto],
 	})
 	@Expose({ name: "controllers" })
-	controllers!: BusinessControllerOutputDto[];
-
+	controllers: BusinessControllerOutputDto[];
 	@ApiProperty({
 		name: "created_at",
 		description: "ISO-8601 timestamp when the business record was created.",
 		format: "date-time",
 	})
 	@Expose({ name: "created_at" })
-	createdAt!: string;
+	createdAt: string;
 }

@@ -1,10 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { UsersService } from "@modules/users/users.service";
 import { and, eq, inArray } from "drizzle-orm";
 import { DrizzleService } from "@core/database/drizzle.service";
 import { R2StorageService } from "@core/storage/r2-storage.service";
-import { type UserRow } from "@db/schema/users-table";
-import { businessesTable, type BusinessRow } from "@db/schema/businesses-table";
+import { usersTable } from "@db/schema/users-table";
+import { businessesTable, type BusinessDatabaseRow } from "@db/schema/businesses-table";
 import { businessControllersTable, type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 import { businessFilesTable } from "@db/schema/business-files-table";
 import { businessControllerFilesTable } from "@db/schema/business-controller-files-table";
@@ -15,6 +14,7 @@ import { BusinessControllerFileNotFoundException } from "@shared/exceptions/busi
 import { BusinessControllerNotFoundException } from "@shared/exceptions/business-controller-not-found.exception";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
+import { ObjectUtils } from "@shared/utils/object.utils";
 import { BUSINESS_MAX_FILE_SIZE_BYTES } from "./business.constants";
 import {
 	type BusinessInputDto,
@@ -28,7 +28,6 @@ export class BusinessService {
 	constructor(
 		private readonly drizzleService: DrizzleService,
 		private readonly r2StorageService: R2StorageService,
-		private readonly usersService: UsersService,
 	) {}
 
 	public async uploadBusinessFile(
@@ -122,26 +121,50 @@ export class BusinessService {
 	}
 
 	public async saveBusiness(userId: string, business: BusinessInputDto): Promise<BusinessOutputDto> {
-		await this._requireUserExists(userId);
+		const [userRows, businessRows] = await this.drizzleService.db.batch([
+			this.drizzleService.db.select().from(usersTable).where(eq(usersTable.id, userId)),
+			this.drizzleService.db.select().from(businessesTable).where(eq(businessesTable.user_id, userId)),
+		]);
 
-		if (business) {
-			await this._upsertBusiness(userId, business);
+		const user = userRows[0];
+		if (!user) throw new UserNotFoundException(userId);
 
-			if (business.controllers !== undefined) {
-				await this._upsertBusinessControllers(userId, business.controllers);
-			}
-		}
+		const existingBusiness = businessRows[0] ?? null;
 
-		return this.getBusiness(userId);
+		const [updatedBusiness, existingControllers] = await Promise.all([
+			this._upsertBusiness(userId, existingBusiness, business),
+			Promise.resolve(existingBusiness ? this._getBusinessControllers(existingBusiness.id) : []),
+		]);
+
+		const updatedControllers = await this._upsertBusinessControllers(
+			userId,
+			updatedBusiness.id,
+			existingControllers,
+			business.controllers,
+		);
+
+		const [businessFileTypes, controllerFileTypes] = await Promise.all([
+			this._getBusinessFileTypesUploaded(userId),
+			this._getBusinessControllerFileTypesUploaded(updatedControllers.map((c) => c.id)),
+		]);
+
+		return BusinessOutputDto.fromDatabaseRow(
+			updatedBusiness,
+			updatedControllers,
+			businessFileTypes,
+			controllerFileTypes,
+		);
 	}
 
 	public async getBusiness(userId: string): Promise<BusinessOutputDto> {
 		const business = await this._getBusinessByUserId(userId);
 		if (!business) throw new BusinessNotFoundException(userId);
 
-		const controllers = await this._getBusinessControllers(business.id);
+		const [controllers, businessFileTypes] = await Promise.all([
+			this._getBusinessControllers(business.id),
+			this._getBusinessFileTypesUploaded(userId),
+		]);
 
-		const businessFileTypes = await this._getBusinessFileTypesUploaded(userId);
 		const controllerFileTypes = await this._getBusinessControllerFileTypesUploaded(controllers.map((c) => c.id));
 
 		return BusinessOutputDto.fromDatabaseRow(business, controllers, businessFileTypes, controllerFileTypes);
@@ -193,17 +216,13 @@ export class BusinessService {
 		}
 	}
 
-	private async _requireUserExists(userId: string): Promise<UserRow> {
-		const user = await this.usersService.getUserDatabaseRow(userId);
-		if (!user) throw new UserNotFoundException(userId);
-		return user;
-	}
-
-	private async _upsertBusiness(userId: string, data: BusinessInputDto): Promise<void> {
-		if (!data) return;
-
+	private async _upsertBusiness(
+		userId: string,
+		existingBusiness: BusinessDatabaseRow | null,
+		data: BusinessInputDto,
+	): Promise<BusinessDatabaseRow> {
 		const rawUpdate: {
-			[K in keyof Omit<BusinessRow, "id" | "user_id" | "created_at">]-?: BusinessRow[K] | undefined;
+			[K in keyof Omit<BusinessDatabaseRow, "id" | "user_id" | "created_at">]-?: BusinessDatabaseRow[K] | undefined;
 		} = {
 			legal_name: data.legalName,
 			fantasy_name: data.fantasyName,
@@ -220,41 +239,47 @@ export class BusinessService {
 			address_proof_type: data.address?.addressProofType,
 		};
 
-		const existingBusiness = await this._getBusinessByUserId(userId);
-
 		if (existingBusiness) {
-			const fieldsToUpdate: Partial<BusinessRow> = Object.fromEntries(
-				Object.entries(rawUpdate).filter(([_, value]) => value !== undefined),
-			);
+			const fieldsToUpdate = ObjectUtils.filterUndefined(rawUpdate);
+			if (Object.keys(fieldsToUpdate).length === 0) return existingBusiness;
 
-			await this.drizzleService.db
+			const rows = await this.drizzleService.db
 				.update(businessesTable)
 				.set(fieldsToUpdate)
-				.where(eq(businessesTable.id, existingBusiness.id));
+				.where(eq(businessesTable.id, existingBusiness.id))
+				.returning();
 
-			return;
+			return rows[0] ?? existingBusiness;
 		}
 
 		const newBusinessId = crypto.randomUUID();
 
-		await this.drizzleService.db.insert(businessesTable).values({
-			id: newBusinessId,
-			user_id: userId,
-			...rawUpdate,
-		});
+		const rows = await this.drizzleService.db
+			.insert(businessesTable)
+			.values({
+				id: newBusinessId,
+				user_id: userId,
+				...rawUpdate,
+			})
+			.returning();
+
+		if (!rows[0]) throw new Error("Business insert returned no rows");
+		return rows[0];
 	}
 
 	private async _upsertBusinessControllers(
 		userId: string,
+		businessId: string,
+		existingControllers: BusinessControllerDatabaseRow[],
 		controllersToUpdate: BusinessInputDto["controllers"],
-	): Promise<void> {
-		if (controllersToUpdate === undefined) return;
+	): Promise<BusinessControllerDatabaseRow[]> {
+		if (controllersToUpdate === undefined || controllersToUpdate.length === 0) {
+			return [...existingControllers];
+		}
 
-		const business = await this._getBusinessByUserId(userId);
-		if (!business) throw new BusinessNotFoundException(userId);
-
-		const existingControllers = await this._getBusinessControllers(business["id"]);
-		const existingControllersIds = new Set(existingControllers.map((c) => c["id"]));
+		const existingControllersIds = new Set(existingControllers.map((c) => c.id));
+		const untouchedControllers = existingControllers.filter((c) => !controllersToUpdate.some((u) => u.id === c.id));
+		const writeOperations: Promise<BusinessControllerDatabaseRow[]>[] = [];
 
 		for (const controllerToUpdate of controllersToUpdate) {
 			const rawUpdate: {
@@ -279,30 +304,51 @@ export class BusinessService {
 				address_proof_type: controllerToUpdate.address?.addressProofType,
 			};
 
-			if (controllerToUpdate.id && existingControllersIds.has(controllerToUpdate.id)) {
-				const updateFields = Object.fromEntries(
-					Object.entries(rawUpdate).filter(([_, value]) => value !== undefined),
-				) as Partial<BusinessControllerDatabaseRow>;
+			if (controllerToUpdate.id) {
+				if (!existingControllersIds.has(controllerToUpdate.id)) {
+					throw new BusinessControllerNotFoundException(userId, controllerToUpdate.id);
+				}
 
-				await this.drizzleService.db
-					.update(businessControllersTable)
-					.set(updateFields)
-					.where(eq(businessControllersTable.id, controllerToUpdate.id));
+				const updateFields = ObjectUtils.filterUndefined(rawUpdate) as Partial<BusinessControllerDatabaseRow>;
 
-				continue;
+				if (Object.keys(updateFields).length === 0) {
+					const existingRow = existingControllers.find((c) => c.id === controllerToUpdate.id);
+					writeOperations.push(Promise.resolve(existingRow ? [existingRow] : []));
+					continue;
+				}
+
+				writeOperations.push(
+					this.drizzleService.db
+						.update(businessControllersTable)
+						.set(updateFields)
+						.where(eq(businessControllersTable.id, controllerToUpdate.id))
+						.returning(),
+				);
+			} else {
+				const newControllerId = crypto.randomUUID();
+
+				writeOperations.push(
+					this.drizzleService.db
+						.insert(businessControllersTable)
+						.values({
+							id: newControllerId,
+							business_id: businessId,
+							...rawUpdate,
+						})
+						.returning(),
+				);
 			}
-
-			const newControllerId = crypto.randomUUID();
-
-			await this.drizzleService.db.insert(businessControllersTable).values({
-				id: newControllerId,
-				business_id: business["id"],
-				...rawUpdate,
-			});
 		}
+
+		const writeResults = await Promise.all(writeOperations);
+		const updatedControllers = writeResults
+			.map((rows) => rows[0])
+			.filter((r): r is BusinessControllerDatabaseRow => r !== undefined);
+
+		return [...untouchedControllers, ...updatedControllers];
 	}
 
-	private async _getBusinessByUserId(userId: string): Promise<BusinessRow | null> {
+	private async _getBusinessByUserId(userId: string): Promise<BusinessDatabaseRow | null> {
 		const businessRows = await this.drizzleService.db
 			.select()
 			.from(businessesTable)

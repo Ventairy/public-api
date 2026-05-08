@@ -4,4 +4,3 @@ export { LoggingInterceptor, TransformInterceptor, TimeoutInterceptor, type Resp
 export { AllExceptionsFilter } from "./filters";
 export { DomainException } from "./exceptions";
 export { ERROR_CODES, type ErrorCode } from "./constants";
-export * from "./dto";
