@@ -1,8 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { UserRow, usersTable } from "@db/schema/users-table";
-import { kycTable } from "@db/schema/kyc-table";
-import { eq } from "drizzle-orm";
-import { DrizzleService } from "@core/database/drizzle.service";
+import { UserRow } from "@db/schema/users-table";
+import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
+import { UserRepository } from "./repositories/user.repository";
 import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
 import { SiweVerifierService } from "@modules/auth/verification/siwe-verifier.service";
 import { CreateUserOutputDto } from "./dto/create-user-output.dto";
@@ -10,13 +9,13 @@ import { CreateUserOutputDto } from "./dto/create-user-output.dto";
 @Injectable()
 export class UsersService {
 	constructor(
-		private readonly drizzleService: DrizzleService,
+		private readonly _userRepository: UserRepository,
+		private readonly _kycRepository: KycRepository,
 		private readonly siweVerifierService: SiweVerifierService,
 	) {}
 
 	public async getUserDatabaseRow(userId: string): Promise<UserRow | null> {
-		const rows = await this.drizzleService.db.select().from(usersTable).where(eq(usersTable.id, userId));
-		return rows[0] ?? null;
+		return this._userRepository.findById(userId);
 	}
 
 	public async createUser(
@@ -34,19 +33,12 @@ export class UsersService {
 		const newUserId = this._generateUserId();
 
 		try {
-			const rows = await this.drizzleService.db
-				.insert(usersTable)
-				.values({
-					id: newUserId,
-					wallet_address: normalizedWalletAddress,
-				})
-				.returning();
+			const insertedRow = await this._userRepository.create({
+				id: newUserId,
+				wallet_address: normalizedWalletAddress,
+			});
 
-			const insertedRow = rows[0];
-
-			if (!insertedRow) throw new Error("User insert returned no rows");
-
-			await this.drizzleService.db.insert(kycTable).values({
+			await this._kycRepository.create({
 				id: crypto.randomUUID(),
 				user_id: newUserId,
 			});

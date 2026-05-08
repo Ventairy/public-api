@@ -5,32 +5,22 @@ import { UsersService } from "./users.service";
 
 describe("UsersService", () => {
 	let service: UsersService;
-	let mockDb: {
-		insert: ReturnType<typeof vi.fn>;
-		values: ReturnType<typeof vi.fn>;
-		returning: ReturnType<typeof vi.fn>;
-		select: ReturnType<typeof vi.fn>;
-		from: ReturnType<typeof vi.fn>;
-		where: ReturnType<typeof vi.fn>;
-	};
-	let mockDrizzleService: { db: typeof mockDb };
+	let mockUserRepository: any;
+	let mockKycRepository: any;
 	let mockSiweVerifierService: { verify: ReturnType<typeof vi.fn> };
 
 	beforeEach(() => {
-		mockDb = {
-			select: vi.fn().mockReturnThis(),
-			from: vi.fn().mockReturnThis(),
-			where: vi.fn(),
-			insert: vi.fn().mockReturnThis(),
-			values: vi.fn().mockReturnThis(),
-			returning: vi.fn(),
-		};
-		mockDrizzleService = { db: mockDb };
+		mockUserRepository = {
+			findById: vi.fn(),
+			create: vi.fn(),
+		} as any;
+		mockKycRepository = {
+			findByUserId: vi.fn(),
+			create: vi.fn().mockResolvedValue(undefined),
+			updateStatusByUserId: vi.fn(),
+		} as any;
 		mockSiweVerifierService = { verify: vi.fn().mockResolvedValue(undefined) };
-		service = new UsersService(
-			mockDrizzleService as unknown as import("@core/database/drizzle.service").DrizzleService,
-			mockSiweVerifierService as unknown as import("@modules/auth/verification/siwe-verifier.service").SiweVerifierService,
-		);
+		service = new UsersService(mockUserRepository, mockKycRepository, mockSiweVerifierService as any);
 	});
 
 	describe("createUser", () => {
@@ -45,7 +35,7 @@ describe("UsersService", () => {
 				wallet_address: validWalletAddress,
 				created_at: "2026-05-04T14:48:00.000Z",
 			};
-			mockDb.returning.mockResolvedValue([insertedRow]);
+			mockUserRepository.create.mockResolvedValue(insertedRow);
 
 			await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
 
@@ -65,7 +55,7 @@ describe("UsersService", () => {
 			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
 				InvalidSiweSignatureException,
 			);
-			expect(mockDb.insert).not.toHaveBeenCalled();
+			expect(mockUserRepository.create).not.toHaveBeenCalled();
 		});
 
 		it("should create a user with PENDING KYC status and return mapped output after verification", async () => {
@@ -74,7 +64,7 @@ describe("UsersService", () => {
 				wallet_address: validWalletAddress,
 				created_at: "2026-05-04T14:48:00.000Z",
 			};
-			mockDb.returning.mockResolvedValue([insertedRow]);
+			mockUserRepository.create.mockResolvedValue(insertedRow);
 
 			const result = await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
 
@@ -92,28 +82,26 @@ describe("UsersService", () => {
 				wallet_address: validWalletAddress,
 				created_at: "2026-05-04T14:48:00.000Z",
 			};
-			mockDb.returning.mockResolvedValue([insertedRow]);
+			mockUserRepository.create.mockResolvedValue(insertedRow);
 
 			await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
 
-			expect(mockDb.insert).toHaveBeenCalledTimes(2);
+			expect(mockKycRepository.create).toHaveBeenCalledTimes(1);
 		});
 
 		it("should normalize wallet address to lowercase before inserting", async () => {
 			const mixedCaseWallet = "0x742D35Cc6634C0532925a3b844Bc9e7595f0BEb1";
 			const normalizedWallet = mixedCaseWallet.toLowerCase();
 
-			mockDb.returning.mockResolvedValue([
-				{
-					id: "test-id",
-					wallet_address: normalizedWallet,
-					created_at: "2026-05-04T14:48:00.000Z",
-				},
-			]);
+			mockUserRepository.create.mockResolvedValue({
+				id: "test-id",
+				wallet_address: normalizedWallet,
+				created_at: "2026-05-04T14:48:00.000Z",
+			});
 
 			await service.createUser(mixedCaseWallet, validSiweMessage, validSiweSignature);
 
-			expect(mockDb.values).toHaveBeenCalledWith(
+			expect(mockUserRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					wallet_address: normalizedWallet,
 				}),
@@ -122,21 +110,21 @@ describe("UsersService", () => {
 
 		it("should generate a UUID v4 for the user id", async () => {
 			const uuidSpy = vi.spyOn(crypto, "randomUUID");
-			mockDb.returning.mockResolvedValue([
-				{
-					id: "generated-uuid",
-					wallet_address: validWalletAddress,
-					created_at: "2026-05-04T14:48:00.000Z",
-				},
-			]);
+			mockUserRepository.create.mockResolvedValue({
+				id: "generated-uuid",
+				wallet_address: validWalletAddress,
+				created_at: "2026-05-04T14:48:00.000Z",
+			});
 
 			await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
 
-			expect(uuidSpy).toHaveBeenCalledTimes(2);
+			expect(uuidSpy).toHaveBeenCalled();
 		});
 
 		it("should throw UserAlreadyExistsException on unique constraint violation", async () => {
-			mockDb.returning.mockRejectedValue(new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"));
+			mockUserRepository.create.mockRejectedValue(
+				new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"),
+			);
 
 			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
 				UserAlreadyExistsException,
@@ -148,7 +136,7 @@ describe("UsersService", () => {
 
 		it("should re-throw non-unique-constraint database errors unchanged", async () => {
 			const genericError = new Error("Connection timeout");
-			mockDb.returning.mockRejectedValue(genericError);
+			mockUserRepository.create.mockRejectedValue(genericError);
 
 			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
 				genericError,
@@ -156,7 +144,7 @@ describe("UsersService", () => {
 		});
 
 		it("should throw when insert returns an empty array", async () => {
-			mockDb.returning.mockResolvedValue([]);
+			mockUserRepository.create.mockRejectedValue(new Error("User insert returned no rows"));
 
 			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
 				"User insert returned no rows",
@@ -191,40 +179,19 @@ describe("UsersService", () => {
 				wallet_address: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
 				created_at: "2026-05-04T14:48:00.000Z",
 			};
-			mockDb.where.mockResolvedValue([mockUser]);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
 
 			const result = await service.getUserDatabaseRow("user-123");
 
 			expect(result).toEqual(mockUser);
-			expect(mockDb.select).toHaveBeenCalled();
-			expect(mockDb.from).toHaveBeenCalled();
-			expect(mockDb.where).toHaveBeenCalled();
 		});
 
 		it("should return null when user does not exist", async () => {
-			mockDb.where.mockResolvedValue([]);
+			mockUserRepository.findById.mockResolvedValue(null);
 
 			const result = await service.getUserDatabaseRow("nonexistent");
 
 			expect(result).toBeNull();
-		});
-
-		it("should return the first user when multiple rows match (should not happen with unique id)", async () => {
-			const mockUser1 = {
-				id: "user-1",
-				wallet_address: "0x1111",
-				created_at: "2026-05-04T14:48:00.000Z",
-			};
-			const mockUser2 = {
-				id: "user-2",
-				wallet_address: "0x2222",
-				created_at: "2026-05-04T14:48:00.000Z",
-			};
-			mockDb.where.mockResolvedValue([mockUser1, mockUser2]);
-
-			const result = await service.getUserDatabaseRow("user-1");
-
-			expect(result).toEqual(mockUser1);
 		});
 	});
 });

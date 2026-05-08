@@ -1,7 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { eq } from "drizzle-orm";
-import { DrizzleService } from "@core/database/drizzle.service";
-import { kycTable, type KycRow } from "@db/schema/kyc-table";
+import { KycRepository } from "./repositories/kyc.repository";
 import { VentairyKycStatus } from "@shared/constants";
 import { KycSubmissionLockedException } from "@shared/exceptions/kyc-submission-locked.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
@@ -9,7 +7,7 @@ import { KycSubmissionOutputDto, KycStatusOutputDto } from "./dto";
 
 @Injectable()
 export class KycService {
-	constructor(private readonly drizzleService: DrizzleService) {}
+	constructor(private readonly _kycRepository: KycRepository) {}
 
 	public async submitKyc(userId: string): Promise<KycSubmissionOutputDto> {
 		const kycRow = await this._getKycDatabaseRow(userId);
@@ -19,10 +17,7 @@ export class KycService {
 		}
 
 		const now = new Date().toISOString();
-		await this.drizzleService.db
-			.update(kycTable)
-			.set({ kyc_submitted_at: now, ventairy_kyc_status: VentairyKycStatus.VERIFYING })
-			.where(eq(kycTable.user_id, userId));
+		await this._kycRepository.updateStatusByUserId({ userId, status: VentairyKycStatus.VERIFYING, submittedAt: now });
 
 		return this._getKycDataAsDto(userId);
 	}
@@ -39,9 +34,8 @@ export class KycService {
 		return KycSubmissionOutputDto.fromDatabaseRow(kycRow);
 	}
 
-	private async _getKycDatabaseRow(userId: string): Promise<KycRow> {
-		const rows = await this.drizzleService.db.select().from(kycTable).where(eq(kycTable.user_id, userId));
-		const row = rows[0];
+	private async _getKycDatabaseRow(userId: string): Promise<import("@db/schema/kyc-table").KycRow> {
+		const row = await this._kycRepository.findByUserId(userId);
 		if (!row) throw new UserNotFoundException(userId);
 
 		return row;

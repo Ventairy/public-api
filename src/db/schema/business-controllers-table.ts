@@ -27,3 +27,4 @@ export const businessControllersTable = sqliteTable("business_controllers", {
 });
 
 export type BusinessControllerDatabaseRow = typeof businessControllersTable.$inferSelect;
+export type NewBusinessControllerDatabaseRow = typeof businessControllersTable.$inferInsert;

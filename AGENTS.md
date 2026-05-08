@@ -48,6 +48,7 @@ When writing or modifying code in this repository, you MUST adhere to the follow
 - **Named Parameters:** ALWAYS use an object for parameters (named parameters) if a function accepts more than 2 arguments. This improves readability and prevents positional argument errors.
 - **Simplicity & Flattening:** ALWAYS prefer early returns (`guard clauses`). NEVER deeply nest `if/else` statements.
 - **Strong Typing:** Assume strict typing is mandatory. Do not use `any` or bypass the type checker.
+- **Type-Safe Repository Methods:** Repository method parameters MUST derive from table schema types (e.g., `Partial<KycRow>`, `NewBusinessDatabaseRow`). NEVER use inline object literal types for database fields — they bypass the compiler if a field name is mistyped. Prefer separate typed parameters or schema-derived types over loose `data: { ... }` bags.
 - **No Magic Numbers:** Extract all constants, fee rates, and status codes into named, exported constants or enums.
 - **No Hardcoded Strings:** NEVER type string literals directly in code. Always use constants or typed strings. Extract header names, error codes, status values, and any repeated strings into named constants to prevent typos and ensure consistency.
 

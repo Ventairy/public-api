@@ -20,44 +20,6 @@ const MOCK_FILE_ID = "file-abc";
 const MOCK_BUSINESS_ID = "biz-456";
 const MOCK_CONTROLLER_ID = "ctrl-789";
 
-	function createMockDb() {
-		const mockQuery = {
-			_prepare: vi.fn().mockReturnValue({
-				getQuery: vi.fn().mockReturnValue({ sql: "SELECT 1", params: [], method: "all" }),
-			}),
-		};
-		return {
-			...mockQuery,
-			select: vi.fn().mockReturnThis(),
-			from: vi.fn().mockReturnThis(),
-			where: vi.fn().mockReturnThis(),
-			innerJoin: vi.fn().mockReturnThis(),
-			set: vi.fn().mockReturnThis(),
-			values: vi.fn().mockReturnThis(),
-			returning: vi.fn().mockReturnThis(),
-			insert: vi.fn().mockReturnThis(),
-			update: vi.fn().mockReturnThis(),
-			delete: vi.fn().mockReturnThis(),
-			batch: vi.fn(),
-		};
-	}
-
-function createMockDrizzleService() {
-	return { db: createMockDb() };
-}
-
-function createMockR2StorageService() {
-	return {
-		uploadFile: vi.fn().mockResolvedValue(undefined),
-		getFileBuffer: vi.fn().mockResolvedValue(Buffer.from("file-content")),
-		deleteFile: vi.fn().mockResolvedValue(undefined),
-		generateFileKey: vi.fn(
-			(params: { folder: string; fileId: string; fileName: string }) =>
-				`${params.folder}/${params.fileId}-${params.fileName}`,
-		),
-	};
-}
-
 function createMockUser(overrides: Record<string, unknown> = {}) {
 	return {
 		id: MOCK_USER_ID,
@@ -139,43 +101,68 @@ function createMockControllerFileRow() {
 	};
 }
 
-function mockWhereSequence(db: ReturnType<typeof createMockDb>, sequences: unknown[][]) {
-	db.select.mockReturnThis();
-	db.from.mockReturnThis();
-	db.where.mockImplementation(() => {
-		const result = sequences.shift();
-		(db as any).then = (onFulfilled: any) => Promise.resolve(result).then(onFulfilled);
-		return db;
-	});
-}
-
-function mockBatchSequence(db: ReturnType<typeof createMockDb>, sequences: unknown[][]) {
-	db.batch.mockResolvedValueOnce(sequences);
-}
-
-function mockReturningSequence(db: ReturnType<typeof createMockDb>, sequences: unknown[][]) {
-	db.insert.mockReturnThis();
-	db.values.mockReturnThis();
-	let chain = db.returning;
-	for (const seq of sequences) {
-		chain = chain.mockResolvedValueOnce(seq);
-	}
-}
-
 describe("BusinessService", () => {
 	let service: BusinessService;
-	let mockDrizzleService: ReturnType<typeof createMockDrizzleService>;
-	let mockR2StorageService: ReturnType<typeof createMockR2StorageService>;
-	let mockUsersService: { getUserDatabaseRow: ReturnType<typeof vi.fn> };
+	let mockUserRepository: {
+		findById: ReturnType<typeof vi.fn>;
+		create: ReturnType<typeof vi.fn>;
+	};
+	let mockBusinessRepository: {
+		findBusinessByUserId: ReturnType<typeof vi.fn>;
+		insertBusiness: ReturnType<typeof vi.fn>;
+		updateBusiness: ReturnType<typeof vi.fn>;
+		findControllersByBusinessId: ReturnType<typeof vi.fn>;
+		findBusinessControllerById: ReturnType<typeof vi.fn>;
+		insertBusinessController: ReturnType<typeof vi.fn>;
+		updateBusinessController: ReturnType<typeof vi.fn>;
+		insertBusinessFile: ReturnType<typeof vi.fn>;
+		findBusinessFile: ReturnType<typeof vi.fn>;
+		findBusinessFileTypesByUserId: ReturnType<typeof vi.fn>;
+		insertControllerFile: ReturnType<typeof vi.fn>;
+		findControllerFile: ReturnType<typeof vi.fn>;
+		findControllerFileTypesByControllerIds: ReturnType<typeof vi.fn>;
+	};
+	let mockR2StorageService: {
+		uploadFile: ReturnType<typeof vi.fn>;
+		getFileBuffer: ReturnType<typeof vi.fn>;
+		deleteFile: ReturnType<typeof vi.fn>;
+		generateFileKey: ReturnType<typeof vi.fn>;
+	};
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockDrizzleService = createMockDrizzleService();
-		mockR2StorageService = createMockR2StorageService();
-		mockUsersService = { getUserDatabaseRow: vi.fn() };
+		mockUserRepository = {
+			findById: vi.fn(),
+			create: vi.fn(),
+		};
+		mockBusinessRepository = {
+			findBusinessByUserId: vi.fn(),
+			insertBusiness: vi.fn(),
+			updateBusiness: vi.fn(),
+			findControllersByBusinessId: vi.fn(),
+			findBusinessControllerById: vi.fn(),
+			insertBusinessController: vi.fn(),
+			updateBusinessController: vi.fn(),
+			insertBusinessFile: vi.fn(),
+			findBusinessFile: vi.fn(),
+			findBusinessFileTypesByUserId: vi.fn(),
+			insertControllerFile: vi.fn(),
+			findControllerFile: vi.fn(),
+			findControllerFileTypesByControllerIds: vi.fn(),
+		};
+		mockR2StorageService = {
+			uploadFile: vi.fn().mockResolvedValue(undefined),
+			getFileBuffer: vi.fn().mockResolvedValue(Buffer.from("file-content")),
+			deleteFile: vi.fn().mockResolvedValue(undefined),
+			generateFileKey: vi.fn(
+				(params: { folder: string; fileId: string; fileName: string }) =>
+					`${params.folder}/${params.fileId}-${params.fileName}`,
+			),
+		};
 		service = new BusinessService(
-			mockDrizzleService as unknown as import("@core/database/drizzle.service").DrizzleService,
-			mockR2StorageService as unknown as import("@core/storage/r2-storage.service").R2StorageService,
+			mockUserRepository as any,
+			mockBusinessRepository as any,
+			mockR2StorageService as any,
 		);
 	});
 
@@ -189,9 +176,7 @@ describe("BusinessService", () => {
 
 		it("should upload a file and return file metadata", async () => {
 			const fileRow = createMockFileRow();
-			mockDrizzleService.db.insert.mockReturnThis();
-			mockDrizzleService.db.values.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValue([fileRow]);
+			mockBusinessRepository.insertBusinessFile.mockResolvedValue(fileRow);
 
 			const result = await service.uploadBusinessFile(MOCK_USER_ID, validFile, BusinessFileType.INCORPORATION_DOCUMENT);
 
@@ -206,7 +191,7 @@ describe("BusinessService", () => {
 				fileId: expect.any(String),
 				fileName: "document.pdf",
 			});
-			expect(mockDrizzleService.db.insert).toHaveBeenCalled();
+			expect(mockBusinessRepository.insertBusinessFile).toHaveBeenCalled();
 			expect(result).toEqual({
 				id: fileRow.id,
 				fileName: fileRow.file_name,
@@ -228,9 +213,7 @@ describe("BusinessService", () => {
 		it("should accept file at exactly max size", async () => {
 			const maxSizedFile = { ...validFile, size: BUSINESS_MAX_FILE_SIZE_BYTES };
 			const fileRow = { ...createMockFileRow(), file_size: BUSINESS_MAX_FILE_SIZE_BYTES };
-			mockDrizzleService.db.insert.mockReturnThis();
-			mockDrizzleService.db.values.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValue([fileRow]);
+			mockBusinessRepository.insertBusinessFile.mockResolvedValue(fileRow);
 
 			await expect(
 				service.uploadBusinessFile(MOCK_USER_ID, maxSizedFile, BusinessFileType.PROOF_OF_ADDRESS),
@@ -238,9 +221,7 @@ describe("BusinessService", () => {
 		});
 
 		it("should throw when insert returns empty array", async () => {
-			mockDrizzleService.db.insert.mockReturnThis();
-			mockDrizzleService.db.values.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValue([]);
+			mockBusinessRepository.insertBusinessFile.mockRejectedValue(new Error("File insert returned no rows"));
 
 			await expect(
 				service.uploadBusinessFile(MOCK_USER_ID, validFile, BusinessFileType.INCORPORATION_DOCUMENT),
@@ -252,9 +233,7 @@ describe("BusinessService", () => {
 			const fileRow = createMockFileRow();
 
 			for (const fileType of fileTypes) {
-				mockDrizzleService.db.insert.mockReturnThis();
-				mockDrizzleService.db.values.mockReturnThis();
-				mockDrizzleService.db.returning.mockResolvedValue([fileRow]);
+				mockBusinessRepository.insertBusinessFile.mockResolvedValue(fileRow);
 
 				await expect(
 					service.uploadBusinessFile(MOCK_USER_ID, validFile, fileType as BusinessFileType),
@@ -272,8 +251,7 @@ describe("BusinessService", () => {
 		};
 
 		it("should throw BusinessNotFoundException when business does not exist", async () => {
-			mockUsersService.getUserDatabaseRow.mockResolvedValue(createMockUser());
-			mockWhereSequence(mockDrizzleService.db, [[]]);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(null);
 
 			await expect(
 				service.uploadBusinessControllerFile(
@@ -286,13 +264,9 @@ describe("BusinessService", () => {
 		});
 
 		it("should throw BusinessControllerNotFoundException when controller not found or not owned by business", async () => {
-			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
-			mockUsersService.getUserDatabaseRow.mockResolvedValue(mockUser);
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[], // _getControllerById - not found
-			]);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(null);
 
 			await expect(
 				service.uploadBusinessControllerFile(
@@ -305,19 +279,13 @@ describe("BusinessService", () => {
 		});
 
 		it("should upload a controller file and return metadata", async () => {
-			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 			const mockController = createMockController();
 			const fileRow = createMockControllerFileRow();
 
-			mockUsersService.getUserDatabaseRow.mockResolvedValue(mockUser);
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[mockController], // _getControllerById
-			]);
-			mockDrizzleService.db.insert.mockReturnThis();
-			mockDrizzleService.db.values.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValue([fileRow]);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockBusinessRepository.insertControllerFile.mockResolvedValue(fileRow);
 
 			const result = await service.uploadBusinessControllerFile(
 				MOCK_USER_ID,
@@ -356,18 +324,12 @@ describe("BusinessService", () => {
 		});
 
 		it("should throw when controller file insert returns empty array", async () => {
-			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 			const mockController = createMockController();
 
-			mockUsersService.getUserDatabaseRow.mockResolvedValue(mockUser);
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[mockController], // _getControllerById
-			]);
-			mockDrizzleService.db.insert.mockReturnThis();
-			mockDrizzleService.db.values.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockBusinessRepository.insertControllerFile.mockRejectedValue(new Error("Controller file insert returned no rows"));
 
 			await expect(
 				service.uploadBusinessControllerFile(
@@ -376,21 +338,22 @@ describe("BusinessService", () => {
 					validFile,
 					BusinessControllerFileType.IDENTIFICATION_FRONT,
 				),
-			).rejects.toThrow("File insert returned no rows");
+			).rejects.toThrow("Controller file insert returned no rows");
 		});
 	});
 
 	describe("saveBusiness", () => {
 		it("should throw UserNotFoundException when user does not exist", async () => {
-			mockBatchSequence(mockDrizzleService.db, [[], []]);
+			mockUserRepository.findById.mockResolvedValue(null);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(null);
 
 			await expect(service.saveBusiness(MOCK_USER_ID, {} as any)).rejects.toThrow(UserNotFoundException);
 		});
 
 		it("should throw when business input is undefined (controller-level validation expected)", async () => {
 			const mockUser = createMockUser();
-
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], []]);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(null);
 
 			await expect(service.saveBusiness(MOCK_USER_ID, undefined as any)).rejects.toThrow(TypeError);
 		});
@@ -399,49 +362,40 @@ describe("BusinessService", () => {
 			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[],  // _getBusinessControllers
-				[],  // _getBusinessFileTypesUploaded (Promise.all)
-			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Only Name",
 			});
 
-			expect(mockDrizzleService.db.update).toHaveBeenCalledWith(businessesTable);
-			expect(mockDrizzleService.db.update).not.toHaveBeenCalledWith(businessControllersTable);
+			expect(mockBusinessRepository.updateBusiness).toHaveBeenCalled();
+			expect(mockBusinessRepository.insertBusinessController).not.toHaveBeenCalled();
+			expect(mockBusinessRepository.updateBusinessController).not.toHaveBeenCalled();
 		});
 
 		it("should strip undefined values and only update provided fields", async () => {
-			const mockUser = createMockUser({ business_id: MOCK_BUSINESS_ID });
+			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness({ tax_id: "existing_tax_id" });
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[],  // _getBusinessControllers
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Updated Corp",
 			});
 
-			const setCallArgs = mockDrizzleService.db.set.mock.calls[0]![0] as Record<string, unknown>;
+			const setCallArgs = mockBusinessRepository.updateBusiness.mock.calls[0]![1] as Record<string, unknown>;
 
 			expect(setCallArgs).toHaveProperty("legal_name", "Updated Corp");
 			expect(setCallArgs).not.toHaveProperty("tax_id");
@@ -449,72 +403,60 @@ describe("BusinessService", () => {
 		});
 
 		it("should set fields to null in database when explicitly passed as null", async () => {
-			const mockUser = createMockUser({ business_id: MOCK_BUSINESS_ID });
+			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness({ legal_name: "Old Name" });
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[],  // _getBusinessControllers
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: null as any,
 			});
 
-			const setCallArgs = mockDrizzleService.db.set.mock.calls[0]![0] as Record<string, unknown>;
+			const setCallArgs = mockBusinessRepository.updateBusiness.mock.calls[0]![1] as Record<string, unknown>;
 
 			expect(setCallArgs).toHaveProperty("legal_name", null);
 		});
 
 		it("should only update and not insert if business already exists", async () => {
-			const mockUser = createMockUser({ business_id: MOCK_BUSINESS_ID });
+			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[],  // _getBusinessControllers
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Updated Name",
+				legalName: "Only Name",
 			});
 
-			expect(mockDrizzleService.db.update).toHaveBeenCalledWith(businessesTable);
-			expect(mockDrizzleService.db.insert).not.toHaveBeenCalledWith(businessesTable);
+			expect(mockBusinessRepository.updateBusiness).toHaveBeenCalled();
+			expect(mockBusinessRepository.insertBusiness).not.toHaveBeenCalled();
 		});
 
 		it("should save business data and return updated business", async () => {
-			const mockUser = createMockUser({ business_id: MOCK_BUSINESS_ID });
+			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[],  // _getBusinessControllers
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Updated Corp",
@@ -530,26 +472,25 @@ describe("BusinessService", () => {
 			const mockInsertedBusiness = createMockBusiness();
 			const mockInsertedController = createMockController({ id: "ctrl-001" });
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], []]);
-			// Batch construct, then _upsertBusiness insert, _upsertControllers insert, Promise.all(file types)
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
-				[{ controller_id: mockInsertedController.id, file_type: BusinessControllerFileType.IDENTIFICATION_FRONT }], // _getControllerFileTypes (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(null);
+			mockBusinessRepository.insertBusiness.mockResolvedValue(mockInsertedBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.insertBusinessController.mockResolvedValue(mockInsertedController);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.insert.mockReturnThis();
-			mockDrizzleService.db.values.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockInsertedBusiness]);
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockInsertedController]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+				new Map([[mockInsertedController.id, [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
+			);
 
 			const result = await service.saveBusiness(MOCK_USER_ID, {
 				controllers: [{ role: BusinessControllerRole.CONTROLLING_PERSON }],
 			});
 
 			expect(result).toBeDefined();
-			expect(mockDrizzleService.db.insert).toHaveBeenCalledWith(businessControllersTable);
+			expect(mockBusinessRepository.insertBusiness).toHaveBeenCalled();
+			expect(mockBusinessRepository.insertBusinessController).toHaveBeenCalled();
 		});
 
 		it("should update existing and insert new controllers", async () => {
@@ -557,23 +498,18 @@ describe("BusinessService", () => {
 			const mockBusiness = createMockBusiness();
 			const mockController1 = createMockController({ id: "ctrl-001" });
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[mockController1], // _getBusinessControllers
-				[],  // _upsertBusinessControllers update where (ctrl-001)
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
-				[{ controller_id: "ctrl-001", file_type: BusinessControllerFileType.IDENTIFICATION_FRONT }], // _getControllerFileTypes (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController1]);
+			mockBusinessRepository.updateBusinessController.mockResolvedValue(mockController1);
+			mockBusinessRepository.insertBusinessController.mockResolvedValue(createMockController({ id: "ctrl-002" }));
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
-			mockDrizzleService.db.insert.mockReturnThis();
-			mockDrizzleService.db.values.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValue([mockController1]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+				new Map([["ctrl-001", [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
+			);
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Updated Corp",
@@ -583,101 +519,79 @@ describe("BusinessService", () => {
 				],
 			});
 
-			expect(mockDrizzleService.db.update).toHaveBeenCalledWith(businessControllersTable);
-			expect(mockDrizzleService.db.insert).toHaveBeenCalledWith(businessControllersTable);
+			expect(mockBusinessRepository.updateBusinessController).toHaveBeenCalled();
+			expect(mockBusinessRepository.insertBusinessController).toHaveBeenCalled();
 		});
 
 		it("should not update controllers if all fields are undefined", async () => {
-			const mockUser = createMockUser({ business_id: MOCK_BUSINESS_ID });
+			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 			const mockController1 = createMockController({ id: "ctrl-001" });
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[mockController1], // _getBusinessControllers
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
-				[],  // _getBusinessControllerFileTypesUploaded (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController1]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Updated Corp",
 				controllers: [{ id: "ctrl-001" }],
 			});
 
-			expect(mockDrizzleService.db.update).toHaveBeenCalledTimes(1);
-			expect(mockDrizzleService.db.update).toHaveBeenCalledWith(businessesTable);
+			expect(mockBusinessRepository.updateBusinessController).not.toHaveBeenCalled();
 		});
 
 		it("should return the updated controller data when updating an existing controller (regression)", async () => {
-			const mockUser = createMockUser({ business_id: MOCK_BUSINESS_ID });
+			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 			const mockController = createMockController({ id: "ctrl-001", legal_first_name: "OldName" });
 			const updatedController = { ...mockController, legal_first_name: "NewName" };
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[mockController], // _getBusinessControllers
-				[],  // _upsertBusinessControllers update where (ctrl-001)
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypesUploaded (Promise.all)
-				[{ controller_id: "ctrl-001", file_type: BusinessControllerFileType.IDENTIFICATION_FRONT }], // _getControllerFileTypes (Promise.all)
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController]);
+			mockBusinessRepository.updateBusinessController.mockResolvedValue(updatedController);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
-
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
-			// Return the updated controller from the mocked DB to prove the service uses it
-			mockDrizzleService.db.returning.mockResolvedValueOnce([updatedController]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+				new Map([["ctrl-001", [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
+			);
 
 			const result = await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Updated Corp", // Adding this triggers _upsertBusiness update
-				controllers: [
-					{ id: "ctrl-001", legalFirstName: "NewName", role: BusinessControllerRole.CONTROLLING_PERSON }
-				],
+				legalName: "Updated Corp",
+				controllers: [{ id: "ctrl-001", legalFirstName: "NewName", role: BusinessControllerRole.CONTROLLING_PERSON }],
 			});
 
-			expect(mockDrizzleService.db.update).toHaveBeenCalledWith(businessControllersTable);
+			expect(mockBusinessRepository.updateBusinessController).toHaveBeenCalled();
 			expect(result.controllers[0]?.legalFirstName).toBe("NewName");
 		});
 
 		it("should throw BusinessControllerNotFoundException if an invalid controller ID is provided", async () => {
-			const mockUser = createMockUser({ business_id: MOCK_BUSINESS_ID });
+			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockBatchSequence(mockDrizzleService.db, [[mockUser], [mockBusiness]]);
-			mockWhereSequence(mockDrizzleService.db, [
-				[],  // batch: user query
-				[],  // batch: business query
-				[],  // _upsertBusiness update where
-				[],  // _getBusinessControllers (returns empty, so any provided ID will be invalid)
-			]);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
 
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
-			mockDrizzleService.db.returning.mockResolvedValueOnce([mockBusiness]);
-
-			await expect(service.saveBusiness(MOCK_USER_ID, {
-				controllers: [
-					{ id: "invalid-id", role: BusinessControllerRole.CONTROLLING_PERSON }
-				],
-			})).rejects.toThrow(BusinessControllerNotFoundException);
+			await expect(
+				service.saveBusiness(MOCK_USER_ID, {
+					controllers: [{ id: "invalid-id", role: BusinessControllerRole.CONTROLLING_PERSON }],
+				}),
+			).rejects.toThrow(BusinessControllerNotFoundException);
 		});
 	});
 
 	describe("getBusiness", () => {
 		it("should throw BusinessNotFoundException when business does not exist", async () => {
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(null);
 
 			await expect(service.getBusiness(MOCK_USER_ID)).rejects.toThrow(BusinessNotFoundException);
 		});
@@ -685,12 +599,12 @@ describe("BusinessService", () => {
 		it("should return business data with fileTypesUploaded", async () => {
 			const mockBusiness = createMockBusiness();
 
-			// _getBusinessByUserId, then Promise.all(_getBusinessControllers, _getBusinessFileTypes)
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[],              // _getBusinessControllers (Promise.all)
-				[{ file_type: BusinessFileType.INCORPORATION_DOCUMENT }], // _getBusinessFileTypes (Promise.all)
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.INCORPORATION_DOCUMENT,
 			]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -713,11 +627,10 @@ describe("BusinessService", () => {
 				address_proof_type: null,
 			});
 
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[],              // _getBusinessControllers (Promise.all)
-				[],              // _getBusinessFileTypes (Promise.all)
-			]);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -734,11 +647,12 @@ describe("BusinessService", () => {
 		it("should include addressProofType in address output", async () => {
 			const mockBusiness = createMockBusiness();
 
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[],              // _getBusinessControllers (Promise.all)
-				[{ file_type: BusinessFileType.PROOF_OF_ADDRESS }], // _getBusinessFileTypes (Promise.all)
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.PROOF_OF_ADDRESS,
 			]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -750,18 +664,14 @@ describe("BusinessService", () => {
 			const mockBusiness = createMockBusiness();
 			const mockController = createMockController();
 
-			// _getBusinessByUserId, Promise.all(_getBusinessControllers, _getBusinessFileTypes), then _getControllerFileTypes
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[mockController], // _getBusinessControllers (Promise.all)
-				[{ file_type: BusinessFileType.INCORPORATION_DOCUMENT }], // _getBusinessFileTypes (Promise.all)
-				[
-					{
-						controller_id: MOCK_CONTROLLER_ID,
-						file_type: BusinessControllerFileType.IDENTIFICATION_FRONT,
-					},
-				], // _getControllerFileTypes
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
+				BusinessFileType.INCORPORATION_DOCUMENT,
 			]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+				new Map([[MOCK_CONTROLLER_ID, [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
+			);
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -772,11 +682,10 @@ describe("BusinessService", () => {
 		it("should handle empty controller list when fetching uploaded file types", async () => {
 			const mockBusiness = createMockBusiness();
 
-			mockWhereSequence(mockDrizzleService.db, [
-				[mockBusiness], // _getBusinessByUserId
-				[],              // _getBusinessControllers (Promise.all)
-				[],              // _getBusinessFileTypes (Promise.all)
-			]);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -786,9 +695,7 @@ describe("BusinessService", () => {
 
 	describe("getFile", () => {
 		it("should throw BusinessFileNotFoundException when file does not exist for user and file type", async () => {
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFile.mockResolvedValue(undefined);
 
 			await expect(
 				service.getBusinessFile({ userId: MOCK_USER_ID, fileType: BusinessFileType.INCORPORATION_DOCUMENT }),
@@ -797,9 +704,7 @@ describe("BusinessService", () => {
 
 		it("should return file buffer and metadata when file exists", async () => {
 			const mockFileRow = createMockFileRow();
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([mockFileRow]);
+			mockBusinessRepository.findBusinessFile.mockResolvedValue(mockFileRow);
 
 			const result = await service.getBusinessFile({
 				userId: MOCK_USER_ID,
@@ -813,23 +718,17 @@ describe("BusinessService", () => {
 
 		it("should query by user_id and file_type", async () => {
 			const mockFileRow = createMockFileRow();
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([mockFileRow]);
+			mockBusinessRepository.findBusinessFile.mockResolvedValue(mockFileRow);
 
 			await service.getBusinessFile({ userId: MOCK_USER_ID, fileType: BusinessFileType.PROOF_OF_ADDRESS });
 
-			expect(mockDrizzleService.db.select).toHaveBeenCalled();
-			expect(mockDrizzleService.db.from).toHaveBeenCalled();
-			expect(mockDrizzleService.db.where).toHaveBeenCalled();
+			expect(mockBusinessRepository.findBusinessFile).toHaveBeenCalledWith(MOCK_USER_ID, BusinessFileType.PROOF_OF_ADDRESS);
 		});
 	});
 
 	describe("getBusinessControllerFile", () => {
 		it("should throw ControllerFileNotFoundException when file does not exist", async () => {
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([]);
+			mockBusinessRepository.findControllerFile.mockResolvedValue(undefined);
 
 			await expect(
 				service.getBusinessControllerFile({
@@ -842,9 +741,7 @@ describe("BusinessService", () => {
 
 		it("should return file buffer and metadata when controller file exists", async () => {
 			const mockFileRow = createMockControllerFileRow();
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([mockFileRow]);
+			mockBusinessRepository.findControllerFile.mockResolvedValue(mockFileRow);
 
 			const result = await service.getBusinessControllerFile({
 				userId: MOCK_USER_ID,
@@ -892,5 +789,4 @@ describe("BusinessService", () => {
 			expect(result.nested).toBe(input.nested);
 		});
 	});
-
 });

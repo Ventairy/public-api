@@ -1,12 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { and, eq, inArray } from "drizzle-orm";
-import { DrizzleService } from "@core/database/drizzle.service";
 import { R2StorageService } from "@core/storage/r2-storage.service";
-import { usersTable } from "@db/schema/users-table";
-import { businessesTable, type BusinessDatabaseRow } from "@db/schema/businesses-table";
-import { businessControllersTable, type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
-import { businessFilesTable } from "@db/schema/business-files-table";
-import { businessControllerFilesTable } from "@db/schema/business-controller-files-table";
+import { UserRepository } from "@modules/users/repositories/user.repository";
+import { BusinessRepository } from "./repositories/business.repository";
+import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
+import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 import { BusinessFileType, BusinessControllerFileType, R2BucketType } from "@shared/constants";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";
@@ -26,7 +23,8 @@ import {
 @Injectable()
 export class BusinessService {
 	constructor(
-		private readonly drizzleService: DrizzleService,
+		private readonly _userRepository: UserRepository,
+		private readonly _businessRepository: BusinessRepository,
 		private readonly r2StorageService: R2StorageService,
 	) {}
 
@@ -51,21 +49,15 @@ export class BusinessService {
 			contentType: file.mimetype,
 		});
 
-		const rows = await this.drizzleService.db
-			.insert(businessFilesTable)
-			.values({
-				id: fileId,
-				user_id: userId,
-				file_name: file.originalname,
-				file_size: file.size,
-				mime_type: file.mimetype,
-				file_type: fileType,
-				r2_key: r2Key,
-			})
-			.returning();
-
-		const insertedRow = rows[0];
-		if (!insertedRow) throw new Error("File insert returned no rows");
+		const insertedRow = await this._businessRepository.insertBusinessFile({
+			id: fileId,
+			user_id: userId,
+			file_name: file.originalname,
+			file_size: file.size,
+			mime_type: file.mimetype,
+			file_type: fileType,
+			r2_key: r2Key,
+		});
 
 		return UploadFileOutputDto.fromDatabaseRow(insertedRow);
 	}
@@ -78,10 +70,10 @@ export class BusinessService {
 	): Promise<UploadBusinessControllerFileOutputDto> {
 		this._validateFileSize(file.originalname, file.size);
 
-		const business = await this._getBusinessByUserId(userId);
+		const business = await this._businessRepository.findBusinessByUserId(userId);
 		if (!business) throw new BusinessNotFoundException(userId);
 
-		const controller = await this._getControllerById(controllerId);
+		const controller = await this._businessRepository.findBusinessControllerById(controllerId);
 
 		if (!controller || controller.business_id !== business.id) {
 			throw new BusinessControllerNotFoundException(userId, controllerId);
@@ -101,39 +93,32 @@ export class BusinessService {
 			contentType: file.mimetype,
 		});
 
-		const rows = await this.drizzleService.db
-			.insert(businessControllerFilesTable)
-			.values({
-				id: fileId,
-				controller_id: controllerId,
-				file_name: file.originalname,
-				file_size: file.size,
-				mime_type: file.mimetype,
-				file_type: fileType,
-				r2_key: r2Key,
-			})
-			.returning();
-
-		const insertedRow = rows[0];
-		if (!insertedRow) throw new Error("File insert returned no rows");
+		const insertedRow = await this._businessRepository.insertControllerFile({
+			id: fileId,
+			controller_id: controllerId,
+			file_name: file.originalname,
+			file_size: file.size,
+			mime_type: file.mimetype,
+			file_type: fileType,
+			r2_key: r2Key,
+		});
 
 		return UploadBusinessControllerFileOutputDto.fromDatabaseRow(insertedRow);
 	}
 
 	public async saveBusiness(userId: string, business: BusinessInputDto): Promise<BusinessOutputDto> {
-		const [userRows, businessRows] = await this.drizzleService.db.batch([
-			this.drizzleService.db.select().from(usersTable).where(eq(usersTable.id, userId)),
-			this.drizzleService.db.select().from(businessesTable).where(eq(businessesTable.user_id, userId)),
+		const [user, existingBusiness] = await Promise.all([
+			this._userRepository.findById(userId),
+			this._businessRepository.findBusinessByUserId(userId),
 		]);
 
-		const user = userRows[0];
 		if (!user) throw new UserNotFoundException(userId);
-
-		const existingBusiness = businessRows[0] ?? null;
 
 		const [updatedBusiness, existingControllers] = await Promise.all([
 			this._upsertBusiness(userId, existingBusiness, business),
-			Promise.resolve(existingBusiness ? this._getBusinessControllers(existingBusiness.id) : []),
+			Promise.resolve(
+				existingBusiness ? this._businessRepository.findControllersByBusinessId(existingBusiness.id) : [],
+			),
 		]);
 
 		const updatedControllers = await this._upsertBusinessControllers(
@@ -144,8 +129,8 @@ export class BusinessService {
 		);
 
 		const [businessFileTypes, controllerFileTypes] = await Promise.all([
-			this._getBusinessFileTypesUploaded(userId),
-			this._getBusinessControllerFileTypesUploaded(updatedControllers.map((c) => c.id)),
+			this._businessRepository.findBusinessFileTypesByUserId(userId),
+			this._businessRepository.findControllerFileTypesByControllerIds(updatedControllers.map((c) => c.id)),
 		]);
 
 		return BusinessOutputDto.fromDatabaseRow(
@@ -157,34 +142,36 @@ export class BusinessService {
 	}
 
 	public async getBusiness(userId: string): Promise<BusinessOutputDto> {
-		const business = await this._getBusinessByUserId(userId);
+		const business = await this._businessRepository.findBusinessByUserId(userId);
 		if (!business) throw new BusinessNotFoundException(userId);
 
 		const [controllers, businessFileTypes] = await Promise.all([
-			this._getBusinessControllers(business.id),
-			this._getBusinessFileTypesUploaded(userId),
+			this._businessRepository.findControllersByBusinessId(business.id),
+			this._businessRepository.findBusinessFileTypesByUserId(userId),
 		]);
 
-		const controllerFileTypes = await this._getBusinessControllerFileTypesUploaded(controllers.map((c) => c.id));
+		const controllerFileTypes = await this._businessRepository.findControllerFileTypesByControllerIds(
+			controllers.map((c) => c.id),
+		);
 
-		return BusinessOutputDto.fromDatabaseRow(business, controllers, businessFileTypes, controllerFileTypes);
+		return BusinessOutputDto.fromDatabaseRow(
+			business,
+			controllers,
+			businessFileTypes,
+			controllerFileTypes,
+		);
 	}
 
 	public async getBusinessFile(params: {
 		userId: string;
 		fileType: BusinessFileType;
 	}): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
-		const rows = await this.drizzleService.db
-			.select()
-			.from(businessFilesTable)
-			.where(and(eq(businessFilesTable.user_id, params.userId), eq(businessFilesTable.file_type, params.fileType)));
-
-		const fileRow = rows[0];
+		const fileRow = await this._businessRepository.findBusinessFile(params.userId, params.fileType);
 
 		if (!fileRow) throw new BusinessFileNotFoundException(params.userId, params.fileType);
 
-		const buffer = await this.r2StorageService.getFileBuffer(R2BucketType.BUSINESS_FILES, fileRow["r2_key"]);
-		return { buffer, fileName: fileRow["file_name"], mimeType: fileRow["mime_type"] };
+		const buffer = await this.r2StorageService.getFileBuffer(R2BucketType.BUSINESS_FILES, fileRow.r2_key);
+		return { buffer, fileName: fileRow.file_name, mimeType: fileRow.mime_type };
 	}
 
 	public async getBusinessControllerFile(params: {
@@ -192,22 +179,12 @@ export class BusinessService {
 		controllerId: string;
 		fileType: BusinessControllerFileType;
 	}): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
-		const rows = await this.drizzleService.db
-			.select()
-			.from(businessControllerFilesTable)
-			.where(
-				and(
-					eq(businessControllerFilesTable.controller_id, params.controllerId),
-					eq(businessControllerFilesTable.file_type, params.fileType),
-				),
-			);
-
-		const fileRow = rows[0];
+		const fileRow = await this._businessRepository.findControllerFile(params.controllerId, params.fileType);
 
 		if (!fileRow) throw new BusinessControllerFileNotFoundException(params.userId, params.controllerId);
 
-		const buffer = await this.r2StorageService.getFileBuffer(R2BucketType.BUSINESS_FILES, fileRow["r2_key"]);
-		return { buffer, fileName: fileRow["file_name"], mimeType: fileRow["mime_type"] };
+		const buffer = await this.r2StorageService.getFileBuffer(R2BucketType.BUSINESS_FILES, fileRow.r2_key);
+		return { buffer, fileName: fileRow.file_name, mimeType: fileRow.mime_type };
 	}
 
 	private _validateFileSize(fileName: string, fileSize: number): void {
@@ -243,28 +220,17 @@ export class BusinessService {
 			const fieldsToUpdate = ObjectUtils.filterUndefined(rawUpdate);
 			if (Object.keys(fieldsToUpdate).length === 0) return existingBusiness;
 
-			const rows = await this.drizzleService.db
-				.update(businessesTable)
-				.set(fieldsToUpdate)
-				.where(eq(businessesTable.id, existingBusiness.id))
-				.returning();
-
-			return rows[0] ?? existingBusiness;
+			const updated = await this._businessRepository.updateBusiness(existingBusiness.id, fieldsToUpdate);
+			return updated ?? existingBusiness;
 		}
 
-		const newBusinessId = crypto.randomUUID();
+		const inserted = await this._businessRepository.insertBusiness({
+			id: crypto.randomUUID(),
+			user_id: userId,
+			...rawUpdate,
+		});
 
-		const rows = await this.drizzleService.db
-			.insert(businessesTable)
-			.values({
-				id: newBusinessId,
-				user_id: userId,
-				...rawUpdate,
-			})
-			.returning();
-
-		if (!rows[0]) throw new Error("Business insert returned no rows");
-		return rows[0];
+		return inserted;
 	}
 
 	private async _upsertBusinessControllers(
@@ -318,94 +284,28 @@ export class BusinessService {
 				}
 
 				writeOperations.push(
-					this.drizzleService.db
-						.update(businessControllersTable)
-						.set(updateFields)
-						.where(eq(businessControllersTable.id, controllerToUpdate.id))
-						.returning(),
+					this._businessRepository
+						.updateBusinessController(controllerToUpdate.id, updateFields)
+						.then((r) => (r ? [r] : [])),
 				);
 			} else {
-				const newControllerId = crypto.randomUUID();
-
 				writeOperations.push(
-					this.drizzleService.db
-						.insert(businessControllersTable)
-						.values({
-							id: newControllerId,
+					this._businessRepository
+						.insertBusinessController({
+							id: crypto.randomUUID(),
 							business_id: businessId,
 							...rawUpdate,
 						})
-						.returning(),
+						.then((r) => [r]),
 				);
 			}
 		}
 
 		const writeResults = await Promise.all(writeOperations);
 		const updatedControllers = writeResults
-			.map((rows) => rows[0])
+			.flatMap((rows) => rows)
 			.filter((r): r is BusinessControllerDatabaseRow => r !== undefined);
 
 		return [...untouchedControllers, ...updatedControllers];
-	}
-
-	private async _getBusinessByUserId(userId: string): Promise<BusinessDatabaseRow | null> {
-		const businessRows = await this.drizzleService.db
-			.select()
-			.from(businessesTable)
-			.where(eq(businessesTable.user_id, userId));
-
-		return businessRows[0] ?? null;
-	}
-
-	private async _getBusinessControllers(businessId: string): Promise<BusinessControllerDatabaseRow[]> {
-		const controllerRows = await this.drizzleService.db
-			.select()
-			.from(businessControllersTable)
-			.where(eq(businessControllersTable.business_id, businessId));
-
-		return controllerRows;
-	}
-
-	private async _getControllerById(controllerId: string): Promise<BusinessControllerDatabaseRow | null> {
-		const rows = await this.drizzleService.db
-			.select()
-			.from(businessControllersTable)
-			.where(eq(businessControllersTable.id, controllerId));
-
-		return rows[0] ?? null;
-	}
-
-	private async _getBusinessFileTypesUploaded(userId: string): Promise<BusinessFileType[]> {
-		const files = await this.drizzleService.db
-			.select({ file_type: businessFilesTable.file_type })
-			.from(businessFilesTable)
-			.where(eq(businessFilesTable.user_id, userId));
-
-		return files.map((f) => f.file_type);
-	}
-
-	private async _getBusinessControllerFileTypesUploaded(
-		controllerIds: string[],
-	): Promise<Map<string, BusinessControllerFileType[]>> {
-		const controllerIdToFileTypeMap = new Map<string, BusinessControllerFileType[]>();
-
-		if (controllerIds.length === 0) return controllerIdToFileTypeMap;
-
-		const files = await this.drizzleService.db
-			.select({
-				controller_id: businessControllerFilesTable.controller_id,
-				file_type: businessControllerFilesTable.file_type,
-			})
-			.from(businessControllerFilesTable)
-			.where(inArray(businessControllerFilesTable.controller_id, controllerIds));
-
-		for (const file of files) {
-			controllerIdToFileTypeMap.set(file.controller_id, [
-				...(controllerIdToFileTypeMap.get(file.controller_id) ?? []),
-				file.file_type,
-			]);
-		}
-
-		return controllerIdToFileTypeMap;
 	}
 }

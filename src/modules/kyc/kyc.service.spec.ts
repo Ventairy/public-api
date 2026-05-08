@@ -6,24 +6,6 @@ import { KycService } from "./kyc.service";
 
 const MOCK_USER_ID = "user-123";
 
-function createMockDb() {
-	return {
-		select: vi.fn().mockReturnThis(),
-		from: vi.fn().mockReturnThis(),
-		where: vi.fn().mockReturnThis(),
-		set: vi.fn().mockReturnThis(),
-		values: vi.fn().mockReturnThis(),
-		returning: vi.fn(),
-		insert: vi.fn().mockReturnThis(),
-		update: vi.fn().mockReturnThis(),
-		delete: vi.fn().mockReturnThis(),
-	};
-}
-
-function createMockDrizzleService() {
-	return { db: createMockDb() };
-}
-
 function createMockKyc(overrides: Record<string, unknown> = {}) {
 	return {
 		id: "kyc-001",
@@ -37,39 +19,34 @@ function createMockKyc(overrides: Record<string, unknown> = {}) {
 
 describe("KycService", () => {
 	let service: KycService;
-	let mockDrizzleService: ReturnType<typeof createMockDrizzleService>;
+	let mockKycRepository: any;
 
 	beforeEach(() => {
-		vi.clearAllMocks();
-		mockDrizzleService = createMockDrizzleService();
-		service = new KycService(mockDrizzleService as unknown as import("@core/database/drizzle.service").DrizzleService);
+		mockKycRepository = {
+			findByUserId: vi.fn(),
+			create: vi.fn(),
+			updateStatusByUserId: vi.fn(),
+		} as any;
+		service = new KycService(mockKycRepository);
 	});
 
 	describe("submitKyc", () => {
 		it("should throw UserNotFoundException when user has no kyc record", async () => {
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([]);
+			mockKycRepository.findByUserId.mockResolvedValue(undefined);
 
 			await expect(service.submitKyc(MOCK_USER_ID)).rejects.toThrow(UserNotFoundException);
 		});
 
 		it("should throw KycSubmissionLockedException when user is APPROVED", async () => {
 			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.APPROVED });
-
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([mockKyc]);
+			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
 
 			await expect(service.submitKyc(MOCK_USER_ID)).rejects.toThrow(KycSubmissionLockedException);
 		});
 
 		it("should throw KycSubmissionLockedException when user is REJECTED", async () => {
 			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.REJECTED });
-
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([mockKyc]);
+			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
 
 			await expect(service.submitKyc(MOCK_USER_ID)).rejects.toThrow(KycSubmissionLockedException);
 		});
@@ -81,19 +58,17 @@ describe("KycService", () => {
 				kyc_submitted_at: "2026-05-05T10:00:00.000Z",
 			});
 
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where
-				.mockResolvedValueOnce([mockKyc])
-				.mockResolvedValueOnce([mockKyc])
-				.mockResolvedValueOnce([updatedKyc]);
-			mockDrizzleService.db.update.mockReturnThis();
-			mockDrizzleService.db.set.mockReturnThis();
+			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
+			mockKycRepository.findByUserId.mockResolvedValueOnce(mockKyc as any);
+			mockKycRepository.findByUserId.mockResolvedValueOnce(updatedKyc as any);
 
 			const result = await service.submitKyc(MOCK_USER_ID);
 
-			expect(mockDrizzleService.db.update).toHaveBeenCalled();
-			expect(mockDrizzleService.db.set).toHaveBeenCalled();
+			expect(mockKycRepository.updateStatusByUserId).toHaveBeenCalledWith({
+				userId: MOCK_USER_ID,
+				status: VentairyKycStatus.VERIFYING,
+				submittedAt: expect.any(String),
+			});
 			expect(result.ventairyKycStatus).toBe(VentairyKycStatus.VERIFYING);
 			expect(result.userId).toBe(MOCK_USER_ID);
 		});
@@ -101,19 +76,14 @@ describe("KycService", () => {
 
 	describe("getKycStatus", () => {
 		it("should throw UserNotFoundException when user has no kyc record", async () => {
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([]);
+			mockKycRepository.findByUserId.mockResolvedValue(undefined);
 
 			await expect(service.getKycStatus(MOCK_USER_ID)).rejects.toThrow(UserNotFoundException);
 		});
 
 		it("should return PENDING status when user has no kyc_submitted_at", async () => {
 			const mockKyc = createMockKyc({ kyc_submitted_at: null });
-
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([mockKyc]);
+			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
 
 			const result = await service.getKycStatus(MOCK_USER_ID);
 
@@ -127,10 +97,7 @@ describe("KycService", () => {
 				kyc_submitted_at: "2026-05-05T10:00:00.000Z",
 				ventairy_kyc_status: VentairyKycStatus.VERIFYING,
 			});
-
-			mockDrizzleService.db.select.mockReturnThis();
-			mockDrizzleService.db.from.mockReturnThis();
-			mockDrizzleService.db.where.mockResolvedValue([mockKyc]);
+			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
 
 			const result = await service.getKycStatus(MOCK_USER_ID);
 

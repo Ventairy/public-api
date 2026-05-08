@@ -1,17 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import { and, eq, lte } from "drizzle-orm";
-import {
-	signatureNoncesTable,
-	type NewSignatureNonceRow,
-	type SignatureNonceRow,
-} from "@db/schema/signature-nonces-table";
-import { DrizzleService } from "@core/database/drizzle.service";
+import { SignatureNonceRepository } from "../repositories/signature-nonce.repository";
 import { NONCE_BYTE_LENGTH, NONCE_BASE32_CHARSET } from "../constants";
 import { NonceNotFoundException } from "@shared/exceptions/nonce-not-found.exception";
+import { SignatureNonceRow } from "@db/schema/signature-nonces-table";
 
 @Injectable()
 export class WalletNonceService {
-	constructor(private readonly drizzleService: DrizzleService) {}
+	constructor(private readonly _signatureNonceRepository: SignatureNonceRepository) {}
 
 	public async createNonce(
 		walletAddress: string,
@@ -25,14 +20,12 @@ export class WalletNonceService {
 		const nonce = this._generateNonce();
 		const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
 
-		const newRow: NewSignatureNonceRow = {
+		await this._signatureNonceRepository.create({
 			id: crypto.randomUUID(),
 			nonce,
 			wallet_address: normalizedWalletAddress,
 			expires_at: expiresAt.toISOString(),
-		};
-
-		await this.drizzleService.db.insert(signatureNoncesTable).values(newRow);
+		});
 
 		return {
 			nonce,
@@ -41,29 +34,18 @@ export class WalletNonceService {
 		};
 	}
 
-
 	public async findNonce(nonce: string): Promise<SignatureNonceRow | undefined> {
-		const rows = await this.drizzleService.db
-			.select()
-			.from(signatureNoncesTable)
-			.where(eq(signatureNoncesTable.nonce, nonce));
-
-		return rows[0];
+		return this._signatureNonceRepository.findByNonce(nonce);
 	}
 
 	public async deleteNonce(nonce: string, walletAddress: string): Promise<void> {
-		const rows = await this.drizzleService.db
-			.delete(signatureNoncesTable)
-			.where(and(eq(signatureNoncesTable.nonce, nonce), eq(signatureNoncesTable.wallet_address, walletAddress)))
-			.returning();
+		const deleted = await this._signatureNonceRepository.deleteByNonceAndWalletAddress(nonce, walletAddress);
 
-		if (rows.length === 0) throw new NonceNotFoundException(nonce);
+		if (!deleted) throw new NonceNotFoundException(nonce);
 	}
 
 	public async cleanupExpired(): Promise<void> {
-		await this.drizzleService.db
-			.delete(signatureNoncesTable)
-			.where(lte(signatureNoncesTable.expires_at, new Date().toISOString()));
+		await this._signatureNonceRepository.deleteExpired();
 	}
 
 	private _generateNonce(): string {

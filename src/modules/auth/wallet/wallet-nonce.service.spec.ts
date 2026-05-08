@@ -3,25 +3,21 @@ import { WalletNonceService } from "./wallet-nonce.service";
 
 describe("WalletNonceService", () => {
 	let service: WalletNonceService;
-	let mockDb: {
-		values: ReturnType<typeof vi.fn>;
-		insert: ReturnType<typeof vi.fn>;
-		select: ReturnType<typeof vi.fn>;
-		delete: ReturnType<typeof vi.fn>;
+	let mockSignatureNonceRepository: {
+		create: ReturnType<typeof vi.fn>;
+		findByNonce: ReturnType<typeof vi.fn>;
+		deleteByNonceAndWalletAddress: ReturnType<typeof vi.fn>;
+		deleteExpired: ReturnType<typeof vi.fn>;
 	};
-	let mockDrizzleService: { db: typeof mockDb };
 
 	beforeEach(() => {
-		mockDb = {
-			insert: vi.fn().mockReturnThis(),
-			values: vi.fn().mockReturnThis(),
-			select: vi.fn().mockReturnThis(),
-			delete: vi.fn().mockReturnThis(),
+		mockSignatureNonceRepository = {
+			create: vi.fn().mockResolvedValue(undefined),
+			findByNonce: vi.fn(),
+			deleteByNonceAndWalletAddress: vi.fn(),
+			deleteExpired: vi.fn().mockResolvedValue(undefined),
 		};
-		mockDrizzleService = { db: mockDb };
-		service = new WalletNonceService(
-			mockDrizzleService as unknown as import("@core/database/drizzle.service").DrizzleService,
-		);
+		service = new WalletNonceService(mockSignatureNonceRepository as any);
 	});
 
 	describe("createNonce", () => {
@@ -30,8 +26,7 @@ describe("WalletNonceService", () => {
 		it("should insert a nonce row and return nonce output", async () => {
 			const result = await service.createNonce(validWalletAddress, 180);
 
-			expect(mockDb.insert).toHaveBeenCalled();
-			expect(mockDb.values).toHaveBeenCalledWith(
+			expect(mockSignatureNonceRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					nonce: expect.any(String),
 					wallet_address: validWalletAddress,
@@ -49,7 +44,7 @@ describe("WalletNonceService", () => {
 			const mixedCaseWallet = "0x742D35Cc6634C0532925a3b844Bc9e7595f0BEb1";
 			await service.createNonce(mixedCaseWallet, 180);
 
-			expect(mockDb.values).toHaveBeenCalledWith(
+			expect(mockSignatureNonceRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					wallet_address: mixedCaseWallet.toLowerCase(),
 				}),
@@ -91,8 +86,6 @@ describe("WalletNonceService", () => {
 
 	describe("findByNonce", () => {
 		it("should return nonce row when found", async () => {
-			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
-			mockDb.select.mockReturnValue(selectBuilder);
 			const expectedRow = {
 				id: "1",
 				nonce: "TESTNONCE",
@@ -100,7 +93,7 @@ describe("WalletNonceService", () => {
 				expires_at: "2026-01-01T00:00:00.000Z",
 				created_at: "2026-01-01T00:00:00.000Z",
 			};
-			selectBuilder.where.mockResolvedValueOnce([expectedRow]);
+			mockSignatureNonceRepository.findByNonce.mockResolvedValue(expectedRow);
 
 			const result = await service.findNonce("TESTNONCE");
 
@@ -108,9 +101,7 @@ describe("WalletNonceService", () => {
 		});
 
 		it("should return undefined when nonce not found", async () => {
-			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
-			mockDb.select.mockReturnValue(selectBuilder);
-			selectBuilder.where.mockResolvedValueOnce([]);
+			mockSignatureNonceRepository.findByNonce.mockResolvedValue(undefined);
 
 			const result = await service.findNonce("NONEXISTENT");
 
@@ -120,17 +111,13 @@ describe("WalletNonceService", () => {
 
 	describe("consumeNonce", () => {
 		it("should delete nonce row when found", async () => {
-			const deleteBuilder = { where: vi.fn().mockReturnThis(), returning: vi.fn() };
-			mockDb.delete.mockReturnValue(deleteBuilder);
-			deleteBuilder.returning.mockResolvedValueOnce([{ id: "1" }]);
+			mockSignatureNonceRepository.deleteByNonceAndWalletAddress.mockResolvedValue({ id: "1" });
 
 			await expect(service.deleteNonce("TESTNONCE", "0xabc")).resolves.toBeUndefined();
 		});
 
 		it("should throw NonceNotFoundException when nonce not found", async () => {
-			const deleteBuilder = { where: vi.fn().mockReturnThis(), returning: vi.fn() };
-			mockDb.delete.mockReturnValue(deleteBuilder);
-			deleteBuilder.returning.mockResolvedValueOnce([]);
+			mockSignatureNonceRepository.deleteByNonceAndWalletAddress.mockResolvedValue(undefined);
 
 			await expect(service.deleteNonce("TESTNONCE", "0xabc")).rejects.toThrow("The provided nonce does not exist");
 		});
@@ -138,13 +125,9 @@ describe("WalletNonceService", () => {
 
 	describe("cleanupExpired", () => {
 		it("should delete rows where expires_at is in the past", async () => {
-			const deleteBuilder = { where: vi.fn().mockReturnThis() };
-			mockDb.delete.mockReturnValue(deleteBuilder);
-
 			await service.cleanupExpired();
 
-			expect(mockDb.delete).toHaveBeenCalled();
-			expect(deleteBuilder.where).toHaveBeenCalled();
+			expect(mockSignatureNonceRepository.deleteExpired).toHaveBeenCalledTimes(1);
 		});
 	});
 });
