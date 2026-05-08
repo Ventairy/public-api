@@ -1,4 +1,5 @@
 export { ERROR_CODES, type ErrorCode } from "./error-codes";
+export { MimeType } from "../enums/mime-type";
 export { VentairyKycStatus as VentairyKycStatus } from "../enums/ventairy-kyc-status";
 export { BusinessFileType } from "../enums/business-file-type";
 export { BusinessControllerFileType } from "../enums/business-controller-file-type";

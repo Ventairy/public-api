@@ -10,6 +10,8 @@ export { UserAlreadyExistsException } from "./user-already-exists.exception";
 export { UserNotFoundException } from "./user-not-found.exception";
 export { ValidationException } from "./validation.exception";
 export { FileTooLargeException } from "./file-too-large.exception";
+export { InvalidFileMimeTypeException } from "./invalid-file-mime-type.exception";
+export { FileMimeTypeMismatchException } from "./file-mime-type-mismatch.exception";
 export { BusinessFileNotFoundException } from "./business-file-not-found.exception";
 export { BusinessControllerFileNotFoundException } from "./business-controller-file-not-found.exception";
 export { BusinessControllerNotFoundException } from "./business-controller-not-found.exception";

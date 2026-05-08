@@ -6,12 +6,16 @@ import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 import { BusinessFileType, BusinessControllerFileType, R2BucketType } from "@shared/constants";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
+import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";
+import { BusinessFileTypeUtils } from "./business-file-type.utils";
+import { BusinessControllerFileTypeUtils } from "./business-controller-file-type.utils";
 import { BusinessControllerFileNotFoundException } from "@shared/exceptions/business-controller-file-not-found.exception";
 import { BusinessControllerNotFoundException } from "@shared/exceptions/business-controller-not-found.exception";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
-import { ObjectUtils } from "@shared/utils/object.utils";
+import { fileTypeFromBuffer } from "file-type";
+import { ObjectUtils } from "@shared/utils";
 import { BUSINESS_MAX_FILE_SIZE_BYTES } from "./business.constants";
 import {
 	type BusinessInputDto,
@@ -33,7 +37,14 @@ export class BusinessService {
 		file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
 		fileType: BusinessFileType,
 	): Promise<UploadFileOutputDto> {
-		this._validateFileSize(file.originalname, file.size);
+		await this._validateFileToUpload({
+			fileName: file.originalname,
+			fileSize: file.size,
+			mimeType: file.mimetype,
+			allowedMimeTypes: BusinessFileTypeUtils.allowedMimeTypes(fileType),
+			fileType,
+			buffer: file.buffer,
+		});
 
 		const fileId = crypto.randomUUID();
 		const r2Key = this.r2StorageService.generateFileKey({
@@ -68,7 +79,14 @@ export class BusinessService {
 		file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
 		fileType: BusinessControllerFileType,
 	): Promise<UploadBusinessControllerFileOutputDto> {
-		this._validateFileSize(file.originalname, file.size);
+		await this._validateFileToUpload({
+			fileName: file.originalname,
+			fileSize: file.size,
+			mimeType: file.mimetype,
+			allowedMimeTypes: BusinessControllerFileTypeUtils.allowedMimeTypes(fileType),
+			fileType,
+			buffer: file.buffer,
+		});
 
 		const business = await this._businessRepository.findBusinessByUserId(userId);
 		if (!business) throw new BusinessNotFoundException(userId);
@@ -154,12 +172,7 @@ export class BusinessService {
 			controllers.map((c) => c.id),
 		);
 
-		return BusinessOutputDto.fromDatabaseRow(
-			business,
-			controllers,
-			businessFileTypes,
-			controllerFileTypes,
-		);
+		return BusinessOutputDto.fromDatabaseRow(business, controllers, businessFileTypes, controllerFileTypes);
 	}
 
 	public async getBusinessFile(params: {
@@ -187,9 +200,41 @@ export class BusinessService {
 		return { buffer, fileName: fileRow.file_name, mimeType: fileRow.mime_type };
 	}
 
-	private _validateFileSize(fileName: string, fileSize: number): void {
-		if (fileSize > BUSINESS_MAX_FILE_SIZE_BYTES) {
-			throw new FileTooLargeException({ fileName, fileSize, maxSize: BUSINESS_MAX_FILE_SIZE_BYTES });
+	private async _validateFileToUpload(params: {
+		fileName: string;
+		fileSize: number;
+		mimeType: string;
+		allowedMimeTypes: readonly string[];
+		fileType: string;
+		buffer: Buffer;
+	}): Promise<void> {
+		const detectedType = await fileTypeFromBuffer(params.buffer);
+
+		if (!detectedType || !params.allowedMimeTypes.includes(detectedType.mime)) {
+			throw new InvalidFileMimeTypeException({
+				fileName: params.fileName,
+				mimeType: detectedType?.mime ?? "unknown",
+				allowedMimeTypes: params.allowedMimeTypes,
+				fileType: params.fileType,
+			});
+		}
+
+		if (detectedType.mime !== params.mimeType) {
+			throw new FileMimeTypeMismatchException({
+				fileName: params.fileName,
+				contentType: params.mimeType,
+				detectedMimeType: detectedType.mime,
+				allowedMimeTypes: params.allowedMimeTypes,
+				fileType: params.fileType,
+			});
+		}
+
+		if (params.fileSize > BUSINESS_MAX_FILE_SIZE_BYTES) {
+			throw new FileTooLargeException({
+				fileName: params.fileName,
+				fileSize: params.fileSize,
+				maxSize: BUSINESS_MAX_FILE_SIZE_BYTES,
+			});
 		}
 	}
 

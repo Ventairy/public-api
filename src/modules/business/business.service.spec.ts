@@ -4,12 +4,14 @@ import { BusinessControllerFileType } from "@shared/enums/business-controller-fi
 import { BusinessControllerRole } from "@shared/enums/business-controller-role";
 import { R2BucketType } from "@shared/enums/r2-bucket-type";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
+import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
+import { MimeType } from "@shared/enums/mime-type";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";
 import { BusinessControllerFileNotFoundException } from "@shared/exceptions/business-controller-file-not-found.exception";
 import { BusinessControllerNotFoundException } from "@shared/exceptions/business-controller-not-found.exception";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
-import { ObjectUtils } from "@shared/utils/object.utils";
+import { ObjectUtils } from "@shared/utils";
 import { BusinessService } from "./business.service";
 import { BUSINESS_MAX_FILE_SIZE_BYTES } from "./business.constants";
 import { businessesTable } from "@db/schema/businesses-table";
@@ -86,6 +88,30 @@ function createMockFileRow() {
 		r2_key: `business/${MOCK_USER_ID}/${MOCK_FILE_ID}-document.pdf`,
 		created_at: "2026-05-04T14:48:00.000Z",
 	};
+}
+
+function createPdfBuffer(): Buffer {
+	return Buffer.from("%PDF-1.4 test content for magic byte validation");
+}
+
+function createJpegBuffer(): Buffer {
+	return Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
+}
+
+function createHeicBuffer(): Buffer {
+	const ftypSize = Buffer.alloc(4);
+	ftypSize.writeUInt32BE(20, 0);
+	return Buffer.concat([ftypSize, Buffer.from("ftypheic________")]);
+}
+
+function createAvifBuffer(): Buffer {
+	const ftypSize = Buffer.alloc(4);
+	ftypSize.writeUInt32BE(20, 0);
+	return Buffer.concat([ftypSize, Buffer.from("ftypavif________")]);
+}
+
+function createPlainTextBuffer(): Buffer {
+	return Buffer.from("This is not a valid file format content");
 }
 
 function createMockControllerFileRow() {
@@ -168,7 +194,7 @@ describe("BusinessService", () => {
 
 	describe("uploadBusinessFile", () => {
 		const validFile = {
-			buffer: Buffer.from("test-content"),
+			buffer: Buffer.from("%PDF-1.4 test content"),
 			originalname: "document.pdf",
 			mimetype: "application/pdf",
 			size: 1024,
@@ -240,11 +266,88 @@ describe("BusinessService", () => {
 				).resolves.toBeDefined();
 			}
 		});
+
+		it("should accept PDF MIME type for all business file types", async () => {
+			const fileRow = createMockFileRow();
+			mockBusinessRepository.insertBusinessFile.mockResolvedValue(fileRow);
+
+			const pdfFile = { ...validFile, mimetype: MimeType.PDF };
+			for (const fileType of Object.values(BusinessFileType)) {
+				await expect(
+					service.uploadBusinessFile(MOCK_USER_ID, pdfFile, fileType),
+				).resolves.toBeDefined();
+			}
+		});
+
+		it("should accept JPEG MIME type for all business file types", async () => {
+			const fileRow = { ...createMockFileRow(), mime_type: MimeType.JPEG };
+			mockBusinessRepository.insertBusinessFile.mockResolvedValue(fileRow);
+
+			const jpegFile = { ...validFile, mimetype: MimeType.JPEG, buffer: createJpegBuffer() };
+			for (const fileType of Object.values(BusinessFileType)) {
+				await expect(
+					service.uploadBusinessFile(MOCK_USER_ID, jpegFile, fileType),
+				).resolves.toBeDefined();
+			}
+		});
+
+		it("should accept HEIC MIME type for all business file types", async () => {
+			const fileRow = { ...createMockFileRow(), mime_type: MimeType.HEIC };
+			mockBusinessRepository.insertBusinessFile.mockResolvedValue(fileRow);
+
+			const heicFile = { ...validFile, mimetype: MimeType.HEIC, buffer: createHeicBuffer() };
+			for (const fileType of Object.values(BusinessFileType)) {
+				await expect(
+					service.uploadBusinessFile(MOCK_USER_ID, heicFile, fileType),
+				).resolves.toBeDefined();
+			}
+		});
+
+		it("should accept AVIF MIME type for all business file types", async () => {
+			const fileRow = { ...createMockFileRow(), mime_type: MimeType.AVIF };
+			mockBusinessRepository.insertBusinessFile.mockResolvedValue(fileRow);
+
+			const avifFile = { ...validFile, mimetype: MimeType.AVIF, buffer: createAvifBuffer() };
+			for (const fileType of Object.values(BusinessFileType)) {
+				await expect(
+					service.uploadBusinessFile(MOCK_USER_ID, avifFile, fileType),
+				).resolves.toBeDefined();
+			}
+		});
+
+		it("should throw InvalidFileMimeTypeException when MIME type is not allowed", async () => {
+			const invalidFile = { ...validFile, mimetype: "image/gif", buffer: createPlainTextBuffer() };
+
+			await expect(
+				service.uploadBusinessFile(MOCK_USER_ID, invalidFile, BusinessFileType.PROOF_OF_ADDRESS),
+			).rejects.toThrow(InvalidFileMimeTypeException);
+		});
+
+		it("should reject a file whose content does not match any allowed magic bytes (renamed .txt → .pdf)", async () => {
+			const renamedFile = { ...validFile, buffer: createPlainTextBuffer() };
+
+			await expect(
+				service.uploadBusinessFile(MOCK_USER_ID, renamedFile, BusinessFileType.PROOF_OF_ADDRESS),
+			).rejects.toThrow(InvalidFileMimeTypeException);
+		});
+
+		it("should reject when Content-Type header does not match actual file content (.txt with PDF bytes inside)", async () => {
+			const mismatchedFile = {
+				...validFile,
+				mimetype: "text/plain",
+				buffer: createPdfBuffer(),
+				originalname: "document.txt",
+			};
+
+			await expect(
+				service.uploadBusinessFile(MOCK_USER_ID, mismatchedFile, BusinessFileType.PROOF_OF_ADDRESS),
+			).rejects.toThrow(FileMimeTypeMismatchException);
+		});
 	});
 
 	describe("uploadBusinessControllerFile", () => {
 		const validFile = {
-			buffer: Buffer.from("test-content"),
+			buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]),
 			originalname: "passport_front.jpg",
 			mimetype: "image/jpeg",
 			size: 2048,
@@ -339,6 +442,140 @@ describe("BusinessService", () => {
 					BusinessControllerFileType.IDENTIFICATION_FRONT,
 				),
 			).rejects.toThrow("Controller file insert returned no rows");
+		});
+
+		it("should throw InvalidFileMimeTypeException for PDF on IDENTIFICATION_FRONT", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+
+			const pdfFile = { ...validFile, mimetype: MimeType.PDF, buffer: createPdfBuffer() };
+
+			await expect(
+				service.uploadBusinessControllerFile(
+					MOCK_USER_ID,
+					MOCK_CONTROLLER_ID,
+					pdfFile,
+					BusinessControllerFileType.IDENTIFICATION_FRONT,
+				),
+			).rejects.toThrow(InvalidFileMimeTypeException);
+		});
+
+		it("should throw InvalidFileMimeTypeException for PDF on IDENTIFICATION_BACK", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+
+			const pdfFile = { ...validFile, mimetype: MimeType.PDF, buffer: createPdfBuffer() };
+
+			await expect(
+				service.uploadBusinessControllerFile(
+					MOCK_USER_ID,
+					MOCK_CONTROLLER_ID,
+					pdfFile,
+					BusinessControllerFileType.IDENTIFICATION_BACK,
+				),
+			).rejects.toThrow(InvalidFileMimeTypeException);
+		});
+
+		it("should throw InvalidFileMimeTypeException for disallowed MIME type", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+
+			const invalidFile = { ...validFile, mimetype: "image/gif", buffer: createPlainTextBuffer() };
+
+			await expect(
+				service.uploadBusinessControllerFile(
+					MOCK_USER_ID,
+					MOCK_CONTROLLER_ID,
+					invalidFile,
+					BusinessControllerFileType.IDENTIFICATION_FRONT,
+				),
+			).rejects.toThrow(InvalidFileMimeTypeException);
+		});
+
+		it("should accept PDF MIME type for PROOF_OF_ADDRESS controller file type", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+			const fileRow = createMockControllerFileRow();
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockBusinessRepository.insertControllerFile.mockResolvedValue(fileRow);
+
+			const pdfFile = { ...validFile, mimetype: MimeType.PDF, buffer: createPdfBuffer(), originalname: "address.pdf" };
+
+			await expect(
+				service.uploadBusinessControllerFile(
+					MOCK_USER_ID,
+					MOCK_CONTROLLER_ID,
+					pdfFile,
+					BusinessControllerFileType.PROOF_OF_ADDRESS,
+				),
+			).resolves.toBeDefined();
+		});
+
+		it("should reject a controller file whose content does not match any allowed magic bytes", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+
+			const renamedFile = { ...validFile, mimetype: MimeType.JPEG, buffer: createPlainTextBuffer() };
+
+			await expect(
+				service.uploadBusinessControllerFile(
+					MOCK_USER_ID,
+					MOCK_CONTROLLER_ID,
+					renamedFile,
+					BusinessControllerFileType.IDENTIFICATION_FRONT,
+				),
+			).rejects.toThrow(InvalidFileMimeTypeException);
+		});
+
+		it("should reject when controller file Content-Type header does not match actual content", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+
+			const mismatchedFile = { ...validFile, mimetype: "text/plain", buffer: createJpegBuffer(), originalname: "document.txt" };
+
+			await expect(
+				service.uploadBusinessControllerFile(
+					MOCK_USER_ID,
+					MOCK_CONTROLLER_ID,
+					mismatchedFile,
+					BusinessControllerFileType.IDENTIFICATION_FRONT,
+				),
+			).rejects.toThrow(FileMimeTypeMismatchException);
+		});
+
+		it("should accept JPEG MIME type for all controller file types", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+			const fileRow = createMockControllerFileRow();
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockBusinessRepository.insertControllerFile.mockResolvedValue(fileRow);
+
+			const jpegFile = { ...validFile, mimetype: MimeType.JPEG };
+
+			for (const fileType of Object.values(BusinessControllerFileType)) {
+				await expect(
+					service.uploadBusinessControllerFile(MOCK_USER_ID, MOCK_CONTROLLER_ID, jpegFile, fileType),
+				).resolves.toBeDefined();
+			}
 		});
 	});
 
