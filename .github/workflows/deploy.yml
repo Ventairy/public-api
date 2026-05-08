@@ -3,6 +3,33 @@ name: Deploy
 on:
   push:
     branches: [main, staging]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "package.json"
+      - "bun.lock*"
+      - "wrangler.jsonc"
+      - "Dockerfile"
+      - "drizzle.config.ts"
+      - "tsconfig*.json"
+      - "nest-cli.json"
+      - ".github/workflows/deploy.yml"
+    paths-ignore:
+      - "src/**/*.spec.ts"
+      - "src/**/__tests__/**"
+      - "src/**/*.md"
+      - "**.md"
+      - ".agents/**"
+      - ".vscode/**"
+      - ".husky/**"
+      - ".gitignore"
+      - ".dockerignore"
+      - ".editorconfig"
+      - ".lintstagedrc.json"
+      - ".commitlintrc.json"
+      - "eslint.config.mjs"
+      - ".prettierrc"
+      - "vitest*.config.ts"
 
 jobs:
   resolve-environment:
