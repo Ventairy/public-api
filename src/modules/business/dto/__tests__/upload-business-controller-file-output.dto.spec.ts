@@ -8,6 +8,7 @@ describe("UploadBusinessControllerFileOutputDto", () => {
 		const mockRow: BusinessControllerFileRow = {
 			id: "cf-1",
 			controller_id: "c-1",
+			user_id: "u-1",
 			file_name: "passport.jpg",
 			file_size: 2048,
 			mime_type: "image/jpeg",

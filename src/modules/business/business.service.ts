@@ -46,22 +46,33 @@ export class BusinessService {
 			buffer: file.buffer,
 		});
 
-		const fileId = crypto.randomUUID();
-		const r2Key = this.r2StorageService.generateFileKey({
-			folder: userId,
-			fileId: fileId,
-			fileName: file.originalname,
-		});
+		const r2Key = this.r2StorageService.generateFileKey(userId);
 
-		await this.r2StorageService.uploadFile({
-			bucketType: R2BucketType.BUSINESS_FILES,
-			key: r2Key,
-			body: file.buffer,
-			contentType: file.mimetype,
-		});
+		const [existingFile] = await Promise.all([
+			this._businessRepository.findBusinessFile(userId, fileType),
+			this.r2StorageService.uploadFile({
+				bucketType: R2BucketType.BUSINESS_FILES,
+				key: r2Key,
+				body: file.buffer,
+				contentType: file.mimetype,
+			}),
+		]);
+
+		if (existingFile) {
+			const updatedRow = await this._businessRepository.updateBusinessFile(existingFile.id, {
+				file_name: file.originalname,
+				file_size: file.size,
+				mime_type: file.mimetype,
+				r2_key: r2Key,
+			});
+
+			await this.r2StorageService.deleteFile(R2BucketType.BUSINESS_FILES, existingFile.r2_key);
+
+			return UploadFileOutputDto.fromDatabaseRow(updatedRow);
+		}
 
 		const insertedRow = await this._businessRepository.insertBusinessFile({
-			id: fileId,
+			id: crypto.randomUUID(),
 			user_id: userId,
 			file_name: file.originalname,
 			file_size: file.size,
@@ -97,23 +108,35 @@ export class BusinessService {
 			throw new BusinessControllerNotFoundException(userId, controllerId);
 		}
 
-		const fileId = crypto.randomUUID();
-		const r2Key = this.r2StorageService.generateFileKey({
-			folder: userId,
-			fileId: fileId,
-			fileName: file.originalname,
-		});
+		const r2Key = this.r2StorageService.generateFileKey(userId);
 
-		await this.r2StorageService.uploadFile({
-			bucketType: R2BucketType.BUSINESS_FILES,
-			key: r2Key,
-			body: file.buffer,
-			contentType: file.mimetype,
-		});
+		const [existingFile] = await Promise.all([
+			this._businessRepository.findBusinessControllerFile(userId, controllerId, fileType),
+			this.r2StorageService.uploadFile({
+				bucketType: R2BucketType.BUSINESS_FILES,
+				key: r2Key,
+				body: file.buffer,
+				contentType: file.mimetype,
+			}),
+		]);
 
-		const insertedRow = await this._businessRepository.insertControllerFile({
-			id: fileId,
+		if (existingFile) {
+			const updatedRow = await this._businessRepository.updateBusinessControllerFile(existingFile.id, {
+				file_name: file.originalname,
+				file_size: file.size,
+				mime_type: file.mimetype,
+				r2_key: r2Key,
+			});
+
+			await this.r2StorageService.deleteFile(R2BucketType.BUSINESS_FILES, existingFile.r2_key);
+
+			return UploadBusinessControllerFileOutputDto.fromDatabaseRow(updatedRow);
+		}
+
+		const insertedRow = await this._businessRepository.insertBusinessControllerFile({
+			id: crypto.randomUUID(),
 			controller_id: controllerId,
+			user_id: userId,
 			file_name: file.originalname,
 			file_size: file.size,
 			mime_type: file.mimetype,
@@ -148,7 +171,7 @@ export class BusinessService {
 
 		const [businessFileTypes, controllerFileTypes] = await Promise.all([
 			this._businessRepository.findBusinessFileTypesByUserId(userId),
-			this._businessRepository.findControllerFileTypesByControllerIds(updatedControllers.map((c) => c.id)),
+			this._businessRepository.findBusinessControllerFileTypesByControllerIds(updatedControllers.map((c) => c.id)),
 		]);
 
 		return BusinessOutputDto.fromDatabaseRow(
@@ -168,7 +191,7 @@ export class BusinessService {
 			this._businessRepository.findBusinessFileTypesByUserId(userId),
 		]);
 
-		const controllerFileTypes = await this._businessRepository.findControllerFileTypesByControllerIds(
+		const controllerFileTypes = await this._businessRepository.findBusinessControllerFileTypesByControllerIds(
 			controllers.map((c) => c.id),
 		);
 
@@ -192,7 +215,11 @@ export class BusinessService {
 		controllerId: string;
 		fileType: BusinessControllerFileType;
 	}): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
-		const fileRow = await this._businessRepository.findControllerFile(params.controllerId, params.fileType);
+		const fileRow = await this._businessRepository.findBusinessControllerFile(
+			params.userId,
+			params.controllerId,
+			params.fileType,
+		);
 
 		if (!fileRow) throw new BusinessControllerFileNotFoundException(params.userId, params.controllerId);
 
@@ -208,6 +235,14 @@ export class BusinessService {
 		fileType: string;
 		buffer: Buffer;
 	}): Promise<void> {
+		if (params.fileSize > BUSINESS_MAX_FILE_SIZE_BYTES) {
+			throw new FileTooLargeException({
+				fileName: params.fileName,
+				fileSize: params.fileSize,
+				maxSize: BUSINESS_MAX_FILE_SIZE_BYTES,
+			});
+		}
+
 		const detectedType = await fileTypeFromBuffer(params.buffer);
 
 		if (!detectedType || !params.allowedMimeTypes.includes(detectedType.mime)) {
@@ -226,14 +261,6 @@ export class BusinessService {
 				detectedMimeType: detectedType.mime,
 				allowedMimeTypes: params.allowedMimeTypes,
 				fileType: params.fileType,
-			});
-		}
-
-		if (params.fileSize > BUSINESS_MAX_FILE_SIZE_BYTES) {
-			throw new FileTooLargeException({
-				fileName: params.fileName,
-				fileSize: params.fileSize,
-				maxSize: BUSINESS_MAX_FILE_SIZE_BYTES,
 			});
 		}
 	}
@@ -265,8 +292,7 @@ export class BusinessService {
 			const fieldsToUpdate = ObjectUtils.filterUndefined(rawUpdate);
 			if (Object.keys(fieldsToUpdate).length === 0) return existingBusiness;
 
-			const updated = await this._businessRepository.updateBusiness(existingBusiness.id, fieldsToUpdate);
-			return updated ?? existingBusiness;
+			return this._businessRepository.updateBusiness(existingBusiness.id, fieldsToUpdate);
 		}
 
 		const inserted = await this._businessRepository.insertBusiness({
@@ -323,15 +349,13 @@ export class BusinessService {
 				const updateFields = ObjectUtils.filterUndefined(rawUpdate) as Partial<BusinessControllerDatabaseRow>;
 
 				if (Object.keys(updateFields).length === 0) {
-					const existingRow = existingControllers.find((c) => c.id === controllerToUpdate.id);
-					writeOperations.push(Promise.resolve(existingRow ? [existingRow] : []));
+					const existingRow = existingControllers.find((c) => c.id === controllerToUpdate.id)!;
+					writeOperations.push(Promise.resolve([existingRow]));
 					continue;
 				}
 
 				writeOperations.push(
-					this._businessRepository
-						.updateBusinessController(controllerToUpdate.id, updateFields)
-						.then((r) => (r ? [r] : [])),
+					this._businessRepository.updateBusinessController(controllerToUpdate.id, updateFields).then((r) => [r]),
 				);
 			} else {
 				writeOperations.push(

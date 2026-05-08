@@ -95,10 +95,8 @@ export class R2StorageService implements OnModuleDestroy {
 		);
 	}
 
-	public generateFileKey(params: { folder: string; fileId: string; fileName: string }): string {
-		const sanitizedFileName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-		return `${params.folder}/${params.fileId}-${sanitizedFileName}`;
+	public generateFileKey(folder: string): string {
+		return `${folder}/${crypto.randomUUID()}`;
 	}
 
 	public onModuleDestroy(): void {

@@ -239,37 +239,24 @@ describe("R2StorageService", () => {
 	});
 
 	describe("generateFileKey", () => {
-		it("should generate a valid file key with sanitized filename", () => {
-			const result = service.generateFileKey({
-				folder: "business/user-123",
-				fileId: "file-abc",
-				fileName: "my document (1).pdf",
-			});
-			expect(result).toBe("business/user-123/file-abc-my_document__1_.pdf");
+		it("should generate a key with folder and random UUID", () => {
+			const result = service.generateFileKey("business/user-123");
+
+			expect(result).toMatch(/^business\/user-123\/[0-9a-f-]+$/);
 		});
 
-		it("should preserve allowed characters and replace others", () => {
-			const cases = [
-				{ input: "valid-name_123.txt", expected: "prefix/id-valid-name_123.txt" },
-				{ input: "file with spaces.pdf", expected: "prefix/id-file_with_spaces.pdf" },
-				{ input: "special!@#$%^&*().pdf", expected: "prefix/id-special__________.pdf" },
-				{ input: "../traversal.txt", expected: "prefix/id-.._traversal.txt" },
-			];
-
-			for (const { input, expected } of cases) {
-				expect(
-					service.generateFileKey({
-						folder: "prefix",
-						fileId: "id",
-						fileName: input,
-					}),
-				).toBe(expected);
+		it("should generate unique keys on each call", () => {
+			const keys = new Set<string>();
+			for (let i = 0; i < 10; i++) {
+				keys.add(service.generateFileKey("prefix"));
 			}
+
+			expect(keys.size).toBe(10);
 		});
 
-		it("should handle empty or minimal inputs", () => {
-			expect(service.generateFileKey({ folder: "", fileId: "", fileName: "" })).toBe("/-");
-			expect(service.generateFileKey({ folder: "a", fileId: "b", fileName: "c" })).toBe("a/b-c");
+		it("should work with empty folder", () => {
+			const result = service.generateFileKey("");
+			expect(result).toMatch(/^\/[0-9a-f-]+$/);
 		});
 	});
 

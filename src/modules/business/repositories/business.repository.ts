@@ -31,9 +31,12 @@ export class BusinessRepository {
 		return row;
 	}
 
-	async updateBusiness(id: string, data: Partial<BusinessDatabaseRow>): Promise<BusinessDatabaseRow | undefined> {
+	async updateBusiness(id: string, data: Partial<BusinessDatabaseRow>): Promise<BusinessDatabaseRow> {
 		const rows = await this._db.update(businessesTable).set(data).where(eq(businessesTable.id, id)).returning();
-		return rows[0];
+		const row = rows[0];
+
+		if (!row) throw new Error(`Business ${id} not updated`);
+		return row;
 	}
 
 	async findControllersByBusinessId(businessId: string): Promise<BusinessControllerDatabaseRow[]> {
@@ -60,14 +63,17 @@ export class BusinessRepository {
 	async updateBusinessController(
 		id: string,
 		data: Partial<BusinessControllerDatabaseRow>,
-	): Promise<BusinessControllerDatabaseRow | undefined> {
+	): Promise<BusinessControllerDatabaseRow> {
 		const rows = await this._db
 			.update(businessControllersTable)
 			.set(data)
 			.where(eq(businessControllersTable.id, id))
 			.returning();
 
-		return rows[0];
+		const row = rows[0];
+
+		if (!row) throw new Error(`Business controller ${id} not updated`);
+		return row;
 	}
 
 	async insertBusinessFile(data: NewBusinessFileRow): Promise<BusinessFileRow> {
@@ -75,6 +81,17 @@ export class BusinessRepository {
 		const row = rows[0];
 
 		if (!row) throw new Error("File insert returned no rows");
+		return row;
+	}
+
+	async updateBusinessFile(
+		id: string,
+		data: Omit<BusinessFileRow, "id" | "created_at" | "file_type" | "user_id">,
+	): Promise<BusinessFileRow> {
+		const rows = await this._db.update(businessFilesTable).set(data).where(eq(businessFilesTable.id, id)).returning();
+		const row = rows[0];
+
+		if (!row) throw new Error(`Business file ${id} not updated`);
 		return row;
 	}
 
@@ -96,14 +113,31 @@ export class BusinessRepository {
 		return rows.map((r) => r.file_type);
 	}
 
-	async insertControllerFile(data: NewBusinessControllerFileRow): Promise<BusinessControllerFileRow> {
+	async insertBusinessControllerFile(data: NewBusinessControllerFileRow): Promise<BusinessControllerFileRow> {
 		const rows = await this._db.insert(businessControllerFilesTable).values(data).returning();
 		const row = rows[0];
 		if (!row) throw new Error("Controller file insert returned no rows");
 		return row;
 	}
 
-	async findControllerFile(
+	async updateBusinessControllerFile(
+		id: string,
+		data: Omit<BusinessControllerFileRow, "id" | "created_at" | "controller_id" | "user_id" | "file_type">,
+	): Promise<BusinessControllerFileRow> {
+		const rows = await this._db
+			.update(businessControllerFilesTable)
+			.set(data)
+			.where(eq(businessControllerFilesTable.id, id))
+			.returning();
+
+		const row = rows[0];
+
+		if (!row) throw new Error(`Business controller file ${id} not updated`);
+		return row;
+	}
+
+	async findBusinessControllerFile(
+		userId: string,
 		controllerId: string,
 		fileType: BusinessControllerFileType,
 	): Promise<BusinessControllerFileRow | undefined> {
@@ -112,6 +146,7 @@ export class BusinessRepository {
 			.from(businessControllerFilesTable)
 			.where(
 				and(
+					eq(businessControllerFilesTable.user_id, userId),
 					eq(businessControllerFilesTable.controller_id, controllerId),
 					eq(businessControllerFilesTable.file_type, fileType),
 				),
@@ -119,7 +154,7 @@ export class BusinessRepository {
 		return rows[0];
 	}
 
-	async findControllerFileTypesByControllerIds(
+	async findBusinessControllerFileTypesByControllerIds(
 		controllerIds: string[],
 	): Promise<Map<string, BusinessControllerFileType[]>> {
 		const map = new Map<string, BusinessControllerFileType[]>();

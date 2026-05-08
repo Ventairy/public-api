@@ -91,14 +91,14 @@ describe("BusinessRepository", () => {
 			expect(result).toEqual(updated);
 		});
 
-		it("should return undefined when no row matches", async () => {
+		it("should throw when no row matches", async () => {
 			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn() };
 			mockDb.update.mockReturnValue(updateBuilder);
 			updateBuilder.returning.mockResolvedValue([]);
 
-			const result = await repository.updateBusiness("nonexistent", { legal_name: "Updated" });
-
-			expect(result).toBeUndefined();
+			await expect(repository.updateBusiness("nonexistent", { legal_name: "Updated" })).rejects.toThrow(
+				"Business nonexistent not updated",
+			);
 		});
 	});
 
@@ -186,14 +186,14 @@ describe("BusinessRepository", () => {
 			expect(result).toEqual(updated);
 		});
 
-		it("should return undefined when no row matches", async () => {
+		it("should throw when no row matches", async () => {
 			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn() };
 			mockDb.update.mockReturnValue(updateBuilder);
 			updateBuilder.returning.mockResolvedValue([]);
 
-			const result = await repository.updateBusinessController("nonexistent", { legal_first_name: "John" });
-
-			expect(result).toBeUndefined();
+			await expect(repository.updateBusinessController("nonexistent", { legal_first_name: "John" })).rejects.toThrow(
+				"Business controller nonexistent not updated",
+			);
 		});
 	});
 
@@ -215,6 +215,43 @@ describe("BusinessRepository", () => {
 			insertBuilder.returning.mockResolvedValue([]);
 
 			await expect(repository.insertBusinessFile({} as any)).rejects.toThrow("File insert returned no rows");
+		});
+	});
+
+	describe("updateBusinessFile", () => {
+		it("should update and return the updated file row", async () => {
+			const updated = {
+				id: "file-1",
+				user_id: MOCK_USER_ID,
+				file_name: "new-doc.pdf",
+				file_size: 2048,
+				mime_type: "application/pdf",
+				file_type: BusinessFileType.INCORPORATION_DOCUMENT,
+				r2_key: "new-r2-key",
+				created_at: "2026-05-04T14:48:00.000Z",
+			};
+			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.update.mockReturnValue(updateBuilder);
+			updateBuilder.returning.mockResolvedValue([updated]);
+
+			const result = await repository.updateBusinessFile("file-1", {
+				file_name: "new-doc.pdf",
+				file_size: 2048,
+				mime_type: "application/pdf",
+				r2_key: "new-r2-key",
+			});
+
+			expect(result).toEqual(updated);
+		});
+
+		it("should throw when no row matches", async () => {
+			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.update.mockReturnValue(updateBuilder);
+			updateBuilder.returning.mockResolvedValue([]);
+
+			await expect(repository.updateBusinessFile("nonexistent", { file_name: "new.pdf", file_size: 100, mime_type: "application/pdf", r2_key: "key" })).rejects.toThrow(
+				"Business file nonexistent not updated",
+			);
 		});
 	});
 
@@ -253,14 +290,14 @@ describe("BusinessRepository", () => {
 		});
 	});
 
-	describe("insertControllerFile", () => {
+	describe("insertBusinessControllerFile", () => {
 		it("should insert and return the controller file row", async () => {
-			const inserted = { id: "file-1", controller_id: MOCK_CONTROLLER_ID };
+			const inserted = { id: "file-1", controller_id: MOCK_CONTROLLER_ID, user_id: MOCK_USER_ID };
 			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
 			mockDb.insert.mockReturnValue(insertBuilder);
 			insertBuilder.returning.mockResolvedValue([inserted]);
 
-			const result = await repository.insertControllerFile(inserted as any);
+			const result = await repository.insertBusinessControllerFile(inserted as any);
 
 			expect(result).toEqual(inserted);
 		});
@@ -270,46 +307,114 @@ describe("BusinessRepository", () => {
 			mockDb.insert.mockReturnValue(insertBuilder);
 			insertBuilder.returning.mockResolvedValue([]);
 
-			await expect(repository.insertControllerFile({} as any)).rejects.toThrow(
+			await expect(repository.insertBusinessControllerFile({} as any)).rejects.toThrow(
 				"Controller file insert returned no rows",
 			);
 		});
 	});
 
-	describe("findControllerFile", () => {
+	describe("updateControllerFile", () => {
+		it("should update and return the updated controller file row", async () => {
+			const updated = {
+				id: "file-1",
+				controller_id: MOCK_CONTROLLER_ID,
+				user_id: MOCK_USER_ID,
+				file_name: "new-passport.jpg",
+				file_size: 4096,
+				mime_type: "image/jpeg",
+				file_type: BusinessControllerFileType.IDENTIFICATION_FRONT,
+				r2_key: "new-r2-key",
+				created_at: "2026-05-04T14:48:00.000Z",
+			};
+			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.update.mockReturnValue(updateBuilder);
+			updateBuilder.returning.mockResolvedValue([updated]);
+
+			const result = await repository.updateBusinessControllerFile("file-1", {
+				file_name: "new-passport.jpg",
+				file_size: 4096,
+				mime_type: "image/jpeg",
+				r2_key: "new-r2-key",
+			});
+
+			expect(result).toEqual(updated);
+		});
+
+		it("should throw when no row matches", async () => {
+			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.update.mockReturnValue(updateBuilder);
+			updateBuilder.returning.mockResolvedValue([]);
+
+			await expect(repository.updateBusinessControllerFile("nonexistent", { file_name: "new.jpg", file_size: 100, mime_type: "image/jpeg", r2_key: "key" })).rejects.toThrow(
+				"Business controller file nonexistent not updated",
+			);
+		});
+	});
+
+	describe("findBusinessControllerFile", () => {
 		it("should return controller file when found", async () => {
-			const expected = {
+			const expectedFile = {
 				id: "file-1",
 				controller_id: MOCK_CONTROLLER_ID,
 				file_type: BusinessControllerFileType.IDENTIFICATION_FRONT,
 			};
 			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
 			mockDb.select.mockReturnValue(selectBuilder);
-			selectBuilder.where.mockResolvedValue([expected]);
+			selectBuilder.where.mockResolvedValueOnce([expectedFile]);
 
-			const result = await repository.findControllerFile(
+			const result = await repository.findBusinessControllerFile(
+				MOCK_USER_ID,
 				MOCK_CONTROLLER_ID,
 				BusinessControllerFileType.IDENTIFICATION_FRONT,
 			);
 
-			expect(result).toEqual(expected);
+			expect(result).toEqual(expectedFile);
 		});
 
-		it("should return undefined when not found", async () => {
+		it("should return undefined when file not found", async () => {
 			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
 			mockDb.select.mockReturnValue(selectBuilder);
-			selectBuilder.where.mockResolvedValue([]);
+			selectBuilder.where.mockResolvedValueOnce([]);
 
-			const result = await repository.findControllerFile(
+			const result = await repository.findBusinessControllerFile(
+				MOCK_USER_ID,
 				MOCK_CONTROLLER_ID,
 				BusinessControllerFileType.IDENTIFICATION_BACK,
 			);
 
 			expect(result).toBeUndefined();
 		});
+
+		it("should return undefined when controller does not belong to the user", async () => {
+			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
+			mockDb.select.mockReturnValue(selectBuilder);
+			selectBuilder.where.mockResolvedValueOnce([]);
+
+			const result = await repository.findBusinessControllerFile(
+				MOCK_USER_ID,
+				"controller-from-other-business",
+				BusinessControllerFileType.IDENTIFICATION_FRONT,
+			);
+
+			expect(result).toBeUndefined();
+		});
+
+		it("should return undefined when user has no business", async () => {
+			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
+			mockDb.select.mockReturnValue(selectBuilder);
+			selectBuilder.where.mockResolvedValueOnce([]);
+
+			const result = await repository.findBusinessControllerFile(
+				MOCK_USER_ID,
+				MOCK_CONTROLLER_ID,
+				BusinessControllerFileType.IDENTIFICATION_FRONT,
+			);
+
+			expect(result).toBeUndefined();
+		});
 	});
 
-	describe("findControllerFileTypesByControllerIds", () => {
+	describe("findBusinessControllerFileTypesByControllerIds", () => {
 		it("should return file types map for given controller ids", async () => {
 			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
 			mockDb.select.mockReturnValue(selectBuilder);
@@ -317,14 +422,14 @@ describe("BusinessRepository", () => {
 				{ controller_id: MOCK_CONTROLLER_ID, file_type: BusinessControllerFileType.IDENTIFICATION_FRONT },
 			]);
 
-			const result = await repository.findControllerFileTypesByControllerIds([MOCK_CONTROLLER_ID]);
+			const result = await repository.findBusinessControllerFileTypesByControllerIds([MOCK_CONTROLLER_ID]);
 
 			expect(result).toBeInstanceOf(Map);
 			expect(result.get(MOCK_CONTROLLER_ID)).toEqual([BusinessControllerFileType.IDENTIFICATION_FRONT]);
 		});
 
 		it("should return empty map when controllerIds is empty", async () => {
-			const result = await repository.findControllerFileTypesByControllerIds([]);
+			const result = await repository.findBusinessControllerFileTypesByControllerIds([]);
 
 			expect(result).toBeInstanceOf(Map);
 			expect(result.size).toBe(0);

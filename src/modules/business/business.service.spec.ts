@@ -110,6 +110,14 @@ function createAvifBuffer(): Buffer {
 	return Buffer.concat([ftypSize, Buffer.from("ftypavif________")]);
 }
 
+function createPngBuffer(): Buffer {
+	return Buffer.from([
+		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00,
+		0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00, 0x00, 0x49,
+		0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+	]);
+}
+
 function createPlainTextBuffer(): Buffer {
 	return Buffer.from("This is not a valid file format content");
 }
@@ -118,6 +126,7 @@ function createMockControllerFileRow() {
 	return {
 		id: MOCK_FILE_ID,
 		controller_id: MOCK_CONTROLLER_ID,
+		user_id: MOCK_USER_ID,
 		file_name: "passport_front.jpg",
 		file_size: 2048,
 		mime_type: "image/jpeg",
@@ -142,11 +151,13 @@ describe("BusinessService", () => {
 		insertBusinessController: ReturnType<typeof vi.fn>;
 		updateBusinessController: ReturnType<typeof vi.fn>;
 		insertBusinessFile: ReturnType<typeof vi.fn>;
+		updateBusinessFile: ReturnType<typeof vi.fn>;
 		findBusinessFile: ReturnType<typeof vi.fn>;
 		findBusinessFileTypesByUserId: ReturnType<typeof vi.fn>;
-		insertControllerFile: ReturnType<typeof vi.fn>;
-		findControllerFile: ReturnType<typeof vi.fn>;
-		findControllerFileTypesByControllerIds: ReturnType<typeof vi.fn>;
+		insertBusinessControllerFile: ReturnType<typeof vi.fn>;
+		updateBusinessControllerFile: ReturnType<typeof vi.fn>;
+		findBusinessControllerFile: ReturnType<typeof vi.fn>;
+		findBusinessControllerFileTypesByControllerIds: ReturnType<typeof vi.fn>;
 	};
 	let mockR2StorageService: {
 		uploadFile: ReturnType<typeof vi.fn>;
@@ -170,20 +181,19 @@ describe("BusinessService", () => {
 			insertBusinessController: vi.fn(),
 			updateBusinessController: vi.fn(),
 			insertBusinessFile: vi.fn(),
+			updateBusinessFile: vi.fn(),
 			findBusinessFile: vi.fn(),
 			findBusinessFileTypesByUserId: vi.fn(),
-			insertControllerFile: vi.fn(),
-			findControllerFile: vi.fn(),
-			findControllerFileTypesByControllerIds: vi.fn(),
+			insertBusinessControllerFile: vi.fn(),
+			updateBusinessControllerFile: vi.fn(),
+			findBusinessControllerFile: vi.fn(),
+			findBusinessControllerFileTypesByControllerIds: vi.fn(),
 		};
 		mockR2StorageService = {
 			uploadFile: vi.fn().mockResolvedValue(undefined),
 			getFileBuffer: vi.fn().mockResolvedValue(Buffer.from("file-content")),
 			deleteFile: vi.fn().mockResolvedValue(undefined),
-			generateFileKey: vi.fn(
-				(params: { folder: string; fileId: string; fileName: string }) =>
-					`${params.folder}/${params.fileId}-${params.fileName}`,
-			),
+			generateFileKey: vi.fn((folder: string) => `${folder}/mock-uuid`),
 		};
 		service = new BusinessService(
 			mockUserRepository as any,
@@ -212,11 +222,7 @@ describe("BusinessService", () => {
 				body: expect.any(Buffer),
 				contentType: "application/pdf",
 			});
-			expect(mockR2StorageService.generateFileKey).toHaveBeenCalledWith({
-				folder: MOCK_USER_ID,
-				fileId: expect.any(String),
-				fileName: "document.pdf",
-			});
+			expect(mockR2StorageService.generateFileKey).toHaveBeenCalledWith(MOCK_USER_ID);
 			expect(mockBusinessRepository.insertBusinessFile).toHaveBeenCalled();
 			expect(result).toEqual({
 				id: fileRow.id,
@@ -226,6 +232,46 @@ describe("BusinessService", () => {
 				fileType: fileRow.file_type,
 				createdAt: fileRow.created_at,
 			});
+		});
+
+		it("should replace existing file when re-uploading the same file type", async () => {
+			const existingFileRow = {
+				...createMockFileRow(),
+				r2_key: "old-r2-key",
+				file_name: "old-document.pdf",
+				mime_type: "application/pdf",
+			};
+			mockBusinessRepository.findBusinessFile.mockResolvedValue(existingFileRow);
+			mockBusinessRepository.updateBusinessFile.mockResolvedValue({
+				...existingFileRow,
+				file_name: "new-document.png",
+				mime_type: "image/png",
+				r2_key: "new-r2-key",
+			});
+
+			const newFile = {
+				buffer: createPngBuffer(),
+				originalname: "new-document.png",
+				mimetype: "image/png",
+				size: 2048,
+			};
+
+			const result = await service.uploadBusinessFile(MOCK_USER_ID, newFile, BusinessFileType.INCORPORATION_DOCUMENT);
+
+			expect(mockBusinessRepository.findBusinessFile).toHaveBeenCalledWith(
+				MOCK_USER_ID,
+				BusinessFileType.INCORPORATION_DOCUMENT,
+			);
+			expect(mockR2StorageService.uploadFile).toHaveBeenCalled();
+			expect(mockR2StorageService.deleteFile).toHaveBeenCalledWith(R2BucketType.BUSINESS_FILES, "old-r2-key");
+			expect(mockBusinessRepository.updateBusinessFile).toHaveBeenCalledWith(existingFileRow.id, {
+				file_name: "new-document.png",
+				file_size: 2048,
+				mime_type: "image/png",
+				r2_key: `${MOCK_USER_ID}/mock-uuid`,
+			});
+			expect(mockBusinessRepository.insertBusinessFile).not.toHaveBeenCalled();
+			expect(result.id).toBe(existingFileRow.id);
 		});
 
 		it("should throw KycFileTooLargeException when file exceeds max size", async () => {
@@ -273,9 +319,7 @@ describe("BusinessService", () => {
 
 			const pdfFile = { ...validFile, mimetype: MimeType.PDF };
 			for (const fileType of Object.values(BusinessFileType)) {
-				await expect(
-					service.uploadBusinessFile(MOCK_USER_ID, pdfFile, fileType),
-				).resolves.toBeDefined();
+				await expect(service.uploadBusinessFile(MOCK_USER_ID, pdfFile, fileType)).resolves.toBeDefined();
 			}
 		});
 
@@ -285,9 +329,7 @@ describe("BusinessService", () => {
 
 			const jpegFile = { ...validFile, mimetype: MimeType.JPEG, buffer: createJpegBuffer() };
 			for (const fileType of Object.values(BusinessFileType)) {
-				await expect(
-					service.uploadBusinessFile(MOCK_USER_ID, jpegFile, fileType),
-				).resolves.toBeDefined();
+				await expect(service.uploadBusinessFile(MOCK_USER_ID, jpegFile, fileType)).resolves.toBeDefined();
 			}
 		});
 
@@ -297,9 +339,7 @@ describe("BusinessService", () => {
 
 			const heicFile = { ...validFile, mimetype: MimeType.HEIC, buffer: createHeicBuffer() };
 			for (const fileType of Object.values(BusinessFileType)) {
-				await expect(
-					service.uploadBusinessFile(MOCK_USER_ID, heicFile, fileType),
-				).resolves.toBeDefined();
+				await expect(service.uploadBusinessFile(MOCK_USER_ID, heicFile, fileType)).resolves.toBeDefined();
 			}
 		});
 
@@ -309,9 +349,7 @@ describe("BusinessService", () => {
 
 			const avifFile = { ...validFile, mimetype: MimeType.AVIF, buffer: createAvifBuffer() };
 			for (const fileType of Object.values(BusinessFileType)) {
-				await expect(
-					service.uploadBusinessFile(MOCK_USER_ID, avifFile, fileType),
-				).resolves.toBeDefined();
+				await expect(service.uploadBusinessFile(MOCK_USER_ID, avifFile, fileType)).resolves.toBeDefined();
 			}
 		});
 
@@ -388,7 +426,7 @@ describe("BusinessService", () => {
 
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
-			mockBusinessRepository.insertControllerFile.mockResolvedValue(fileRow);
+			mockBusinessRepository.insertBusinessControllerFile.mockResolvedValue(fileRow);
 
 			const result = await service.uploadBusinessControllerFile(
 				MOCK_USER_ID,
@@ -413,6 +451,57 @@ describe("BusinessService", () => {
 			});
 		});
 
+		it("should replace existing controller file when re-uploading the same file type", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+			const existingFileRow = {
+				...createMockControllerFileRow(),
+				r2_key: "old-r2-key",
+				file_name: "old-passport.jpg",
+			};
+			const updatedFileRow = {
+				...existingFileRow,
+				file_name: "new-passport.png",
+				mime_type: "image/png",
+				r2_key: "new-r2-key",
+			};
+
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockBusinessRepository.findBusinessControllerFile.mockResolvedValue(existingFileRow);
+			mockBusinessRepository.updateBusinessControllerFile.mockResolvedValue(updatedFileRow);
+
+			const newFile = {
+				buffer: createPngBuffer(),
+				originalname: "new-passport.png",
+				mimetype: "image/png",
+				size: 4096,
+			};
+
+			const result = await service.uploadBusinessControllerFile(
+				MOCK_USER_ID,
+				MOCK_CONTROLLER_ID,
+				newFile,
+				BusinessControllerFileType.IDENTIFICATION_FRONT,
+			);
+
+			expect(mockBusinessRepository.findBusinessControllerFile).toHaveBeenCalledWith(
+				MOCK_USER_ID,
+				MOCK_CONTROLLER_ID,
+				BusinessControllerFileType.IDENTIFICATION_FRONT,
+			);
+			expect(mockR2StorageService.uploadFile).toHaveBeenCalled();
+			expect(mockR2StorageService.deleteFile).toHaveBeenCalledWith(R2BucketType.BUSINESS_FILES, "old-r2-key");
+			expect(mockBusinessRepository.updateBusinessControllerFile).toHaveBeenCalledWith(existingFileRow.id, {
+				file_name: "new-passport.png",
+				file_size: 4096,
+				mime_type: "image/png",
+				r2_key: `${MOCK_USER_ID}/mock-uuid`,
+			});
+			expect(mockBusinessRepository.insertBusinessControllerFile).not.toHaveBeenCalled();
+			expect(result.id).toBe(existingFileRow.id);
+		});
+
 		it("should throw BusinessFileTooLargeException when controller file exceeds max size", async () => {
 			const oversizedFile = { ...validFile, size: BUSINESS_MAX_FILE_SIZE_BYTES + 1 };
 
@@ -432,7 +521,9 @@ describe("BusinessService", () => {
 
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
-			mockBusinessRepository.insertControllerFile.mockRejectedValue(new Error("Controller file insert returned no rows"));
+			mockBusinessRepository.insertBusinessControllerFile.mockRejectedValue(
+				new Error("Controller file insert returned no rows"),
+			);
 
 			await expect(
 				service.uploadBusinessControllerFile(
@@ -508,7 +599,7 @@ describe("BusinessService", () => {
 
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
-			mockBusinessRepository.insertControllerFile.mockResolvedValue(fileRow);
+			mockBusinessRepository.insertBusinessControllerFile.mockResolvedValue(fileRow);
 
 			const pdfFile = { ...validFile, mimetype: MimeType.PDF, buffer: createPdfBuffer(), originalname: "address.pdf" };
 
@@ -548,7 +639,12 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
 
-			const mismatchedFile = { ...validFile, mimetype: "text/plain", buffer: createJpegBuffer(), originalname: "document.txt" };
+			const mismatchedFile = {
+				...validFile,
+				mimetype: "text/plain",
+				buffer: createJpegBuffer(),
+				originalname: "document.txt",
+			};
 
 			await expect(
 				service.uploadBusinessControllerFile(
@@ -567,7 +663,7 @@ describe("BusinessService", () => {
 
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
-			mockBusinessRepository.insertControllerFile.mockResolvedValue(fileRow);
+			mockBusinessRepository.insertBusinessControllerFile.mockResolvedValue(fileRow);
 
 			const jpegFile = { ...validFile, mimetype: MimeType.JPEG };
 
@@ -604,7 +700,7 @@ describe("BusinessService", () => {
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Only Name",
@@ -623,10 +719,8 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Updated Corp",
@@ -647,10 +741,8 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: null as any,
@@ -669,10 +761,8 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
-mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Only Name",
@@ -690,10 +780,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Updated Corp",
@@ -714,10 +802,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 			mockBusinessRepository.insertBusiness.mockResolvedValue(mockInsertedBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
 			mockBusinessRepository.insertBusinessController.mockResolvedValue(mockInsertedController);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(
 				new Map([[mockInsertedController.id, [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
 			);
 
@@ -741,10 +827,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController1]);
 			mockBusinessRepository.updateBusinessController.mockResolvedValue(mockController1);
 			mockBusinessRepository.insertBusinessController.mockResolvedValue(createMockController({ id: "ctrl-002" }));
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(
 				new Map([["ctrl-001", [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
 			);
 
@@ -769,10 +853,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController1]);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			await service.saveBusiness(MOCK_USER_ID, {
 				legalName: "Updated Corp",
@@ -793,10 +875,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController]);
 			mockBusinessRepository.updateBusinessController.mockResolvedValue(updatedController);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(
 				new Map([["ctrl-001", [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
 			);
 
@@ -838,10 +918,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.INCORPORATION_DOCUMENT,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.INCORPORATION_DOCUMENT]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -867,7 +945,7 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -886,10 +964,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.PROOF_OF_ADDRESS,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -903,10 +979,8 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController]);
-			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
-				BusinessFileType.INCORPORATION_DOCUMENT,
-			]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.INCORPORATION_DOCUMENT]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(
 				new Map([[MOCK_CONTROLLER_ID, [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
 			);
 
@@ -922,7 +996,7 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
-			mockBusinessRepository.findControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
 			const result = await service.getBusiness(MOCK_USER_ID);
 
@@ -959,13 +1033,16 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 
 			await service.getBusinessFile({ userId: MOCK_USER_ID, fileType: BusinessFileType.PROOF_OF_ADDRESS });
 
-			expect(mockBusinessRepository.findBusinessFile).toHaveBeenCalledWith(MOCK_USER_ID, BusinessFileType.PROOF_OF_ADDRESS);
+			expect(mockBusinessRepository.findBusinessFile).toHaveBeenCalledWith(
+				MOCK_USER_ID,
+				BusinessFileType.PROOF_OF_ADDRESS,
+			);
 		});
 	});
 
 	describe("getBusinessControllerFile", () => {
 		it("should throw ControllerFileNotFoundException when file does not exist", async () => {
-			mockBusinessRepository.findControllerFile.mockResolvedValue(undefined);
+			mockBusinessRepository.findBusinessControllerFile.mockResolvedValue(undefined);
 
 			await expect(
 				service.getBusinessControllerFile({
@@ -978,7 +1055,7 @@ mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([
 
 		it("should return file buffer and metadata when controller file exists", async () => {
 			const mockFileRow = createMockControllerFileRow();
-			mockBusinessRepository.findControllerFile.mockResolvedValue(mockFileRow);
+			mockBusinessRepository.findBusinessControllerFile.mockResolvedValue(mockFileRow);
 
 			const result = await service.getBusinessControllerFile({
 				userId: MOCK_USER_ID,

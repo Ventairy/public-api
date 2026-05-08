@@ -50,6 +50,20 @@
 			"when": 1778177787915,
 			"tag": "0006_outstanding_shiver_man",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "6",
+			"when": 1778276749942,
+			"tag": "0007_long_sphinx",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "6",
+			"when": 1778280970109,
+			"tag": "0008_careless_valeria_richards",
+			"breakpoints": true
 		}
 	]
 }

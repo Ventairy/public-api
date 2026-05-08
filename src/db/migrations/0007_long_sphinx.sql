@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX `business_controller_files_controller_id_file_type_unique` ON `business_controller_files` (`controller_id`,`file_type`);--> statement-breakpoint
+CREATE UNIQUE INDEX `business_files_user_id_file_type_unique` ON `business_files` (`user_id`,`file_type`);
