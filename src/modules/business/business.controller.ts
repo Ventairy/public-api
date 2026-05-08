@@ -6,7 +6,6 @@ import {
 	HttpCode,
 	HttpStatus,
 	Param,
-	ParseEnumPipe,
 	Post,
 	Put,
 	Query,
@@ -16,7 +15,6 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { BusinessService } from "./business.service";
-import { BusinessFileType, BusinessControllerFileType } from "@shared/constants";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessFileOutputDto } from "./dto/upload-business-file-output.dto";
 import { UploadBusinessControllerFileBodyDto } from "./dto/upload-business-controller-file-body.dto";
@@ -28,7 +26,7 @@ import { ApiSaveBusinessDocs } from "./docs/api-save-business-docs.decorator";
 import { ApiGetBusinessDocs } from "./docs/api-get-business-docs.decorator";
 import { ApiGetFileDocs } from "./docs/api-get-file-docs.decorator";
 import { ApiGetBusinessControllerFileDocs } from "./docs/api-get-business-controller-file-docs.decorator";
-import { BusinessInputDto } from "./dto";
+import { BusinessInputDto, GetBusinessFileQueryDto, GetBusinessControllerFileQueryDto } from "./dto";
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller("business")
@@ -82,9 +80,12 @@ export class BusinessController {
 	@ApiGetFileDocs()
 	public async getBusinessFile(
 		@Param("user_id") userId: string,
-		@Query("file_type", new ParseEnumPipe(BusinessFileType)) fileType: BusinessFileType,
+		@Query() query: GetBusinessFileQueryDto,
 	): Promise<StreamableFile> {
-		const { buffer, fileName, mimeType } = await this.businessService.getBusinessFile({ userId, fileType });
+		const { buffer, fileName, mimeType } = await this.businessService.getBusinessFile({
+			userId,
+			fileType: query.fileType,
+		});
 		return new StreamableFile(buffer, {
 			disposition: `inline; filename="${fileName}"`,
 			type: mimeType,
@@ -97,12 +98,12 @@ export class BusinessController {
 	public async getBusinessControllerFile(
 		@Param("user_id") userId: string,
 		@Param("controller_id") controllerId: string,
-		@Query("file_type", new ParseEnumPipe(BusinessControllerFileType)) fileType: BusinessControllerFileType,
+		@Query() query: GetBusinessControllerFileQueryDto,
 	): Promise<StreamableFile> {
 		const { buffer, fileName, mimeType } = await this.businessService.getBusinessControllerFile({
 			userId,
 			controllerId,
-			fileType,
+			fileType: query.fileType,
 		});
 
 		return new StreamableFile(buffer, {

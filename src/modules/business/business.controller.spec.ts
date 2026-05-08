@@ -134,7 +134,9 @@ describe("BusinessController", () => {
 				mimeType: "application/pdf",
 			});
 
-			const result = await controller.getBusinessFile("user-1", BusinessFileType.INCORPORATION_DOCUMENT);
+			const result = await controller.getBusinessFile("user-1", {
+				fileType: BusinessFileType.INCORPORATION_DOCUMENT,
+			});
 
 			expect(mockService.getBusinessFile).toHaveBeenCalledWith({
 				userId: "user-1",
@@ -153,11 +155,9 @@ describe("BusinessController", () => {
 				mimeType: "image/jpeg",
 			});
 
-			const result = await controller.getBusinessControllerFile(
-				"user-1",
-				"ctrl-1",
-				BusinessControllerFileType.IDENTIFICATION_FRONT,
-			);
+			const result = await controller.getBusinessControllerFile("user-1", "ctrl-1", {
+				fileType: BusinessControllerFileType.IDENTIFICATION_FRONT,
+			});
 
 			expect(mockService.getBusinessControllerFile).toHaveBeenCalledWith({
 				userId: "user-1",

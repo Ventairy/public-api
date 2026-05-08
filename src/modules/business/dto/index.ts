@@ -13,3 +13,5 @@ export { BusinessAddressInputDto } from "./business-address-input.dto";
 export { BusinessControllerInputDto as ControllerInputDto } from "./business-controller-input.dto";
 export { BusinessControllerIdentificationInputDto as ControllerIdentificationInputDto } from "./business-controller-identification-input.dto";
 export { BusinessControllerAddressInputDto as ControllerAddressInputDto } from "./business-controller-address-input.dto";
+export { GetBusinessFileQueryDto } from "./get-business-file-query.dto";
+export { GetBusinessControllerFileQueryDto } from "./get-business-controller-file-query.dto";
