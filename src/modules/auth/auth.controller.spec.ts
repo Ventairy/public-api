@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { UserType } from "@shared/enums/user-type";
 import { AuthController } from "./auth.controller";
-import { WalletAuthService } from "./wallet/wallet-auth.service";
 import { AuthService } from "./auth.service";
 
 function createMockResponse() {
@@ -105,7 +105,7 @@ describe("AuthController", () => {
 	describe("listSessions", () => {
 		it("should return sessions for the current actor", async () => {
 			mockAuthService.listSessions.mockResolvedValue({ sessions: [] });
-			const actor = { id: "u-1", sessionId: "s-1" };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
 
 			await controller.listSessions(actor);
 
@@ -117,7 +117,7 @@ describe("AuthController", () => {
 		it("should clear cookies when revoking own session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: true });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1" };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
 
 			await controller.revokeSession(actor, "s-1", mockRes as any);
 
@@ -127,7 +127,7 @@ describe("AuthController", () => {
 		it("should not clear cookies when revoking another session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: false });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1" };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
 
 			await controller.revokeSession(actor, "s-2", mockRes as any);
 
@@ -138,7 +138,7 @@ describe("AuthController", () => {
 	describe("logoutOthers", () => {
 		it("should call authService.logoutOthers and clear cookies", async () => {
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1" };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
 
 			await controller.logoutOthers(actor, mockRes as any);
 

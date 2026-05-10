@@ -71,6 +71,13 @@
 			"when": 1778364116940,
 			"tag": "0009_sharp_shiva",
 			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "6",
+			"when": 1778432846529,
+			"tag": "0010_lumpy_jigsaw",
+			"breakpoints": true
 		}
 	]
 }

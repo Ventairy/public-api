@@ -1,27 +1,34 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
+import { UserType } from "@shared/enums/user-type";
 import { type UserRow } from "@db/schema/users-table";
+
 export class CreateUserOutputDto {
 	static fromDatabaseRow(row: UserRow): CreateUserOutputDto {
 		return new CreateUserOutputDto({
 			id: row.id,
 			walletAddress: row.wallet_address,
+			userType: row.user_type,
 			ventairyKycStatus: VentairyKycStatus.PENDING,
 			createdAt: row.created_at,
 		});
 	}
+
 	constructor(data: {
 		id: string;
 		walletAddress: string;
+		userType: UserType;
 		ventairyKycStatus: VentairyKycStatus;
 		createdAt: string;
 	}) {
 		this.id = data.id;
 		this.walletAddress = data.walletAddress;
+		this.userType = data.userType;
 		this.ventairyKycStatus = data.ventairyKycStatus;
 		this.createdAt = data.createdAt;
 	}
+
 	@ApiProperty({
 		name: "id",
 		description: "Ventairy-issued unique identifier for the user. UUID v4 generated server-side.",
@@ -30,6 +37,7 @@ export class CreateUserOutputDto {
 	})
 	@Expose({ name: "id" })
 	id: string;
+
 	@ApiProperty({
 		name: "wallet_address",
 		description:
@@ -38,6 +46,16 @@ export class CreateUserOutputDto {
 	})
 	@Expose({ name: "wallet_address" })
 	walletAddress: string;
+
+	@ApiProperty({
+		name: "user_type",
+		description: "Type of user account. Determines feature access and requirements.",
+		enum: UserType,
+		example: UserType.BUSINESS,
+	})
+	@Expose({ name: "user_type" })
+	userType: UserType;
+
 	@ApiProperty({
 		name: "ventairy_kyc_status",
 		description:
@@ -47,6 +65,7 @@ export class CreateUserOutputDto {
 	})
 	@Expose({ name: "ventairy_kyc_status" })
 	ventairyKycStatus: VentairyKycStatus;
+
 	@ApiProperty({
 		name: "created_at",
 		description: "ISO-8601 timestamp marking when the user was created.",

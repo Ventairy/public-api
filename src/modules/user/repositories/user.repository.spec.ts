@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DRIZZLE_DB, type DrizzleDb } from "@core/database";
+import { UserType } from "@shared/enums/user-type";
 import { UserRepository } from "./user.repository";
 
 function createMockDb() {
@@ -76,7 +77,7 @@ describe("UserRepository", () => {
 			mockDb.insert.mockReturnValue(insertBuilder);
 			insertBuilder.returning.mockResolvedValue([insertedRow]);
 
-			const result = await repository.create({ id: "user-1", wallet_address: "0xabc" });
+			const result = await repository.create({ id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS });
 
 			expect(result).toEqual(insertedRow);
 			expect(mockDb.insert).toHaveBeenCalledTimes(1);
@@ -87,7 +88,7 @@ describe("UserRepository", () => {
 			mockDb.insert.mockReturnValue(insertBuilder);
 			insertBuilder.returning.mockResolvedValue([]);
 
-			await expect(repository.create({ id: "user-1", wallet_address: "0xabc" })).rejects.toThrow(
+			await expect(repository.create({ id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS })).rejects.toThrow(
 				"User insert returned no rows",
 			);
 		});

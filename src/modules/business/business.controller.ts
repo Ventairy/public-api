@@ -15,6 +15,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
+import { BusinessUserOnly } from "@shared/decorators/user-type.decorator";
 import type { Actor } from "@shared/types/actor.type";
 import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
@@ -32,6 +33,7 @@ import { BusinessInputDto, GetBusinessFileQueryDto, GetBusinessControllerFileQue
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller("business")
+@BusinessUserOnly()
 export class BusinessController {
 	constructor(private readonly businessService: BusinessService) {}
 

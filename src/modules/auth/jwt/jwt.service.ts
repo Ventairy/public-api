@@ -2,12 +2,9 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { JWT_CONFIG_KEY, type JwtConfig } from "@core/config";
+import type { UserType } from "@shared/enums/user-type";
 import { ACCESS_TOKEN_TTL_SECONDS } from "../constants/token.constants";
-
-export interface AccessTokenPayload {
-	sub: string;
-	sid: string;
-}
+import type { IAccessTokenPayload } from "./interfaces/access-token-payload.interface";
 
 @Injectable()
 export class JwtService {
@@ -20,8 +17,14 @@ export class JwtService {
 		this._secret = new TextEncoder().encode(config.secret);
 	}
 
-	public async generateAccessToken(params: { userId: string; sessionId: string }): Promise<string> {
-		const jwt = await new SignJWT({ sub: params.userId, sid: params.sessionId } as unknown as JWTPayload)
+	public async generateAccessToken(params: { userId: string; sessionId: string; userType: UserType }): Promise<string> {
+		const jwtPayload: JWTPayload & IAccessTokenPayload = {
+			sub: params.userId,
+			sid: params.sessionId,
+			user_type: params.userType,
+		};
+
+		const jwt = await new SignJWT(jwtPayload)
 			.setProtectedHeader({ alg: "HS256" })
 			.setIssuedAt()
 			.setExpirationTime(`${ACCESS_TOKEN_TTL_SECONDS}s`)
@@ -30,18 +33,14 @@ export class JwtService {
 		return jwt;
 	}
 
-	public async verifyAccessToken(token: string): Promise<AccessTokenPayload & { iat: number; exp: number }> {
+	public async verifyAccessToken(token: string): Promise<IAccessTokenPayload & { iat: number; exp: number }> {
 		try {
 			const { payload } = await jwtVerify(token, this._secret, { algorithms: ["HS256"] });
 
-			const sub = payload.sub;
-			const sid: string | undefined = payload["sid"] as string | undefined;
-
-			if (!sub || !sid) throw new UnauthorizedException("Invalid token payload: missing sub or sid");
-
 			return {
-				sub,
-				sid,
+				sub: this._getRequiredClaim(payload, "sub"),
+				sid: this._getRequiredClaim(payload, "sid"),
+				user_type: this._getRequiredClaim(payload, "user_type"),
 				iat: payload.iat ?? 0,
 				exp: payload.exp ?? 0,
 			};
@@ -49,5 +48,13 @@ export class JwtService {
 			if (error instanceof UnauthorizedException) throw error;
 			throw new UnauthorizedException("Invalid or expired access token");
 		}
+	}
+
+	private _getRequiredClaim(payload: JWTPayload, claim: keyof IAccessTokenPayload): string {
+		const value = payload[claim];
+		if (typeof value !== "string" || !value) {
+			throw new UnauthorizedException(`Invalid token payload: missing or invalid '${claim}'`);
+		}
+		return value;
 	}
 }

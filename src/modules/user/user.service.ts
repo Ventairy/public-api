@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UserRow } from "@db/schema/users-table";
+import type { UserType } from "@shared/enums/user-type";
 import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
 import { UserRepository } from "./repositories/user.repository";
 import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
@@ -30,26 +31,28 @@ export class UserService {
 		return this._userRepository.findById(userId);
 	}
 
-	public async createUser(
-		walletAddress: string,
-		siweMessage: string,
-		siweSignature: string,
-		deviceInfo?: string,
-		ipAddress?: string,
-	): Promise<CreateUserResult> {
+	public async createUser(params: {
+		walletAddress: string;
+		siweMessage: string;
+		siweSignature: string;
+		deviceInfo?: string;
+		ipAddress?: string;
+		userType: UserType;
+	}): Promise<CreateUserResult> {
 		await this._siweVerifierService.verify({
-			expectedSignerWalletAddress: walletAddress,
-			message: siweMessage,
-			signature: siweSignature,
+			expectedSignerWalletAddress: params.walletAddress,
+			message: params.siweMessage,
+			signature: params.siweSignature,
 		});
 
-		const normalizedWalletAddress = walletAddress.toLowerCase();
+		const normalizedWalletAddress = params.walletAddress.toLowerCase();
 		const newUserId = this._generateUserId();
 
 		try {
 			const insertedRow = await this._userRepository.create({
 				id: newUserId,
 				wallet_address: normalizedWalletAddress,
+				user_type: params.userType,
 			});
 
 			await this._kycRepository.create({
@@ -67,8 +70,8 @@ export class UserService {
 					id: crypto.randomUUID(),
 					user_id: newUserId,
 					refresh_token_hash: refreshTokenHash,
-					device_info: deviceInfo ?? null,
-					ip_address: ipAddress ?? null,
+					device_info: params.deviceInfo ?? null,
+					ip_address: params.ipAddress ?? null,
 					expires_at: expiresAt,
 				}),
 				this._userSessionRepository.deleteExpired(),
@@ -77,6 +80,7 @@ export class UserService {
 			const accessToken = await this._jwtService.generateAccessToken({
 				userId: newUserId,
 				sessionId: session.id,
+				userType: params.userType,
 			});
 
 			return {

@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StreamableFile } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { BusinessFileType } from "@shared/constants";
 import { BusinessControllerFileType } from "@shared/constants";
+import { UserType } from "@shared/enums/user-type";
+import { ALLOWED_USER_TYPES_DECORATOR_KEY } from "@shared/decorators/user-type.decorator";
+import { BusinessOnlyException } from "@shared/exceptions/business-only.exception";
+import { UserTypeGuard } from "@modules/auth/guards/user-type.guard";
 import { BusinessController } from "./business.controller";
 import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessControllerFileBodyDto } from "./dto/upload-business-controller-file-body.dto";
 
-const MOCK_ACTOR = { id: "user-1", sessionId: "s-1" };
+const MOCK_ACTOR = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS };
 
 function createMockBusinessService() {
 	return {
@@ -27,6 +32,47 @@ describe("BusinessController", () => {
 	beforeEach(() => {
 		mockService = createMockBusinessService();
 		controller = new BusinessController(mockService as unknown as BusinessService);
+	});
+
+	describe("access control", () => {
+		it("should have @BusinessUserOnly() class-level decorator restricting to BUSINESS user type", () => {
+			const allowedTypes = Reflect.getMetadata(ALLOWED_USER_TYPES_DECORATOR_KEY, BusinessController);
+			expect(allowedTypes).toEqual([UserType.BUSINESS]);
+		});
+
+		it("should not allow access with non-BUSINESS user type in JWT", () => {
+			const guard = new UserTypeGuard(new Reflector());
+
+			const handler = () => {};
+			const context = {
+				getHandler: () => handler,
+				getClass: () => BusinessController,
+				switchToHttp: () => ({
+					getRequest: () => ({
+						user: { id: "u-1", sessionId: "s-1", userType: "INDIVIDUAL" as UserType },
+					}),
+				}),
+			};
+
+			expect(() => guard.canActivate(context as any)).toThrow(BusinessOnlyException);
+		});
+
+		it("should allow access with BUSINESS user type in JWT", () => {
+			const guard = new UserTypeGuard(new Reflector());
+
+			const handler = () => {};
+			const context = {
+				getHandler: () => handler,
+				getClass: () => BusinessController,
+				switchToHttp: () => ({
+					getRequest: () => ({
+						user: { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS },
+					}),
+				}),
+			};
+
+			expect(guard.canActivate(context as any)).toBe(true);
+		});
 	});
 
 	describe("uploadFile", () => {

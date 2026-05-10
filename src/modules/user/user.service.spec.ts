@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
+import { UserType } from "@shared/enums/user-type";
 import { UserService } from "./user.service";
 import { UserAlreadyExistsException } from "@shared/exceptions";
 import { VentairyKycStatus } from "@shared/constants";
@@ -15,6 +16,13 @@ describe("UserService", () => {
 	let mockSiweVerifierService: { verify: ReturnType<typeof vi.fn> };
 	let mockJwtService: { generateAccessToken: ReturnType<typeof vi.fn> };
 	let mockUserSessionRepository: any;
+
+	const defaultCreateParams = {
+		walletAddress: validWalletAddress,
+		siweMessage: validSiweMessage,
+		siweSignature: validSiweSignature,
+		userType: UserType.BUSINESS as UserType,
+	};
 
 	beforeEach(() => {
 		vi.spyOn(CryptoUtils, "generateSecureRandom").mockReturnValue("raw-refresh-token");
@@ -44,20 +52,22 @@ describe("UserService", () => {
 	});
 
 	describe("createUser", () => {
-		const validWalletAddress = "0x742d35cc6634c0532925a3b844bc9e7595f0beb1";
-		const validSiweMessage = "ventairy.com wants you to sign in with your Ethereum account...";
-		const validSiweSignature =
-			"0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e";
+
+		const createRowDefaults = {
+			user_type: UserType.BUSINESS,
+		};
+
+		const defaultInsertedRow = {
+			id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+			wallet_address: validWalletAddress,
+			created_at: "2026-05-04T14:48:00.000Z",
+			...createRowDefaults,
+		};
 
 		it("should verify SIWE before creating a user", async () => {
-			const insertedRow = {
-				id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-				wallet_address: validWalletAddress,
-				created_at: "2026-05-04T14:48:00.000Z",
-			};
-			mockUserRepository.create.mockResolvedValue(insertedRow);
+			mockUserRepository.create.mockResolvedValue(defaultInsertedRow);
 
-			await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
+			await service.createUser(defaultCreateParams);
 
 			expect(mockSiweVerifierService.verify).toHaveBeenCalledWith({
 				expectedSignerWalletAddress: validWalletAddress,
@@ -72,27 +82,23 @@ describe("UserService", () => {
 			);
 			mockSiweVerifierService.verify.mockRejectedValue(new InvalidSiweSignatureException(validWalletAddress));
 
-			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
+			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				InvalidSiweSignatureException,
 			);
 			expect(mockUserRepository.create).not.toHaveBeenCalled();
 		});
 
 		it("should create a user with PENDING KYC, session, tokens and return result", async () => {
-			const insertedRow = {
-				id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-				wallet_address: validWalletAddress,
-				created_at: "2026-05-04T14:48:00.000Z",
-			};
-			mockUserRepository.create.mockResolvedValue(insertedRow);
+			mockUserRepository.create.mockResolvedValue(defaultInsertedRow);
 
-			const result = await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
+			const result = await service.createUser(defaultCreateParams);
 
 			expect(result.user).toEqual({
-				id: insertedRow.id,
+				id: defaultInsertedRow.id,
 				walletAddress: validWalletAddress,
+				userType: UserType.BUSINESS,
 				ventairyKycStatus: VentairyKycStatus.PENDING,
-				createdAt: insertedRow.created_at,
+				createdAt: defaultInsertedRow.created_at,
 			});
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.rawRefreshToken).toBe("raw-refresh-token");
@@ -112,9 +118,10 @@ describe("UserService", () => {
 				id: "00000000-0000-0000-0000-000000000001",
 				wallet_address: validWalletAddress,
 				created_at: "2026-05-04T14:48:00.000Z",
+				...createRowDefaults,
 			});
 
-			await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
+			await service.createUser(defaultCreateParams);
 
 			expect(mockKycRepository.create).toHaveBeenCalledTimes(1);
 			expect(mockUserSessionRepository.deleteExpired).toHaveBeenCalledTimes(1);
@@ -129,6 +136,7 @@ describe("UserService", () => {
 			expect(mockJwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "00000000-0000-0000-0000-000000000001",
 				sessionId: "00000000-0000-0000-0000-000000000003",
+				userType: UserType.BUSINESS,
 			});
 		});
 
@@ -137,9 +145,14 @@ describe("UserService", () => {
 				id: "new-user-id",
 				wallet_address: validWalletAddress,
 				created_at: "2026-05-04T14:48:00.000Z",
+				...createRowDefaults,
 			});
 
-			await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature, "Mozilla/5.0", "127.0.0.1");
+			await service.createUser({
+				...defaultCreateParams,
+				deviceInfo: "Mozilla/5.0",
+				ipAddress: "127.0.0.1",
+			});
 
 			expect(mockUserSessionRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -157,9 +170,10 @@ describe("UserService", () => {
 				id: "test-id",
 				wallet_address: normalizedWallet,
 				created_at: "2026-05-04T14:48:00.000Z",
+				...createRowDefaults,
 			});
 
-			await service.createUser(mixedCaseWallet, validSiweMessage, validSiweSignature);
+			await service.createUser({ ...defaultCreateParams, walletAddress: mixedCaseWallet });
 
 			expect(mockUserRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -174,9 +188,10 @@ describe("UserService", () => {
 				id: "generated-uuid",
 				wallet_address: validWalletAddress,
 				created_at: "2026-05-04T14:48:00.000Z",
+				...createRowDefaults,
 			});
 
-			await service.createUser(validWalletAddress, validSiweMessage, validSiweSignature);
+			await service.createUser(defaultCreateParams);
 
 			expect(uuidSpy).toHaveBeenCalled();
 		});
@@ -186,10 +201,10 @@ describe("UserService", () => {
 				new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"),
 			);
 
-			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
+			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				UserAlreadyExistsException,
 			);
-			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
+			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				`A user with wallet address ${validWalletAddress} already exists`,
 			);
 		});
@@ -198,7 +213,7 @@ describe("UserService", () => {
 			const genericError = new Error("Connection timeout");
 			mockUserRepository.create.mockRejectedValue(genericError);
 
-			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
+			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				genericError,
 			);
 		});
@@ -207,7 +222,7 @@ describe("UserService", () => {
 			const { NonceNotFoundException } = await import("@shared/exceptions/nonce-not-found.exception");
 			mockSiweVerifierService.verify.mockRejectedValue(new NonceNotFoundException("abc123"));
 
-			await expect(service.createUser(validWalletAddress, validSiweMessage, validSiweSignature)).rejects.toThrow(
+			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				NonceNotFoundException,
 			);
 		});

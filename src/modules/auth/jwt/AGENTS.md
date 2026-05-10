@@ -2,7 +2,7 @@
 
 ## Purpose
 
-HS256 JWT signing and verification layer using the `jose` library. Generates access tokens with `sub` (userId) and `sid` (sessionId) claims. Tokens are verified by the global `JwtAuthGuard` on every protected request.
+HS256 JWT signing and verification layer using the `jose` library. Generates access tokens with `sub` (userId), `sid` (sessionId), and `user_type` (UserType) claims. Tokens are verified by the global `JwtAuthGuard` on every protected request.
 
 ## Files
 
@@ -10,3 +10,9 @@ HS256 JWT signing and verification layer using the `jose` library. Generates acc
 | --------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `jwt.service.ts`      | `JwtService` — `generateAccessToken()` signs HS256 JWTs, `verifyAccessToken()` verifies and returns the payload |
 | `jwt.service.spec.ts` | Unit tests for JwtService                                                                                       |
+
+## Subdirectories
+
+| Subdirectory  | Description                       |
+| ------------- | --------------------------------- |
+| `interfaces/` | JWT-related TypeScript interfaces |

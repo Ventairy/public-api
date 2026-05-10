@@ -10,6 +10,7 @@ import { SignatureNonceRepository } from "./repositories/signature-nonce.reposit
 import { UserSessionRepository } from "./repositories/user-session.repository";
 import { JwtService } from "./jwt/jwt.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { UserTypeGuard } from "./guards/user-type.guard";
 
 @Module({
 	imports: [forwardRef(() => UserModule)],
@@ -25,6 +26,10 @@ import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 		{
 			provide: APP_GUARD,
 			useClass: JwtAuthGuard,
+		},
+		{
+			provide: APP_GUARD,
+			useClass: UserTypeGuard,
 		},
 	],
 	exports: [

@@ -63,6 +63,7 @@ export class AuthService {
 		const accessToken = await this._jwtService.generateAccessToken({
 			userId: user.id,
 			sessionId: session.id,
+			userType: user.user_type,
 		});
 
 		return {
@@ -96,11 +97,8 @@ export class AuthService {
 		const newHash = CryptoUtils.hashSha256(newRawRefreshToken);
 		const newExpiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
-		const [accessToken] = await Promise.all([
-			this._jwtService.generateAccessToken({
-				userId: currentSession.user_id,
-				sessionId: currentSession.id,
-			}),
+		const [user] = await Promise.all([
+			this._userRepository.findById(currentSession.user_id),
 			this._userSessionRepository.updateRefreshTokenHash({
 				id: currentSession.id,
 				refreshTokenHash: newHash,
@@ -108,6 +106,14 @@ export class AuthService {
 				updatedAt: now.toISOString(),
 			}),
 		]);
+
+		if (!user) throw new UserNotFoundException(currentSession.user_id);
+
+		const accessToken = await this._jwtService.generateAccessToken({
+			userId: currentSession.user_id,
+			sessionId: currentSession.id,
+			userType: user.user_type,
+		});
 
 		return {
 			output: new RefreshTokensOutputDto({ expiresAt: newExpiresAt }),

@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
+import type { UserType } from "@shared/enums/user-type";
 import { IS_PUBLIC_KEY } from "@shared/decorators/public.decorator";
 import { JwtService } from "../jwt/jwt.service";
 import { ACCESS_COOKIE_NAME } from "../constants/token.constants";
@@ -28,7 +29,11 @@ export class JwtAuthGuard implements CanActivate {
 
 		const payload = await this._jwtService.verifyAccessToken(accessToken);
 
-		request.user = { id: payload.sub, sessionId: payload.sid };
+		request.user = {
+			id: payload.sub,
+			sessionId: payload.sid,
+			userType: payload.user_type as UserType,
+		};
 
 		return true;
 	}

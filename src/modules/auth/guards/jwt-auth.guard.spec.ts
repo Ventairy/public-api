@@ -3,6 +3,7 @@ import { Reflector } from "@nestjs/core";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { JwtService } from "../jwt/jwt.service";
 import { UnauthorizedException } from "@nestjs/common";
+import { UserType } from "@shared/enums/user-type";
 
 function createMockContext(overrides?: {
 	isPublic?: boolean;
@@ -31,7 +32,7 @@ function createMockReflector(isPublic: boolean): Reflector {
 function createMockJwtService(shouldSucceed: boolean): JwtService {
 	return {
 		verifyAccessToken: shouldSucceed
-			? vi.fn().mockResolvedValue({ sub: "u-1", sid: "s-1", iat: 1000, exp: 2000 })
+			? vi.fn().mockResolvedValue({ sub: "u-1", sid: "s-1", user_type: UserType.BUSINESS, iat: 1000, exp: 2000 })
 			: vi.fn().mockRejectedValue(new UnauthorizedException("Invalid token")),
 	} as unknown as JwtService;
 }
@@ -56,7 +57,7 @@ describe("JwtAuthGuard", () => {
 			expect(result).toBe(true);
 		});
 
-		it("should set request.user with id and sessionId from payload", async () => {
+		it("should set request.user with id, sessionId, and userType from payload", async () => {
 			const guard = new JwtAuthGuard(createMockReflector(false), createMockJwtService(true));
 			const request = { headers: { cookie: "__Host-ventairy-access=valid-token" } };
 			const context = {
@@ -69,7 +70,11 @@ describe("JwtAuthGuard", () => {
 
 			await guard.canActivate(context as any);
 
-			expect((request as any).user).toEqual({ id: "u-1", sessionId: "s-1" });
+			expect((request as any).user).toEqual({
+				id: "u-1",
+				sessionId: "s-1",
+				userType: UserType.BUSINESS,
+			});
 		});
 
 		it("should throw UnauthorizedException when access token is missing", async () => {
