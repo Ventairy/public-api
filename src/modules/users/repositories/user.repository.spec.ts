@@ -46,6 +46,29 @@ describe("UserRepository", () => {
 		});
 	});
 
+	describe("findByWalletAddress", () => {
+		it("should return the user row when found", async () => {
+			const expectedRow = { id: "user-1", wallet_address: "0xabc", created_at: "2026-01-01T00:00:00.000Z" };
+			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
+			mockDb.select.mockReturnValue(selectBuilder);
+			selectBuilder.where.mockResolvedValue([expectedRow]);
+
+			const result = await repository.findByWalletAddress("0xabc");
+
+			expect(result).toEqual(expectedRow);
+		});
+
+		it("should return null when not found", async () => {
+			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
+			mockDb.select.mockReturnValue(selectBuilder);
+			selectBuilder.where.mockResolvedValue([]);
+
+			const result = await repository.findByWalletAddress("nonexistent");
+
+			expect(result).toBeNull();
+		});
+	});
+
 	describe("create", () => {
 		it("should insert a user and return the inserted row", async () => {
 			const insertedRow = { id: "user-1", wallet_address: "0xabc", created_at: "2026-01-01T00:00:00.000Z" };

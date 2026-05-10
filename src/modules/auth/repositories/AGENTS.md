@@ -2,14 +2,16 @@
 
 ## Purpose
 
-Data access layer for the Auth module. Encapsulates all database queries related to SIWE nonces and authentication flows. Injects the raw Drizzle query builder via `DRIZZLE_DB` token.
+Data access layer for the Auth module. Encapsulates all database queries related to SIWE nonces and session management. Injects the raw Drizzle query builder via `DRIZZLE_DB` token.
 
 ## Files
 
-| File                                 | Description                                                                                                         |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `signature-nonce.repository.ts`      | CRUD operations on the `signature_nonces` table (create, findByNonce, deleteByNonceAndWalletAddress, deleteExpired) |
-| `signature-nonce.repository.spec.ts` | Unit tests for SignatureNonceRepository                                                                             |
+| File                                 | Description                                                                                                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signature-nonce.repository.ts`      | CRUD operations on the `signature_nonces` table (create, findByNonce, deleteByNonceAndWalletAddress, deleteExpired)                                       |
+| `signature-nonce.repository.spec.ts` | Unit tests for SignatureNonceRepository                                                                                                                   |
+| `user-session.repository.ts`         | CRUD on `user_sessions` table — create, findByRefreshTokenHash, findById, findByUserId, updateRefreshTokenHash, deleteById, deleteByUserId, deleteExpired |
+| `user-session.repository.spec.ts`    | Unit tests for UserSessionRepository                                                                                                                      |
 
 ## Principles
 

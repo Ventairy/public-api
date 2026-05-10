@@ -29,7 +29,6 @@ export function ApiUploadBusinessControllerFileDocs(): MethodDecorator & ClassDe
 				required: ["file", "file_type"],
 			},
 		}),
-		ApiParam({ name: "user_id", description: "ID of the user who owns the business", format: "uuid" }),
 		ApiParam({ name: "controller_id", description: "ID of the controller", format: "uuid" }),
 		ApiResponse({
 			status: HttpStatus.CREATED,

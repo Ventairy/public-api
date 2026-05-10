@@ -19,3 +19,5 @@ This folder holds **pure utility functions** — stateless, side-effect-free hel
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `object.utils.ts`                | `ObjectUtils` namespace with `filterUndefined()` — strips `undefined` values from objects while preserving `null`. Used for building sparse DB update objects from partial DTOs. |
 | `__tests__/object.utils.spec.ts` | Unit tests for `object.utils.ts` covering all edge cases.                                                                                                                        |
+| `crypto.utils.ts`                | `CryptoUtils` namespace with `generateSecureRandom()` (crypto.randomBytes → hex) and `hashSha256()` (SHA-256 hex digest). Used for refresh token generation and session hashing. |
+| `__tests__/crypto.utils.spec.ts` | Unit tests for `crypto.utils.ts` — hex length, determinism, correctness.                                                                                                         |

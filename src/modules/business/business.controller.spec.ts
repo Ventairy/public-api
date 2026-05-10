@@ -7,6 +7,8 @@ import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessControllerFileBodyDto } from "./dto/upload-business-controller-file-body.dto";
 
+const MOCK_ACTOR = { id: "user-1", sessionId: "s-1" };
+
 function createMockBusinessService() {
 	return {
 		uploadBusinessFile: vi.fn(),
@@ -28,7 +30,7 @@ describe("BusinessController", () => {
 	});
 
 	describe("uploadFile", () => {
-		it("should delegate to service.uploadBusinessFile with correct params", async () => {
+		it("should delegate to service.uploadBusinessFile with actor.id as userId", async () => {
 			const mockFile = {
 				buffer: Buffer.from("test"),
 				originalname: "doc.pdf",
@@ -46,7 +48,7 @@ describe("BusinessController", () => {
 			mockService.uploadBusinessFile.mockResolvedValue(mockResult);
 
 			const body = { fileType: "BUSINESS_INCORPORATION_DOCUMENT" as any } as UploadBusinessFileBodyDto;
-			const result = await controller.uploadFile("user-1", mockFile, body);
+			const result = await controller.uploadFile(MOCK_ACTOR, mockFile, body);
 
 			expect(mockService.uploadBusinessFile).toHaveBeenCalledWith(
 				"user-1",
@@ -58,7 +60,7 @@ describe("BusinessController", () => {
 	});
 
 	describe("uploadBusinessControllerFile", () => {
-		it("should delegate to service.uploadBusinessControllerFile with correct params", async () => {
+		it("should delegate to service.uploadBusinessControllerFile with actor.id as userId", async () => {
 			const mockFile = {
 				buffer: Buffer.from("test"),
 				originalname: "passport.jpg",
@@ -76,7 +78,7 @@ describe("BusinessController", () => {
 			mockService.uploadBusinessControllerFile.mockResolvedValue(mockResult);
 
 			const body = { fileType: "CONTROLLER_IDENTIFICATION_FRONT" as any } as UploadBusinessControllerFileBodyDto;
-			const result = await controller.uploadBusinessControllerFile("user-1", "ctrl-1", mockFile, body);
+			const result = await controller.uploadBusinessControllerFile(MOCK_ACTOR, "ctrl-1", mockFile, body);
 
 			expect(mockService.uploadBusinessControllerFile).toHaveBeenCalledWith(
 				"user-1",
@@ -89,7 +91,7 @@ describe("BusinessController", () => {
 	});
 
 	describe("saveBusiness", () => {
-		it("should delegate to service.saveBusiness with correct params", async () => {
+		it("should delegate to service.saveBusiness with actor.id as userId", async () => {
 			const body = { legalName: "Acme" };
 			const mockResult = {
 				id: "biz-1",
@@ -100,7 +102,7 @@ describe("BusinessController", () => {
 			};
 			mockService.saveBusiness.mockResolvedValue(mockResult);
 
-			const result = await controller.saveBusiness("user-1", body as any);
+			const result = await controller.saveBusiness(MOCK_ACTOR, body as any);
 
 			expect(mockService.saveBusiness).toHaveBeenCalledWith("user-1", body);
 			expect(result).toEqual(mockResult);
@@ -108,7 +110,7 @@ describe("BusinessController", () => {
 	});
 
 	describe("getBusiness", () => {
-		it("should delegate to service.getBusiness with correct params", async () => {
+		it("should delegate to service.getBusiness with actor.id", async () => {
 			const mockResult = {
 				id: "biz-1",
 				legalName: "Acme",
@@ -118,7 +120,7 @@ describe("BusinessController", () => {
 			};
 			mockService.getBusiness.mockResolvedValue(mockResult);
 
-			const result = await controller.getBusiness("user-1");
+			const result = await controller.getBusiness(MOCK_ACTOR);
 
 			expect(mockService.getBusiness).toHaveBeenCalledWith("user-1");
 			expect(result).toEqual(mockResult);
@@ -126,7 +128,7 @@ describe("BusinessController", () => {
 	});
 
 	describe("getBusinessFile", () => {
-		it("should delegate to service.getBusinessFile with userId and fileType and return StreamableFile", async () => {
+		it("should delegate to service.getBusinessFile with actor.id and fileType", async () => {
 			const mockBuffer = Buffer.from("file-content");
 			mockService.getBusinessFile.mockResolvedValue({
 				buffer: mockBuffer,
@@ -134,7 +136,7 @@ describe("BusinessController", () => {
 				mimeType: "application/pdf",
 			});
 
-			const result = await controller.getBusinessFile("user-1", {
+			const result = await controller.getBusinessFile(MOCK_ACTOR, {
 				fileType: BusinessFileType.INCORPORATION_DOCUMENT,
 			});
 
@@ -147,7 +149,7 @@ describe("BusinessController", () => {
 	});
 
 	describe("getBusinessControllerFile", () => {
-		it("should delegate to service.getBusinessControllerFile with userId, controllerId and fileType and return StreamableFile", async () => {
+		it("should delegate with actor.id, controllerId and fileType", async () => {
 			const mockBuffer = Buffer.from("file-content");
 			mockService.getBusinessControllerFile.mockResolvedValue({
 				buffer: mockBuffer,
@@ -155,7 +157,7 @@ describe("BusinessController", () => {
 				mimeType: "image/jpeg",
 			});
 
-			const result = await controller.getBusinessControllerFile("user-1", "ctrl-1", {
+			const result = await controller.getBusinessControllerFile(MOCK_ACTOR, "ctrl-1", {
 				fileType: BusinessControllerFileType.IDENTIFICATION_FRONT,
 			});
 

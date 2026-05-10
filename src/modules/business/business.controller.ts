@@ -14,6 +14,8 @@ import {
 	UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { CurrentActor } from "@shared/decorators/current-actor.decorator";
+import { Actor } from "@shared/types/actor.type";
 import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessFileOutputDto } from "./dto/upload-business-file-output.dto";
@@ -33,57 +35,57 @@ import { BusinessInputDto, GetBusinessFileQueryDto, GetBusinessControllerFileQue
 export class BusinessController {
 	constructor(private readonly businessService: BusinessService) {}
 
-	@Post(":user_id/files/upload")
+	@Post("files/upload")
 	@UseInterceptors(FileInterceptor("file"))
 	@HttpCode(HttpStatus.CREATED)
 	@ApiUploadBusinessFileDocs()
 	public async uploadFile(
-		@Param("user_id") userId: string,
+		@CurrentActor() actor: Actor,
 		@UploadedFile() file: Express.Multer.File,
 		@Body() body: UploadBusinessFileBodyDto,
 	): Promise<UploadBusinessFileOutputDto> {
-		return this.businessService.uploadBusinessFile(userId, file, body.fileType);
+		return this.businessService.uploadBusinessFile(actor.id, file, body.fileType);
 	}
 
-	@Post(":user_id/controller/:controller_id/files/upload")
+	@Post("controller/:controller_id/files/upload")
 	@UseInterceptors(FileInterceptor("file"))
 	@HttpCode(HttpStatus.CREATED)
 	@ApiUploadBusinessControllerFileDocs()
 	public async uploadBusinessControllerFile(
-		@Param("user_id") userId: string,
+		@CurrentActor() actor: Actor,
 		@Param("controller_id") controllerId: string,
 		@UploadedFile() file: Express.Multer.File,
 		@Body() body: UploadBusinessControllerFileBodyDto,
 	): Promise<UploadBusinessControllerFileOutputDto> {
-		return this.businessService.uploadBusinessControllerFile(userId, controllerId, file, body.fileType);
+		return this.businessService.uploadBusinessControllerFile(actor.id, controllerId, file, body.fileType);
 	}
 
-	@Put(":user_id")
+	@Put()
 	@HttpCode(HttpStatus.OK)
 	@ApiSaveBusinessDocs()
 	public async saveBusiness(
-		@Param("user_id") userId: string,
+		@CurrentActor() actor: Actor,
 		@Body() body: BusinessInputDto,
 	): Promise<BusinessOutputDto> {
-		return this.businessService.saveBusiness(userId, body);
+		return this.businessService.saveBusiness(actor.id, body);
 	}
 
-	@Get(":user_id")
+	@Get()
 	@HttpCode(HttpStatus.OK)
 	@ApiGetBusinessDocs()
-	public async getBusiness(@Param("user_id") userId: string): Promise<BusinessOutputDto> {
-		return this.businessService.getBusiness(userId);
+	public async getBusiness(@CurrentActor() actor: Actor): Promise<BusinessOutputDto> {
+		return this.businessService.getBusiness(actor.id);
 	}
 
-	@Get(":user_id/files")
+	@Get("files")
 	@HttpCode(HttpStatus.OK)
 	@ApiGetFileDocs()
 	public async getBusinessFile(
-		@Param("user_id") userId: string,
+		@CurrentActor() actor: Actor,
 		@Query() query: GetBusinessFileQueryDto,
 	): Promise<StreamableFile> {
 		const { buffer, fileName, mimeType } = await this.businessService.getBusinessFile({
-			userId,
+			userId: actor.id,
 			fileType: query.fileType,
 		});
 		return new StreamableFile(buffer, {
@@ -92,16 +94,16 @@ export class BusinessController {
 		});
 	}
 
-	@Get(":user_id/controller/:controller_id/files")
+	@Get("controller/:controller_id/files")
 	@HttpCode(HttpStatus.OK)
 	@ApiGetBusinessControllerFileDocs()
 	public async getBusinessControllerFile(
-		@Param("user_id") userId: string,
+		@CurrentActor() actor: Actor,
 		@Param("controller_id") controllerId: string,
 		@Query() query: GetBusinessControllerFileQueryDto,
 	): Promise<StreamableFile> {
 		const { buffer, fileName, mimeType } = await this.businessService.getBusinessControllerFile({
-			userId,
+			userId: actor.id,
 			controllerId,
 			fileType: query.fileType,
 		});

@@ -65,6 +65,7 @@ When writing or modifying code in this repository, you MUST adhere to the follow
 - **Minimalism:** NEVER add code that is not explicitly required for the current task. Every line must serve a purpose. Remove unused imports, variables, fields, functions, and dead code. If it's not used, delete it.
 - **Private Convention:** ALWAYS prefix private class members (properties and methods) with underscore (`_`). Example: `private _verifyToken()` not `private verifyToken()`. This clearly distinguishes internal implementation from public API.
 - **No Standalone Functions:** Functions must NEVER be exported as bare standalone exports. Always wrap them in a namespace object with `as const` or a class. Example: `export const ObjectUtils = { filterUndefined } as const;` instead of `export function filterUndefined()`. This provides a clear access path (`ObjectUtils.filterUndefined`) and groups related utilities together.
+- **Thorough Endpoint Documentation:** Every controller endpoint MUST have a corresponding Swagger docs decorator file. The `ApiOperation` description must be so thorough that a developer new to the codebase can understand exactly what the endpoint does, what inputs it expects, what cookies/headers it sets, what each status code means, and any security implications. Write descriptions as if the reader has zero context about the project. This is not optional — any endpoint without a detailed docs decorator will be considered incomplete.
 
 ---
 
@@ -118,6 +119,8 @@ Every directory that represents a distinct module or concern MUST have its own `
 This ensures that AI agents can quickly understand the structure and intent of any folder without reading every file. The root `AGENTS.md` describes global conventions; folder-level `AGENTS.md` files describe local ones.
 
 **STRICT RULE:** Whenever you add a new file or a new public function to an existing file inside a folder, you MUST update that folder's `AGENTS.md` to reflect the change. This is not optional — the file table must always be an accurate, up-to-date inventory of the folder's contents. If you create a new folder, you MUST create its `AGENTS.md` at the same time.
+
+**STRICT RULE:** A parent AGENTS.md MUST NOT list files from its subdirectories. Each subdirectory documents its own contents in its own `AGENTS.md`. The parent may list subdirectory names (e.g., "see `constants/`, `docs/`") but never the individual files within them.
 
 ## 7. BUG FIX PROTOCOL
 

@@ -4,10 +4,11 @@ import {
 	Get,
 	HttpCode,
 	HttpStatus,
-	Param,
 	Post,
 	UseInterceptors,
 } from "@nestjs/common";
+import { CurrentActor } from "@shared/decorators/current-actor.decorator";
+import { Actor } from "@shared/types/actor.type";
 import { KycService } from "./kyc.service";
 import { KycSubmissionOutputDto, KycStatusOutputDto } from "./dto";
 import { ApiSubmitKycDocs } from "./docs/api-submit-kyc-docs.decorator";
@@ -18,17 +19,17 @@ import { ApiGetKycStatusDocs } from "./docs/api-get-kyc-status-docs.decorator";
 export class KycController {
 	constructor(private readonly kycService: KycService) {}
 
-	@Post(":user_id/submit")
+	@Post("submit")
 	@HttpCode(HttpStatus.OK)
 	@ApiSubmitKycDocs()
-	public async submitKyc(@Param("user_id") userId: string): Promise<KycSubmissionOutputDto> {
-		return this.kycService.submitKyc(userId);
+	public async submitKyc(@CurrentActor() actor: Actor): Promise<KycSubmissionOutputDto> {
+		return this.kycService.submitKyc(actor.id);
 	}
 
-	@Get(":user_id/status")
+	@Get("status")
 	@HttpCode(HttpStatus.OK)
 	@ApiGetKycStatusDocs()
-	public async getKycStatus(@Param("user_id") userId: string): Promise<KycStatusOutputDto> {
-		return this.kycService.getKycStatus(userId);
+	public async getKycStatus(@CurrentActor() actor: Actor): Promise<KycStatusOutputDto> {
+		return this.kycService.getKycStatus(actor.id);
 	}
 }

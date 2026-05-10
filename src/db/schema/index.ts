@@ -5,3 +5,4 @@ export { businessesTable as businesses } from "./businesses-table";
 export { businessControllersTable as businessControllers } from "./business-controllers-table";
 export { businessFilesTable as businessFiles } from "./business-files-table";
 export { businessControllerFilesTable as businessControllerFiles } from "./business-controller-files-table";
+export { userSessionsTable as userSessions } from "./user-sessions-table";

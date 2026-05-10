@@ -4,6 +4,7 @@ import { NestFactory, Reflector } from "@nestjs/core";
 import { ClassSerializerInterceptor, VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { ClsService } from "nestjs-cls";
 
@@ -32,6 +33,7 @@ async function bootstrap(): Promise<void> {
 	});
 
 	application.use(helmet());
+	application.use(cookieParser());
 
 	application.useGlobalPipes(new CustomValidationPipe());
 

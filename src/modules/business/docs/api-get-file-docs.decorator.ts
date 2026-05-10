@@ -1,16 +1,15 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiProduces } from "@nestjs/swagger";
+import { ApiOperation, ApiResponse, ApiQuery, ApiProduces } from "@nestjs/swagger";
 import { BusinessFileType } from "@shared/constants";
 
 export function ApiGetFileDocs(): MethodDecorator & ClassDecorator {
 	return applyDecorators(
 		ApiOperation({
-			summary: "Download a business file by user and file type",
+			summary: "Download a business file by file type",
 			description:
-				"Streams a business file from Cloudflare R2 storage identified by user ID and file type. Returns the file with its original content type and filename.",
+				"Streams a business file from Cloudflare R2 storage for the authenticated user identified by file type. Returns the file with its original content type and filename.",
 		}),
 		ApiProduces("application/octet-stream", "application/pdf", "image/png", "image/jpeg"),
-		ApiParam({ name: "user_id", description: "ID of the user who owns the file", format: "uuid" }),
 		ApiQuery({
 			name: "file_type",
 			description: "Type of business file to retrieve",

@@ -9,6 +9,7 @@ describe("validationSchema", () => {
 		CF_D1_DATABASE_ID: "test-database-id",
 		CF_D1_API_TOKEN: "test-api-token",
 		LOG_LEVEL: "info",
+		JWT_SECRET: "my-super-secret-key-that-is-long-enough-123456",
 		SIWE_DOMAIN: "example.com",
 		SIWE_URI: "https://example.com",
 		SIWE_NONCE_TTL_SECONDS: 300,
@@ -29,6 +30,7 @@ describe("validationSchema", () => {
 			CF_ACCOUNT_ID: "test-account-id",
 			CF_D1_DATABASE_ID: "test-database-id",
 			CF_D1_API_TOKEN: "test-api-token",
+			JWT_SECRET: "my-super-secret-key-that-is-long-enough-123456",
 			SIWE_DOMAIN: "example.com",
 			SIWE_URI: "https://example.com",
 			SIWE_NONCE_TTL_SECONDS: 300,
@@ -59,6 +61,15 @@ describe("validationSchema", () => {
 		const { error } = validationSchema.validate(invalidEnv);
 		expect(error).toBeDefined();
 		expect(error?.message).toContain('"NODE_ENV" must be one of [development, production, test, staging]');
+	});
+
+	it("should fail validation if JWT_SECRET is missing", () => {
+		const invalidEnv = { ...validEnv };
+		delete (invalidEnv as any).JWT_SECRET;
+
+		const { error } = validationSchema.validate(invalidEnv);
+		expect(error).toBeDefined();
+		expect(error?.message).toContain('"JWT_SECRET" is required');
 	});
 
 	it("should fail validation for invalid SIWE_NONCE_TTL_SECONDS", () => {

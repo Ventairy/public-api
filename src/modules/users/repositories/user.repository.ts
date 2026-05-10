@@ -12,6 +12,11 @@ export class UserRepository {
 		return rows[0] ?? null;
 	}
 
+	async findByWalletAddress(walletAddress: string): Promise<UserRow | null> {
+		const rows = await this._db.select().from(usersTable).where(eq(usersTable.wallet_address, walletAddress));
+		return rows[0] ?? null;
+	}
+
 	async create(data: NewUserRow): Promise<UserRow> {
 		const rows = await this._db.insert(usersTable).values(data).returning();
 		const row = rows[0];

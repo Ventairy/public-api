@@ -14,6 +14,8 @@ export const validationSchema = Joi.object({
 	SIWE_URI: Joi.string().required(),
 	SIWE_NONCE_TTL_SECONDS: Joi.number().integer().min(30).max(600).required(),
 
+	JWT_SECRET: Joi.string().min(32).required(),
+
 	R2_ENDPOINT: Joi.string().required(),
 	R2_BUSINESS_FILES_ACCESS_KEY_ID: Joi.string().required(),
 	R2_BUSINESS_FILES_SECRET_ACCESS_KEY: Joi.string().required(),
