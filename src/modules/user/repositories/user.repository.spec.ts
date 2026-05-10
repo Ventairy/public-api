@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DRIZZLE_DB, type DrizzleDb } from "@core/database";
+import { DRIZZLE_DB, type DrizzleDb, type AtomicCall } from "@core/database";
 import { UserType } from "@shared/enums/user-type";
 import { UserRepository } from "./user.repository";
 
@@ -88,9 +88,50 @@ describe("UserRepository", () => {
 			mockDb.insert.mockReturnValue(insertBuilder);
 			insertBuilder.returning.mockResolvedValue([]);
 
-			await expect(repository.create({ id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS })).rejects.toThrow(
-				"User insert returned no rows",
-			);
+			await expect(
+				repository.create({ id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS }),
+			).rejects.toThrow("User insert returned no rows");
+		});
+	});
+
+	describe("create_atomicCall", () => {
+		const userData = { id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS };
+
+		it("should return a AtomicCall without executing the query", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+			insertBuilder.returning.mockResolvedValue([{ id: "user-1" }]);
+
+			const result = repository.create_atomicCall(userData);
+
+			expect(result).toHaveProperty("query");
+			expect(result).toHaveProperty("processResult");
+			expect(typeof result.processResult).toBe("function");
+			expect(mockDb.insert).toHaveBeenCalledWith(expect.anything());
+			expect(insertBuilder.values).toHaveBeenCalledWith(userData);
+			expect(insertBuilder.returning).toHaveBeenCalledWith();
+			expect(insertBuilder.returning).not.toHaveBeenCalledWith(expect.anything());
+		});
+
+		it("should process result and extract first row", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const call = repository.create_atomicCall(userData);
+			const rawRows = [{ id: "user-1", wallet_address: "0xabc", created_at: "2026-01-01T00:00:00.000Z" }];
+
+			const result = call.processResult(rawRows);
+
+			expect(result).toEqual(rawRows[0]);
+		});
+
+		it("should throw in processResult when rows array is empty", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const call = repository.create_atomicCall(userData);
+
+			expect(() => call.processResult([])).toThrow("User insert returned no rows");
 		});
 	});
 });

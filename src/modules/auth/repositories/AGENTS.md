@@ -6,12 +6,12 @@ Data access layer for the Auth module. Encapsulates all database queries related
 
 ## Files
 
-| File                                 | Description                                                                                                                                               |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `signature-nonce.repository.ts`      | CRUD operations on the `signature_nonces` table (create, findByNonce, deleteByNonceAndWalletAddress, deleteExpired)                                       |
-| `signature-nonce.repository.spec.ts` | Unit tests for SignatureNonceRepository                                                                                                                   |
-| `user-session.repository.ts`         | CRUD on `user_sessions` table — create, findByRefreshTokenHash, findById, findByUserId, updateRefreshTokenHash, deleteById, deleteByUserId, deleteExpired |
-| `user-session.repository.spec.ts`    | Unit tests for UserSessionRepository                                                                                                                      |
+| File                                 | Description                                                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signature-nonce.repository.ts`      | CRUD operations on the `signature_nonces` table (create, findByNonce, deleteByNonceAndWalletAddress, deleteExpired)                                                             |
+| `signature-nonce.repository.spec.ts` | Unit tests for SignatureNonceRepository                                                                                                                                         |
+| `user-session.repository.ts`         | CRUD on `user_sessions` table — create, createCall for batch, findByRefreshTokenHash, findById, findByUserId, updateRefreshTokenHash, deleteById, deleteByUserId, deleteExpired |
+| `user-session.repository.spec.ts`    | Unit tests for UserSessionRepository                                                                                                                                            |
 
 ## Principles
 

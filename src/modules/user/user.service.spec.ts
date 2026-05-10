@@ -16,6 +16,7 @@ describe("UserService", () => {
 	let mockSiweVerifierService: { verify: ReturnType<typeof vi.fn> };
 	let mockJwtService: { generateAccessToken: ReturnType<typeof vi.fn> };
 	let mockUserSessionRepository: any;
+	let mockAtomicExecutionService: { execute: ReturnType<typeof vi.fn> };
 
 	const defaultCreateParams = {
 		walletAddress: validWalletAddress,
@@ -30,29 +31,33 @@ describe("UserService", () => {
 		mockUserRepository = {
 			findById: vi.fn(),
 			create: vi.fn(),
+			create_atomicCall: vi.fn(),
 		} as any;
 		mockKycRepository = {
 			findByUserId: vi.fn(),
 			create: vi.fn().mockResolvedValue(undefined),
+			create_atomicCall: vi.fn(),
 			updateStatusByUserId: vi.fn(),
 		} as any;
 		mockSiweVerifierService = { verify: vi.fn().mockResolvedValue(undefined) };
 		mockJwtService = { generateAccessToken: vi.fn().mockResolvedValue("access-token-123") } as any;
 		mockUserSessionRepository = {
 			create: vi.fn().mockResolvedValue({ id: "s-1", user_id: "new-user-id" }),
+			create_atomicCall: vi.fn(),
 			deleteExpired: vi.fn().mockResolvedValue(0),
 		} as any;
+		mockAtomicExecutionService = { execute: vi.fn() };
 		service = new UserService(
 			mockUserRepository,
 			mockKycRepository,
 			mockSiweVerifierService as any,
 			mockJwtService as any,
 			mockUserSessionRepository as any,
+			mockAtomicExecutionService as any,
 		);
 	});
 
 	describe("createUser", () => {
-
 		const createRowDefaults = {
 			user_type: UserType.BUSINESS,
 		};
@@ -64,8 +69,12 @@ describe("UserService", () => {
 			...createRowDefaults,
 		};
 
+		const defaultSessionRow = { id: "s-1", user_id: defaultInsertedRow.id };
+
+		const defaultBatchResult = [defaultInsertedRow, defaultSessionRow, undefined] as const;
+
 		it("should verify SIWE before creating a user", async () => {
-			mockUserRepository.create.mockResolvedValue(defaultInsertedRow);
+			mockAtomicExecutionService.execute.mockResolvedValue(defaultBatchResult);
 
 			await service.createUser(defaultCreateParams);
 
@@ -85,11 +94,11 @@ describe("UserService", () => {
 			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				InvalidSiweSignatureException,
 			);
-			expect(mockUserRepository.create).not.toHaveBeenCalled();
+			expect(mockAtomicExecutionService.execute).not.toHaveBeenCalled();
 		});
 
 		it("should create a user with PENDING KYC, session, tokens and return result", async () => {
-			mockUserRepository.create.mockResolvedValue(defaultInsertedRow);
+			mockAtomicExecutionService.execute.mockResolvedValue(defaultBatchResult);
 
 			const result = await service.createUser(defaultCreateParams);
 
@@ -104,49 +113,62 @@ describe("UserService", () => {
 			expect(result.rawRefreshToken).toBe("raw-refresh-token");
 		});
 
-		it("should create a session after user creation", async () => {
+		it("should batch user, session, and KYC inserts atomically", async () => {
 			const uuidSpy = vi.spyOn(crypto, "randomUUID");
 			uuidSpy
-				.mockReturnValueOnce("00000000-0000-0000-0000-000000000001" as any)
-				.mockReturnValueOnce("00000000-0000-0000-0000-000000000002" as any)
-				.mockReturnValueOnce("00000000-0000-0000-0000-000000000003" as any);
-			mockUserSessionRepository.create.mockResolvedValue({
-				id: "00000000-0000-0000-0000-000000000003",
-				user_id: "00000000-0000-0000-0000-000000000001",
-			});
-			mockUserRepository.create.mockResolvedValue({
-				id: "00000000-0000-0000-0000-000000000001",
-				wallet_address: validWalletAddress,
-				created_at: "2026-05-04T14:48:00.000Z",
-				...createRowDefaults,
-			});
+				.mockReturnValueOnce("00000000-0000-0000-0000-000000000001")      // userId
+				.mockReturnValueOnce("00000000-0000-0000-0000-000000000002")      // sessionId
+				.mockReturnValueOnce("00000000-0000-0000-0000-000000000003");     // kycId
+
+			mockUserRepository.create_atomicCall.mockReturnValue({ query: "user-query", processResult: vi.fn() } as any);
+			mockUserSessionRepository.create_atomicCall.mockReturnValue({ query: "session-query", processResult: vi.fn() } as any);
+			mockKycRepository.create_atomicCall.mockReturnValue({ query: "kyc-query", processResult: vi.fn() } as any);
+			mockAtomicExecutionService.execute.mockResolvedValue([
+				{
+					id: "00000000-0000-0000-0000-000000000001",
+					wallet_address: validWalletAddress,
+					created_at: "2026-05-04T14:48:00.000Z",
+					...createRowDefaults,
+				},
+				{
+					id: "00000000-0000-0000-0000-000000000002",
+					user_id: "00000000-0000-0000-0000-000000000001",
+				},
+				undefined,
+			] as const);
 
 			await service.createUser(defaultCreateParams);
 
-			expect(mockKycRepository.create).toHaveBeenCalledTimes(1);
-			expect(mockUserSessionRepository.deleteExpired).toHaveBeenCalledTimes(1);
-			expect(CryptoUtils.generateSecureRandom).toHaveBeenCalled();
-			expect(CryptoUtils.hashSha256).toHaveBeenCalledWith("raw-refresh-token");
-			expect(mockUserSessionRepository.create).toHaveBeenCalledWith(
+			expect(mockUserRepository.create_atomicCall).toHaveBeenCalledWith({
+				id: "00000000-0000-0000-0000-000000000001",
+				wallet_address: validWalletAddress.toLowerCase(),
+				user_type: UserType.BUSINESS,
+			});
+			expect(mockUserSessionRepository.create_atomicCall).toHaveBeenCalledWith(
 				expect.objectContaining({
+					id: "00000000-0000-0000-0000-000000000002",
 					user_id: "00000000-0000-0000-0000-000000000001",
 					refresh_token_hash: "hashed-refresh-token",
 				}),
 			);
-			expect(mockJwtService.generateAccessToken).toHaveBeenCalledWith({
-				userId: "00000000-0000-0000-0000-000000000001",
-				sessionId: "00000000-0000-0000-0000-000000000003",
-				userType: UserType.BUSINESS,
+			expect(mockKycRepository.create_atomicCall).toHaveBeenCalledWith({
+				id: "00000000-0000-0000-0000-000000000003",
+				user_id: "00000000-0000-0000-0000-000000000001",
 			});
+			expect(mockAtomicExecutionService.execute).toHaveBeenCalledTimes(1);
+			expect(mockAtomicExecutionService.execute.mock.calls[0]!.length).toBe(3);
 		});
 
-		it("should pass device info and ip address to session creation", async () => {
-			mockUserRepository.create.mockResolvedValue({
-				id: "new-user-id",
-				wallet_address: validWalletAddress,
-				created_at: "2026-05-04T14:48:00.000Z",
-				...createRowDefaults,
-			});
+		it("should run deleteExpired in parallel with the atomic batch", async () => {
+			mockAtomicExecutionService.execute.mockResolvedValue(defaultBatchResult);
+
+			await service.createUser(defaultCreateParams);
+
+			expect(mockUserSessionRepository.deleteExpired).toHaveBeenCalledTimes(1);
+		});
+
+		it("should pass device info and ip address to session create_atomicCall", async () => {
+			mockAtomicExecutionService.execute.mockResolvedValue(defaultBatchResult);
 
 			await service.createUser({
 				...defaultCreateParams,
@@ -154,7 +176,7 @@ describe("UserService", () => {
 				ipAddress: "127.0.0.1",
 			});
 
-			expect(mockUserSessionRepository.create).toHaveBeenCalledWith(
+			expect(mockUserSessionRepository.create_atomicCall).toHaveBeenCalledWith(
 				expect.objectContaining({
 					device_info: "Mozilla/5.0",
 					ip_address: "127.0.0.1",
@@ -165,39 +187,32 @@ describe("UserService", () => {
 		it("should normalize wallet address to lowercase before inserting", async () => {
 			const mixedCaseWallet = "0x742D35Cc6634C0532925a3b844Bc9e7595f0BEb1";
 			const normalizedWallet = mixedCaseWallet.toLowerCase();
-
-			mockUserRepository.create.mockResolvedValue({
-				id: "test-id",
-				wallet_address: normalizedWallet,
-				created_at: "2026-05-04T14:48:00.000Z",
-				...createRowDefaults,
-			});
+			mockAtomicExecutionService.execute.mockResolvedValue([
+				{ id: "test-id", wallet_address: normalizedWallet, created_at: "2026-05-04T14:48:00.000Z", ...createRowDefaults },
+				defaultSessionRow,
+				undefined,
+			] as const);
 
 			await service.createUser({ ...defaultCreateParams, walletAddress: mixedCaseWallet });
 
-			expect(mockUserRepository.create).toHaveBeenCalledWith(
+			expect(mockUserRepository.create_atomicCall).toHaveBeenCalledWith(
 				expect.objectContaining({
 					wallet_address: normalizedWallet,
 				}),
 			);
 		});
 
-		it("should generate a UUID v4 for the user id", async () => {
+		it("should generate UUIDs for user, session, and KYC IDs", async () => {
 			const uuidSpy = vi.spyOn(crypto, "randomUUID");
-			mockUserRepository.create.mockResolvedValue({
-				id: "generated-uuid",
-				wallet_address: validWalletAddress,
-				created_at: "2026-05-04T14:48:00.000Z",
-				...createRowDefaults,
-			});
+			mockAtomicExecutionService.execute.mockResolvedValue(defaultBatchResult);
 
 			await service.createUser(defaultCreateParams);
 
-			expect(uuidSpy).toHaveBeenCalled();
+			expect(uuidSpy).toHaveBeenCalledTimes(3);
 		});
 
 		it("should throw UserAlreadyExistsException on unique constraint violation", async () => {
-			mockUserRepository.create.mockRejectedValue(
+			mockAtomicExecutionService.execute.mockRejectedValue(
 				new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"),
 			);
 
@@ -211,7 +226,7 @@ describe("UserService", () => {
 
 		it("should re-throw non-unique-constraint database errors unchanged", async () => {
 			const genericError = new Error("Connection timeout");
-			mockUserRepository.create.mockRejectedValue(genericError);
+			mockAtomicExecutionService.execute.mockRejectedValue(genericError);
 
 			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				genericError,

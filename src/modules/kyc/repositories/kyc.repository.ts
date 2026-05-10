@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import { DRIZZLE_DB, type DrizzleDb } from "@core/database";
+import { DRIZZLE_DB, type DrizzleDb, type AtomicCall } from "@core/database";
 import { kycTable, type KycRow, type NewKycRow } from "@db/schema/kyc-table";
 import { VentairyKycStatus } from "@shared/constants";
 
@@ -15,6 +15,15 @@ export class KycRepository {
 
 	async create(data: NewKycRow): Promise<void> {
 		await this._db.insert(kycTable).values(data);
+	}
+
+	create_atomicCall(data: NewKycRow): AtomicCall<void> {
+		const query = this._db.insert(kycTable).values(data);
+
+		return {
+			query,
+			processResult: () => undefined,
+		};
 	}
 
 	async updateStatusByUserId(params: {

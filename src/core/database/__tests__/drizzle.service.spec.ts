@@ -122,20 +122,16 @@ describe("DrizzleService", () => {
 	});
 
 	describe("batchCallback", () => {
-		it("should execute multiple queries sequentially and return positional rows", async () => {
-			fetchMock
-				.mockResolvedValueOnce({
-					ok: true,
-					json: () => Promise.resolve({
-						result: [{ success: true, results: [{ id: 1, name: "User" }] }]
-					}),
-				})
-				.mockResolvedValueOnce({
-					ok: true,
-					json: () => Promise.resolve({
-						result: [{ success: true, results: [{ id: "biz-1", user_id: "user-1", legal_name: "Acme Corp" }] }]
-					}),
-				});
+		it("should execute multiple queries as a single batch and return positional rows", async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({
+					result: [
+						{ success: true, results: [{ id: 1, name: "User" }] },
+						{ success: true, results: [{ id: "biz-1", user_id: "user-1", legal_name: "Acme Corp" }] },
+					],
+				}),
+			});
 
 			service = new DrizzleService(mockConfigService as ConfigService);
 
@@ -149,6 +145,49 @@ describe("DrizzleService", () => {
 			expect(results).toHaveLength(2);
 			expect(results[0]!.rows).toEqual([[1, "User"]]);
 			expect(results[1]!.rows).toEqual([["biz-1", "user-1", "Acme Corp"]]);
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		it("should throw when a batch statement returns success: false", async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({
+					result: [
+						{ success: true, results: [{ id: 1, name: "User" }] },
+						{ success: false, results: [] },
+					],
+				}),
+			});
+
+			service = new DrizzleService(mockConfigService as ConfigService);
+
+			const batchCallback = (service as any).db.session.batchCLient as (batch: { sql: string; params: unknown[]; method: string }[]) => Promise<{ rows: unknown[] }[]>;
+
+			await expect(
+				batchCallback([
+					{ sql: "SELECT id FROM users", params: [], method: "all" },
+					{ sql: "INSERT INTO x VALUES (?)", params: [1], method: "run" },
+				]),
+			).rejects.toThrow("D1 batch query statement 1 returned unsuccessful result");
+		});
+
+		it("should throw on HTTP error", async () => {
+			fetchMock.mockResolvedValue({
+				ok: false,
+				status: 500,
+				statusText: "Bad Request",
+				text: () => Promise.resolve("batch too large"),
+			});
+
+			service = new DrizzleService(mockConfigService as ConfigService);
+
+			const batchCallback = (service as any).db.session.batchCLient as (batch: { sql: string; params: unknown[]; method: string }[]) => Promise<{ rows: unknown[] }[]>;
+
+			await expect(
+				batchCallback([
+					{ sql: "SELECT 1", params: [], method: "all" },
+				]),
+			).rejects.toThrow("D1 batch query failed: 500 Bad Request — batch too large");
 		});
 	});
 

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq, lte } from "drizzle-orm";
-import { DRIZZLE_DB, type DrizzleDb } from "@core/database";
+import { DRIZZLE_DB, type DrizzleDb, type AtomicCall } from "@core/database";
 import { userSessionsTable, type UserSessionRow, type NewUserSessionRow } from "@db/schema/user-sessions-table";
 
 @Injectable()
@@ -13,6 +13,21 @@ export class UserSessionRepository {
 
 		if (!row) throw new Error("User session insert returned no rows");
 		return row;
+	}
+
+	create_atomicCall(data: NewUserSessionRow): AtomicCall<UserSessionRow> {
+		const query = this._db.insert(userSessionsTable).values(data).returning();
+
+		return {
+			query,
+			processResult: (rawRows: unknown[]) => {
+				const rows = rawRows as UserSessionRow[];
+				const row = rows[0];
+
+				if (!row) throw new Error("User session insert returned no rows");
+				return row;
+			},
+		};
 	}
 
 	async findByRefreshTokenHash(hash: string): Promise<UserSessionRow | undefined> {

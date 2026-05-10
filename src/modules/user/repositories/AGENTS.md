@@ -6,10 +6,10 @@ Data access layer for the User module. Encapsulates all database queries related
 
 ## Files
 
-| File                      | Description                                             |
-| ------------------------- | ------------------------------------------------------- |
-| `user.repository.ts`      | CRUD operations on the `users` table (findById, create) |
-| `user.repository.spec.ts` | Unit tests for UserRepository                           |
+| File                      | Description                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `user.repository.ts`      | CRUD operations on the `users` table (findById, create, create_atomicCall for batch) |
+| `user.repository.spec.ts` | Unit tests for UserRepository                                                        |
 
 ## Principles
 

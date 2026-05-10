@@ -6,10 +6,10 @@ Data access layer for the KYC module. Encapsulates all database queries related 
 
 ## Files
 
-| File                     | Description                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| `kyc.repository.ts`      | CRUD operations on the `kyc` table (findByUserId, create, updateStatusByUserId) |
-| `kyc.repository.spec.ts` | Unit tests for KycRepository                                                    |
+| File                     | Description                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `kyc.repository.ts`      | CRUD operations on the `kyc` table (findByUserId, create, create_atomicCall for batch, updateStatusByUserId) |
+| `kyc.repository.spec.ts` | Unit tests for KycRepository                                                                                 |
 
 ## Principles
 

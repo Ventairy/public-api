@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DRIZZLE_DB, type DrizzleDb } from "@core/database";
+import { DRIZZLE_DB, type DrizzleDb, type AtomicCall } from "@core/database";
 import { KycRepository } from "./kyc.repository";
 import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
 
@@ -59,13 +59,45 @@ describe("KycRepository", () => {
 		});
 	});
 
+	describe("create_atomicCall", () => {
+		const kycData = { id: "kyc-1", user_id: "user-1" };
+
+		it("should return a AtomicCall without executing the query", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const result = repository.create_atomicCall(kycData);
+
+			expect(result).toHaveProperty("query");
+			expect(result).toHaveProperty("processResult");
+			expect(typeof result.processResult).toBe("function");
+			expect(mockDb.insert).toHaveBeenCalledWith(expect.anything());
+			expect(insertBuilder.values).toHaveBeenCalledWith(kycData);
+			expect(mockDb.values).not.toHaveBeenCalledWith(expect.anything());
+		});
+
+		it("processResult should return undefined", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const call = repository.create_atomicCall(kycData);
+
+			expect(call.processResult([{ id: "kyc-1" }])).toBeUndefined();
+			expect(call.processResult([])).toBeUndefined();
+		});
+	});
+
 	describe("updateStatusByUserId", () => {
 		it("should update kyc status and submitted_at", async () => {
 			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn() };
 			mockDb.update.mockReturnValue(updateBuilder);
 			updateBuilder.where.mockResolvedValue(undefined);
 
-			await repository.updateStatusByUserId({ userId: "user-1", status: VentairyKycStatus.VERIFYING, submittedAt: "2026-01-01T00:00:00.000Z" });
+			await repository.updateStatusByUserId({
+				userId: "user-1",
+				status: VentairyKycStatus.VERIFYING,
+				submittedAt: "2026-01-01T00:00:00.000Z",
+			});
 
 			expect(mockDb.update).toHaveBeenCalledTimes(1);
 			expect(updateBuilder.set).toHaveBeenCalledWith({

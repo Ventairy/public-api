@@ -8,6 +8,7 @@ import { CryptoUtils } from "@shared/utils/crypto.utils";
 import { SiweVerifierService } from "@modules/auth/verification/siwe-verifier.service";
 import { JwtService } from "@modules/auth/jwt/jwt.service";
 import { UserSessionRepository } from "@modules/auth/repositories/user-session.repository";
+import { AtomicExecutionService } from "@core/database";
 import { REFRESH_TOKEN_TTL_SECONDS, REFRESH_TOKEN_BYTE_LENGTH } from "@modules/auth/constants/token.constants";
 import { CreateUserOutputDto } from "./dto/create-user-output.dto";
 
@@ -25,6 +26,7 @@ export class UserService {
 		private readonly _siweVerifierService: SiweVerifierService,
 		private readonly _jwtService: JwtService,
 		private readonly _userSessionRepository: UserSessionRepository,
+		private readonly _atomicExecutionService: AtomicExecutionService,
 	) {}
 
 	public async getUserDatabaseRow(userId: string): Promise<UserRow | null> {
@@ -47,33 +49,32 @@ export class UserService {
 
 		const normalizedWalletAddress = params.walletAddress.toLowerCase();
 		const newUserId = this._generateUserId();
+		const rawRefreshToken = CryptoUtils.generateSecureRandom(REFRESH_TOKEN_BYTE_LENGTH);
+		const refreshTokenHash = CryptoUtils.hashSha256(rawRefreshToken);
+		const now = new Date();
+		const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
 		try {
-			const insertedRow = await this._userRepository.create({
-				id: newUserId,
-				wallet_address: normalizedWalletAddress,
-				user_type: params.userType,
-			});
-
-			await this._kycRepository.create({
-				id: crypto.randomUUID(),
-				user_id: newUserId,
-			});
-
-			const rawRefreshToken = CryptoUtils.generateSecureRandom(REFRESH_TOKEN_BYTE_LENGTH);
-			const refreshTokenHash = CryptoUtils.hashSha256(rawRefreshToken);
-			const now = new Date();
-			const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
-
-			const [session] = await Promise.all([
-				this._userSessionRepository.create({
-					id: crypto.randomUUID(),
-					user_id: newUserId,
-					refresh_token_hash: refreshTokenHash,
-					device_info: params.deviceInfo ?? null,
-					ip_address: params.ipAddress ?? null,
-					expires_at: expiresAt,
-				}),
+			const [[insertedRow, session]] = await Promise.all([
+				this._atomicExecutionService.execute(
+					this._userRepository.create_atomicCall({
+						id: newUserId,
+						wallet_address: normalizedWalletAddress,
+						user_type: params.userType,
+					}),
+					this._userSessionRepository.create_atomicCall({
+						id: crypto.randomUUID(),
+						user_id: newUserId,
+						refresh_token_hash: refreshTokenHash,
+						device_info: params.deviceInfo ?? null,
+						ip_address: params.ipAddress ?? null,
+						expires_at: expiresAt,
+					}),
+					this._kycRepository.create_atomicCall({
+						id: crypto.randomUUID(),
+						user_id: newUserId,
+					}),
+				),
 				this._userSessionRepository.deleteExpired(),
 			]);
 

@@ -58,6 +58,52 @@ describe("UserSessionRepository", () => {
 		});
 	});
 
+	describe("create_atomicCall", () => {
+		const sessionData = {
+			id: "s-1",
+			user_id: "u-1",
+			refresh_token_hash: "hash123",
+			device_info: null,
+			ip_address: null,
+			expires_at: "2026-01-01T00:00:00.000Z",
+		};
+
+		it("should return an AtomicCall without executing the query", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const result = repository.create_atomicCall(sessionData);
+
+			expect(result).toHaveProperty("query");
+			expect(result).toHaveProperty("processResult");
+			expect(typeof result.processResult).toBe("function");
+			expect(mockDb.insert).toHaveBeenCalledWith(expect.anything());
+			expect(insertBuilder.values).toHaveBeenCalledWith(sessionData);
+			expect(insertBuilder.returning).toHaveBeenCalledWith();
+		});
+
+		it("should process result and extract first row", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const call = repository.create_atomicCall(sessionData);
+			const rawRows = [{ id: "s-1", user_id: "u-1" }];
+
+			const result = call.processResult(rawRows);
+
+			expect(result).toEqual(rawRows[0]);
+		});
+
+		it("should throw in processResult when rows array is empty", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const call = repository.create_atomicCall(sessionData);
+
+			expect(() => call.processResult([])).toThrow("User session insert returned no rows");
+		});
+	});
+
 	describe("findByRefreshTokenHash", () => {
 		it("should return the row when found", async () => {
 			const expectedRow = { id: "s-1", refresh_token_hash: "hash123" };
