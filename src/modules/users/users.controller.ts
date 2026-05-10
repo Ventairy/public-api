@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { Public } from "@shared/decorators/public.decorator";
 import { CreateUserInputDto } from "./dto/create-user-input.dto";
 import { CreateUserOutputDto } from "./dto/create-user-output.dto";

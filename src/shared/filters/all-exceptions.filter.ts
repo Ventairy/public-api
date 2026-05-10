@@ -1,5 +1,5 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger, Injectable } from "@nestjs/common";
-import { Response, Request } from "express";
+import type { Response, Request } from "express";
 import { ClsService } from "nestjs-cls";
 
 import { DomainException } from "@shared/exceptions/domain.exception";

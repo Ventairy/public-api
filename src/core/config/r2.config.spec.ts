@@ -6,7 +6,6 @@ describe("r2Config", () => {
 	const originalEnv = process.env;
 
 	beforeEach(() => {
-		vi.resetModules();
 		process.env = { ...originalEnv };
 	});
 

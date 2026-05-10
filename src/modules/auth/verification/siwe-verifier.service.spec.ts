@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockSiweMessageConstructor = vi.hoisted(() => vi.fn());
-const mockVerifyMessage = vi.hoisted(() => vi.fn());
-const mockCreatePublicClient = vi.hoisted(() => vi.fn().mockReturnValue({ verifyMessage: mockVerifyMessage }));
+const mockSiweMessageConstructor = vi.fn();
+const mockVerifyMessage = vi.fn();
+const mockCreatePublicClient = vi.fn().mockReturnValue({ verifyMessage: mockVerifyMessage });
 
 vi.mock("siwe", () => ({
-	SiweMessage: mockSiweMessageConstructor,
+	SiweMessage: function (...args: any[]) { return mockSiweMessageConstructor(...args); },
 }));
 
 vi.mock("viem", () => ({
-	createPublicClient: mockCreatePublicClient,
+	createPublicClient: (...args: any[]) => mockCreatePublicClient(...args),
 	fallback: vi.fn().mockReturnValue("mocked-transport"),
 	http: vi.fn().mockReturnValue("mocked-http"),
 }));

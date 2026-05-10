@@ -8,7 +8,7 @@ import {
 	UseInterceptors,
 } from "@nestjs/common";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
-import { Actor } from "@shared/types/actor.type";
+import type { Actor } from "@shared/types/actor.type";
 import { KycService } from "./kyc.service";
 import { KycSubmissionOutputDto, KycStatusOutputDto } from "./dto";
 import { ApiSubmitKycDocs } from "./docs/api-submit-kyc-docs.decorator";

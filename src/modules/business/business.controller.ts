@@ -15,7 +15,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
-import { Actor } from "@shared/types/actor.type";
+import type { Actor } from "@shared/types/actor.type";
 import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessFileOutputDto } from "./dto/upload-business-file-output.dto";

@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, Res } from "@nestjs/common";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { Public } from "@shared/decorators/public.decorator";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
-import { Actor } from "@shared/types/actor.type";
+import type { Actor } from "@shared/types/actor.type";
 import { WalletAuthService } from "./wallet/wallet-auth.service";
 import { AuthService } from "./auth.service";
 import { NonceInputDto } from "./dto/nonce-input.dto";

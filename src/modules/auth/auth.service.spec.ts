@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ConfigService } from "@nestjs/config";
-import { Request } from "express";
+import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
 import { AuthService } from "./auth.service";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
