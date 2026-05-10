@@ -4,12 +4,12 @@ import { Public } from "@shared/decorators/public.decorator";
 import { CreateUserInputDto } from "./dto/create-user-input.dto";
 import { CreateUserOutputDto } from "./dto/create-user-output.dto";
 import { ApiCreateUserDocs } from "./docs/api-create-user-docs.decorator";
-import { UsersService } from "./users.service";
+import { UserService } from "./user.service";
 import { CookieUtils } from "@modules/auth/utils/cookie.utils";
 
-@Controller("users")
-export class UsersController {
-	constructor(private readonly _usersService: UsersService) {}
+@Controller("user")
+export class UserController {
+	constructor(private readonly _userService: UserService) {}
 
 	@Post("create")
 	@HttpCode(HttpStatus.CREATED)
@@ -20,7 +20,7 @@ export class UsersController {
 		@Req() req: Request,
 		@Res({ passthrough: true }) res: Response,
 	): Promise<CreateUserOutputDto> {
-		const { user, accessToken, rawRefreshToken } = await this._usersService.createUser(
+		const { user, accessToken, rawRefreshToken } = await this._userService.createUser(
 			body.walletAddress,
 			body.siwe.message,
 			body.siwe.signature,

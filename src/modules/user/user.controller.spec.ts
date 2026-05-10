@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { UsersController } from "./users.controller";
-import { UsersService } from "./users.service";
+import { UserController } from "./user.controller";
+import { UserService } from "./user.service";
 
 function createMockResponse() {
 	const cookies: Record<string, { value: string; options: any }> = {};
@@ -13,13 +13,13 @@ function createMockResponse() {
 	};
 }
 
-describe("UsersController", () => {
-	let controller: UsersController;
-	let usersService: { createUser: ReturnType<typeof vi.fn> };
+describe("UserController", () => {
+	let controller: UserController;
+	let userService: { createUser: ReturnType<typeof vi.fn> };
 
 	beforeEach(() => {
-		usersService = { createUser: vi.fn() };
-		controller = new UsersController(usersService as unknown as UsersService);
+		userService = { createUser: vi.fn() };
+		controller = new UserController(userService as unknown as UserService);
 	});
 
 	describe("create", () => {
@@ -34,7 +34,7 @@ describe("UsersController", () => {
 				accessToken: "access-token-123",
 				rawRefreshToken: "raw-refresh-token-456",
 			};
-			usersService.createUser.mockResolvedValue(mockResult);
+			userService.createUser.mockResolvedValue(mockResult);
 			const mockRes = createMockResponse();
 			const mockReq = { headers: { "user-agent": "Mozilla" }, ip: "127.0.0.1" };
 
@@ -47,7 +47,7 @@ describe("UsersController", () => {
 				mockRes as any,
 			);
 
-			expect(usersService.createUser).toHaveBeenCalledWith(
+			expect(userService.createUser).toHaveBeenCalledWith(
 				"0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
 				"siwe-message",
 				"0xabc123",
@@ -58,7 +58,7 @@ describe("UsersController", () => {
 		});
 
 		it("should set access and refresh cookies", async () => {
-			usersService.createUser.mockResolvedValue({
+			userService.createUser.mockResolvedValue({
 				user: { id: "u-1", walletAddress: "0xabc", ventairyKycStatus: "PENDING", createdAt: "2026-01-01T00:00:00.000Z" },
 				accessToken: "access-token-123",
 				rawRefreshToken: "raw-refresh-token-456",

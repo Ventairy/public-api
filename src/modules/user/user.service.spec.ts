@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
-import { UsersService } from "./users.service";
+import { UserService } from "./user.service";
 import { UserAlreadyExistsException } from "@shared/exceptions";
 import { VentairyKycStatus } from "@shared/constants";
 
@@ -8,8 +8,8 @@ const validWalletAddress = "0x742d35cc6634c0532925a3b844bc9e7595f0beb1";
 const validSiweMessage = "example.com wants you to sign in with your Ethereum account...";
 const validSiweSignature = "0x1234567890abcdef";
 
-describe("UsersService", () => {
-	let service: UsersService;
+describe("UserService", () => {
+	let service: UserService;
 	let mockUserRepository: any;
 	let mockKycRepository: any;
 	let mockSiweVerifierService: { verify: ReturnType<typeof vi.fn> };
@@ -34,7 +34,7 @@ describe("UsersService", () => {
 			create: vi.fn().mockResolvedValue({ id: "s-1", user_id: "new-user-id" }),
 			deleteExpired: vi.fn().mockResolvedValue(0),
 		} as any;
-		service = new UsersService(
+		service = new UserService(
 			mockUserRepository,
 			mockKycRepository,
 			mockSiweVerifierService as any,

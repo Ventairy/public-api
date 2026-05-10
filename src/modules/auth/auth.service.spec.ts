@@ -4,7 +4,7 @@ import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
 import { AuthService } from "./auth.service";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
-import { UserRepository } from "@modules/users/repositories/user.repository";
+import { UserRepository } from "@modules/user/repositories/user.repository";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";

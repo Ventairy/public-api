@@ -14,7 +14,7 @@ export function ApiLoginDocs(): MethodDecorator & ClassDecorator {
 			summary: "Authenticate with SIWE and start a session",
 			description:
 				"Verifies a SIWE (Sign-In with Ethereum) message and signature to prove wallet ownership. On success, creates a new session and issues both an access token (15-minute TTL) and a refresh token (7-day TTL) via HTTP-only cookies (`__Host-ventairy-access` and `__Host-ventairy-refresh`). Both cookies are SameSite=Strict and Secure, meaning they are only sent on same-site requests over HTTPS and are never readable by JavaScript. " +
-				"The user must already exist (use POST /users/create first).",
+				"The user must already exist (use POST /user/create first).",
 		}),
 		ApiResponse({
 			status: HttpStatus.OK,
@@ -31,7 +31,7 @@ export function ApiLoginDocs(): MethodDecorator & ClassDecorator {
 		}),
 		ApiNotFoundResponse({
 			description:
-				"No user found for the given wallet address. The wallet must first create an account via POST /users/create.",
+				"No user found for the given wallet address. The wallet must first create an account via POST /user/create.",
 		}),
 	);
 }

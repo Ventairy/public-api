@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { R2StorageService } from "@core/storage/r2-storage.service";
-import { UserRepository } from "@modules/users/repositories/user.repository";
+import { UserRepository } from "@modules/user/repositories/user.repository";
 import { BusinessRepository } from "./repositories/business.repository";
 import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";

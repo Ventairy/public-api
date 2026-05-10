@@ -4,7 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { CoreModule } from './core';
 import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users';
+import { UserModule } from './modules/user';
 import { KycModule } from './modules/kyc';
 import { BusinessModule } from './modules/business';
 
@@ -12,7 +12,7 @@ import { BusinessModule } from './modules/business';
   imports: [
     CoreModule,
     AuthModule,
-    UsersModule,
+    UserModule,
     KycModule,
     BusinessModule,
     ThrottlerModule.forRoot([

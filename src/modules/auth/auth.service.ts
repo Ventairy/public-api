@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ForbiddenException } from "@nestjs/c
 import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
-import { UserRepository } from "@modules/users/repositories/user.repository";
+import { UserRepository } from "@modules/user/repositories/user.repository";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";

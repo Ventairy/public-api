@@ -17,7 +17,7 @@ export interface CreateUserResult {
 }
 
 @Injectable()
-export class UsersService {
+export class UserService {
 	constructor(
 		private readonly _userRepository: UserRepository,
 		private readonly _kycRepository: KycRepository,

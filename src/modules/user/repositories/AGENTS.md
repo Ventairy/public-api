@@ -1,8 +1,8 @@
-# Users Repositories
+# User Repositories
 
 ## Purpose
 
-Data access layer for the Users module. Encapsulates all database queries related to user accounts.
+Data access layer for the User module. Encapsulates all database queries related to user accounts.
 
 ## Files
 
