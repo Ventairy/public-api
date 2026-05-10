@@ -1,0 +1,1 @@
+ALTER TABLE `business_controller_files` ADD `user_id` text NOT NULL;

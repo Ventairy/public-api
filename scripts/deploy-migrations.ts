@@ -134,8 +134,8 @@ async function main() {
 				await executeD1Query(statement);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
-				if (message.includes("already exists")) {
-					console.log(`   ⏭️  Skipped (already exists): ${statement.slice(0, 60)}...`);
+				if (message.includes("already exists") || message.includes("duplicate column name") || message.includes("no such column")) {
+					console.log(`   ⏭️  Skipped (already applied): ${statement.slice(0, 60)}...`);
 				} else {
 					console.error(`❌ Failed on statement: ${statement.slice(0, 80)}...`);
 					throw error;

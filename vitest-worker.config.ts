@@ -5,6 +5,6 @@ export default defineConfig({
 		globals: true,
 		root: './src',
 		environment: 'node',
-		include: ['worker/**/*.spec.ts'],
+		include: ['worker/**/*.worker-spec.ts'],
 	},
 });

@@ -1,5 +1,7 @@
+import type { UserType } from "@shared/enums/user-type";
+
 export interface Actor {
   id: string;
-  permissions: string[];
-  meta: Record<string, unknown>;
+  sessionId: string;
+  userType: UserType;
 }

@@ -1,36 +1,89 @@
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: [Check Code Quality]
-    types: [completed]
+  push:
     branches: [main, staging]
+    paths:
+      - "src/**"
+      - "!src/**/*.spec.ts"
+      - "!src/**/__tests__/**"
+      - "!src/**/*.md"
+      - "scripts/**"
+      - "package.json"
+      - "bun.lock*"
+      - "wrangler.jsonc"
+      - "Dockerfile"
+      - "drizzle.config.ts"
+      - "tsconfig*.json"
+      - "nest-cli.json"
+      - ".github/workflows/deploy.yml"
+      - "!**.md"
+      - "!.agents/**"
+      - "!.vscode/**"
+      - "!.husky/**"
+      - "!.gitignore"
+      - "!.dockerignore"
+      - "!.editorconfig"
+      - "!.lintstagedrc.json"
+      - "!.commitlintrc.json"
+      - "!eslint.config.mjs"
+      - "!.prettierrc"
+      - "!vitest*.config.ts"
 
 jobs:
   resolve-environment:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     outputs:
       environment: ${{ steps.resolve.outputs.environment }}
-      deploy: ${{ steps.resolve.outputs.deploy }}
     steps:
       - name: Resolve target environment
         id: resolve
         run: |
-          if [ "${{ github.event.workflow_run.head_branch }}" = "main" ]; then
+          if [ "${{ github.ref_name }}" = "main" ]; then
             echo "environment=production" >> "$GITHUB_OUTPUT"
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.workflow_run.head_branch }}" = "staging" ]; then
+          elif [ "${{ github.ref_name }}" = "staging" ]; then
             echo "environment=staging" >> "$GITHUB_OUTPUT"
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "environment=" >> "$GITHUB_OUTPUT"
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
           fi
 
-  migrate-database:
+  check-code-quality:
     needs: resolve-environment
-    if: ${{ needs.resolve-environment.outputs.deploy == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bun-version: ["1"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ matrix.bun-version }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check migrations in sync
+        run: bun run db:generate && git diff --exit-code src/db/migrations/
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit tests
+        run: bun run test:cov
+
+      - name: Worker tests
+        run: bun run test:worker
+
+      - name: Build
+        run: bun run build
+
+  migrate-database:
+    needs: [resolve-environment, check-code-quality]
     runs-on: ubuntu-latest
     environment: ${{ needs.resolve-environment.outputs.environment }}
     steps:
@@ -55,7 +108,7 @@ jobs:
           CF_D1_API_TOKEN: ${{ secrets.CF_D1_API_TOKEN }}
 
   deploy-container:
-    needs: [resolve-environment, migrate-database]
+    needs: [resolve-environment, check-code-quality, migrate-database]
     runs-on: ubuntu-latest
     environment: ${{ needs.resolve-environment.outputs.environment }}
     steps:
@@ -82,7 +135,6 @@ jobs:
           CF_ACCOUNT_ID=${{ secrets.CF_ACCOUNT_ID }}
           CF_D1_DATABASE_ID=${{ secrets.CF_D1_DATABASE_ID }}
           CF_D1_API_TOKEN=${{ secrets.CF_D1_API_TOKEN }}
-          BLINDPAY_API_KEY=${{ secrets.BLINDPAY_API_KEY }}
           EOF
 
       - name: Deploy to Cloudflare

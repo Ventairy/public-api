@@ -23,12 +23,11 @@
 		"noImplicitReturns": true,
 		"noPropertyAccessFromIndexSignature": true,
 		"paths": {
-			"@app/*": ["src/*"],
 			"@core/*": ["src/core/*"],
 			"@shared/*": ["src/shared/*"],
 			"@modules/*": ["src/modules/*"],
 			"@db/*": ["src/db/*"],
-			"@auth/*": ["src/auth/*"]
+			"@auth/*": ["src/modules/auth/*"]
 		}
 	},
 	"include": ["src/**/*"],

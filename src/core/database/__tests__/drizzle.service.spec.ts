@@ -5,6 +5,7 @@ import { DrizzleService } from "../drizzle.service";
 describe("DrizzleService", () => {
 	let service: DrizzleService;
 	let mockConfigService: Partial<ConfigService>;
+	let fetchMock: ReturnType<typeof vi.fn>;
 
 	const mockDbConfig = {
 		cloudflareAccountId: "test-account-id",
@@ -13,7 +14,8 @@ describe("DrizzleService", () => {
 	};
 
 	beforeEach(() => {
-		vi.stubGlobal("fetch", vi.fn());
+		fetchMock = vi.fn();
+		globalThis.fetch = fetchMock as any;
 		
 		mockConfigService = {
 			get: vi.fn().mockReturnValue(mockDbConfig),
@@ -34,7 +36,7 @@ describe("DrizzleService", () => {
 	describe("executeD1Query", () => {
 		it("should execute a query successfully", async () => {
 			const mockResults = [{ id: 1, name: "Test" }];
-			(global.fetch as any).mockResolvedValue({
+			fetchMock.mockResolvedValue({
 				ok: true,
 				json: () => Promise.resolve({
 					result: [{ success: true, results: mockResults }]
@@ -46,7 +48,7 @@ describe("DrizzleService", () => {
 			const result = await (service as any).executeD1Query("SELECT * FROM users", [], "all");
 			
 			expect(result).toBe(mockResults);
-			expect(global.fetch).toHaveBeenCalledWith(
+			expect(fetchMock).toHaveBeenCalledWith(
 				expect.stringContaining("test-account-id/d1/database/test-database-id/query"),
 				expect.objectContaining({
 					method: "POST",
@@ -58,7 +60,7 @@ describe("DrizzleService", () => {
 		});
 
 		it("should throw if fetch fails", async () => {
-			(global.fetch as any).mockResolvedValue({
+			fetchMock.mockResolvedValue({
 				ok: false,
 				status: 500,
 				statusText: "Internal Server Error",
@@ -71,7 +73,7 @@ describe("DrizzleService", () => {
 		});
 
 		it("should throw if query result success is false", async () => {
-			(global.fetch as any).mockResolvedValue({
+			fetchMock.mockResolvedValue({
 				ok: true,
 				json: () => Promise.resolve({
 					result: [{ success: false }]
@@ -87,7 +89,7 @@ describe("DrizzleService", () => {
 	describe("_toPositionalRows", () => {
 		it("should convert named rows to positional rows for SELECT queries", async () => {
 			const mockResults = [{ id: 1, name: "Test" }];
-			(global.fetch as any).mockResolvedValue({
+			fetchMock.mockResolvedValue({
 				ok: true,
 				json: () => Promise.resolve({
 					result: [{ success: true, results: mockResults }]
@@ -109,14 +111,48 @@ describe("DrizzleService", () => {
       expect((service as any)._toPositionalRows("SELECT *", [])).toEqual([]);
     });
 
-    it("should return original rows if no column names extracted", () => {
-      service = new DrizzleService(mockConfigService as ConfigService);
-      const rows = [{ foo: "bar" }];
-      expect((service as any)._toPositionalRows("INVALID SQL", rows)).toBe(rows);
-    });
+		it("should infer column names from first row when SQL column extraction fails (e.g., RETURNING *)", () => {
+			service = new DrizzleService(mockConfigService as ConfigService);
+			const sql = 'INSERT INTO "businesses" ("id", "user_id", "legal_name") VALUES (?, ?, ?) RETURNING *';
+			const rows = [{ id: "biz-1", user_id: "user-1", legal_name: "Acme" }];
+			const result = (service as any)._toPositionalRows(sql, rows);
+
+			expect(result).toEqual([["biz-1", "user-1", "Acme"]]);
+		});
 	});
 
-  it("should handle onModuleDestroy", async () => {
+	describe("batchCallback", () => {
+		it("should execute multiple queries sequentially and return positional rows", async () => {
+			fetchMock
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({
+						result: [{ success: true, results: [{ id: 1, name: "User" }] }]
+					}),
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({
+						result: [{ success: true, results: [{ id: "biz-1", user_id: "user-1", legal_name: "Acme Corp" }] }]
+					}),
+				});
+
+			service = new DrizzleService(mockConfigService as ConfigService);
+
+			const batchCallback = (service as any).db.session.batchCLient as (batch: { sql: string; params: unknown[]; method: string }[]) => Promise<{ rows: unknown[] }[]>;
+
+			const results = await batchCallback([
+				{ sql: "SELECT id, name FROM users WHERE id = ?", params: ["user-1"], method: "all" },
+				{ sql: 'INSERT INTO "businesses" ("id", "user_id", "legal_name") VALUES (?, ?, ?) RETURNING *', params: ["biz-1", "user-1", "Acme Corp"], method: "run" },
+			]);
+
+			expect(results).toHaveLength(2);
+			expect(results[0]!.rows).toEqual([[1, "User"]]);
+			expect(results[1]!.rows).toEqual([["biz-1", "user-1", "Acme Corp"]]);
+		});
+	});
+
+	it("should handle onModuleDestroy", async () => {
     service = new DrizzleService(mockConfigService as ConfigService);
     await expect(service.onModuleDestroy()).resolves.toBeUndefined();
   });

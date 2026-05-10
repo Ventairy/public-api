@@ -3,12 +3,18 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { CoreModule } from './core';
-import { UsersModule } from './modules/users';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/user';
+import { KycModule } from './modules/kyc';
+import { BusinessModule } from './modules/business';
 
 @Module({
   imports: [
     CoreModule,
-    UsersModule,
+    AuthModule,
+    UserModule,
+    KycModule,
+    BusinessModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,

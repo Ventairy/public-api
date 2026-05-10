@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `user_type` text NOT NULL DEFAULT 'BUSINESS';

@@ -6,3 +6,4 @@ export { HttpModule } from "./http";
 export { HealthModule } from "../modules/health";
 export { SchedulerModule } from "./scheduler";
 export { ObservabilityModule } from "./observability";
+export { StorageModule } from "./storage";

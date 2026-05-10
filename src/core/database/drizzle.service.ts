@@ -1,11 +1,15 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { drizzle, type SqliteRemoteDatabase, type AsyncRemoteCallback } from "drizzle-orm/sqlite-proxy";
+import {
+	drizzle,
+	type SqliteRemoteDatabase,
+	type AsyncRemoteCallback,
+	type AsyncBatchRemoteCallback,
+} from "drizzle-orm/sqlite-proxy";
 import * as schema from "@db/schema";
 import { DATABASE_CONFIG_KEY, type DatabaseConfig } from "../config";
 
 const SELECT_COLUMN_NAMES_REGEX = /(?:select|returning)\s+([\s\S]+?)(?:\s+from|\s*$)/i;
-const COLUMN_NAME_REGEX = /"?(\w+)"?/g;
 
 @Injectable()
 export class DrizzleService implements OnModuleDestroy {
@@ -30,15 +34,20 @@ export class DrizzleService implements OnModuleDestroy {
 			return { rows: positionalRows };
 		};
 
-		this.db = drizzle<typeof schema>(remoteCallback, { schema });
+		const batchCallback: AsyncBatchRemoteCallback = async (batch) => {
+			const results: { rows: unknown[] }[] = [];
+			for (const query of batch) {
+				const namedRows = await this.executeD1Query(query.sql, query.params, query.method);
+				const positionalRows = this._toPositionalRows(query.sql, namedRows);
+				results.push({ rows: positionalRows });
+			}
+			return results;
+		};
+
+		this.db = drizzle<typeof schema>(remoteCallback, batchCallback, { schema });
 	}
 
-	private async executeD1Query(
-		sql: string,
-		parameters: unknown[],
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_method: string,
-	): Promise<unknown[]> {
+	private async executeD1Query(sql: string, parameters: unknown[], _method: string): Promise<unknown[]> {
 		const url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/d1/database/${this.databaseId}/query`;
 
 		const response = await fetch(url, {
@@ -73,7 +82,16 @@ export class DrizzleService implements OnModuleDestroy {
 		}
 
 		const columnNames = this._extractColumnNames(sql);
-		if (columnNames.length === 0) return namedRows;
+		if (columnNames.length === 0) {
+			const firstRow = namedRows[0] as Record<string, unknown> | undefined;
+			if (!firstRow) return namedRows;
+
+			const inferredColumns = Object.keys(firstRow);
+			return namedRows.map((row) => {
+				const namedRow = row as Record<string, unknown>;
+				return inferredColumns.map((col) => namedRow[col]);
+			});
+		}
 
 		return namedRows.map((row) => {
 			const namedRow = row as Record<string, unknown>;
@@ -87,12 +105,17 @@ export class DrizzleService implements OnModuleDestroy {
 
 		const columnsFragment = columnsMatch[1];
 		const columnNames: string[] = [];
+		const COLUMN_NAME_REGEX = /"?(\w+)"?(?:\s+as\s+"?(\w+)"?)?/gi;
 		let match: RegExpExecArray | null = null;
 
 		while ((match = COLUMN_NAME_REGEX.exec(columnsFragment)) !== null) {
-			if (match[1]) {
-				columnNames.push(match[1]);
-			}
+			const name = match[1];
+			const alias = match[2];
+
+			if (!name) continue;
+			if (name.toLowerCase() === "as") continue;
+
+			columnNames.push(alias || name);
 		}
 
 		return columnNames;

@@ -34,3 +34,4 @@ bun.lockb
 # Misc
 *.tgz
 .cache/
+.opencode

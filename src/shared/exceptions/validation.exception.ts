@@ -13,7 +13,12 @@ export class ValidationException extends DomainException {
 				? "Request validation failed: 1 field has an invalid value."
 				: `Request validation failed: ${errorCount} fields have invalid values.`;
 
-		super(ERROR_CODES.VALIDATION_FAILED, summary, HttpStatus.BAD_REQUEST, { errors: fieldErrors });
+		super({
+			domainCode: ERROR_CODES.VALIDATION_FAILED,
+			message: summary,
+			statusCode: HttpStatus.BAD_REQUEST,
+			details: { errors: fieldErrors },
+		});
 
 		this.fieldErrors = fieldErrors;
 	}

@@ -1,1 +1,0 @@
-export const IDEMPOTENCY_TTL_SECONDS = 86_400;
