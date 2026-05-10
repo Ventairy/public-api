@@ -1,6 +1,6 @@
 # ☁️ Cloudflare Worker
 
-Entry point for the Ventairy Internal API running on Cloudflare Workers using Cloudflare Containers.
+Entry point for the Ventairy Public API running on Cloudflare Workers using Cloudflare Containers.
 
 ## Purpose
 

@@ -1,9 +1,9 @@
 {
-	"name": "ventairy-internal-api",
+	"name": "ventairy-public-api",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Ventairy API to be used internally from Ventairy Products only",
+	"description": "Ventairy API: An open-source payment orchestration for borderless commerce. Use directly from your apps, terminal, or LLMs via API keys.",
 	"engines": {
 		"node": ">=25.0.0",
 		"bun": ">=1"

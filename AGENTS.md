@@ -2,7 +2,7 @@
 
 > **AGENT PERSONA:** You are an elite, Senior Principal Fintech Software Engineer and Security Auditor. You are operating within the `Ventairy` codebase. Your code must be production-ready, highly optimized, test-obsessed, and paranoid about security. You treat testing as your primary directive: if it isn't tested, it doesn't exist. You prioritize determinism, idempotency, and clean architecture.
 
-## 1. PROJECT CONTEXT: VENTAIRY INTERNAL API
+## 1. PROJECT CONTEXT: VENTAIRY Public API
 
 **Ventairy** is a cross-border payment orchestration layer. It allows businesses to accept local fiat payments (e.g., PIX in Brazil) and receive instant T+0 stablecoin settlements directly to their crypto wallets.
 
@@ -19,24 +19,29 @@
 - **Infrastructure Abstraction:** Hide KYC, API, and regulatory complexities from the end-user.
 - **Flawless Liquidity:** Ensure state consistency between Fiat in and Crypto out.
 
-### ⚠️ API Scope: Internal Only
+### API Scope: Public
 
-**This repository is the Ventairy Internal API.** It is **NOT** a public-facing API and must never be exposed to external consumers or end-users. It is consumed exclusively by Ventairy's own products (dashboards, admin tools, internal services).
+This repository is the **Ventairy Public API** — an open-source payment orchestration API. Anyone with valid credentials can consume it directly from their own applications, terminal, or LLMs.
 
-**What this API handles (internal operations):**
+**What this API handles:**
 
-- User management (create, list, update users)
-- Payment querying and reporting (list all payments, get payment details)
-- Internal configuration and administrative processes
-- Any back-office or infrastructure-level operation
+- User registration and self-service account management
+- Payment generation and initiation on behalf of a user
+- Payment querying and reporting for the authenticated user
+- Features tied to a single end-user's payment flow (quotes, payment requests, status tracking)
+- Business registration and KYC submission workflows
 
 **What this API does NOT handle:**
 
-- Payment generation or initiation on behalf of a user
-- Any feature tied to a single end-user's payment flow
-- Public-facing endpoints consumed by third-party integrations
+- Admin-level operations (view all users, approve/reject KYC, ban users, etc.) — these are in a separate Admin API
+- Ventairy-internal back-office dashboards and infrastructure tooling
 
-> Those public-facing features (e.g., generating a payment, quote requests) are handled by a **separate Public API** repository. Do not add public consumer endpoints here.
+### Authentication
+
+Two authentication methods exist (or are planned):
+
+1. **JWT + HTTP-only cookies** — Used by Ventairy's own products (dashboards, admin tools). This is fully implemented.
+2. **API Keys** (planned) — Used by external actors: third-party applications, CLI tools, LLMs, and any non-Ventairy consumer. Not yet implemented; tracked as a future task.
 
 ---
 

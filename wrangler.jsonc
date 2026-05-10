@@ -1,5 +1,5 @@
 {
-	"name": "ventairy-internal-api",
+	"name": "ventairy-public-api",
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-05-05",
 	"compatibility_flags": ["nodejs_compat"],
@@ -39,7 +39,7 @@
 	},
 	"env": {
 		"staging": {
-			"name": "ventairy-internal-api-staging",
+			"name": "ventairy-public-api-staging",
 			"vars": {
 				"NODE_ENV": "staging",
 				"PORT": "3000",
@@ -63,7 +63,7 @@
 			}
 		},
 		"production": {
-			"name": "ventairy-internal-api-production",
+			"name": "ventairy-public-api-production",
 			"vars": {
 				"NODE_ENV": "production",
 				"PORT": "3000",

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Handles business registration, controller management, and file upload workflows. Consumed internally by dashboards and admin tools.
+Handles business registration, controller management, and file upload workflows. Used by Ventairy dashboards, admin tools, and external API consumers.
 
 ## Files
 

@@ -48,7 +48,7 @@ async function bootstrap(): Promise<void> {
 	);
 
 	const { DocumentBuilder, SwaggerModule } = await import("@nestjs/swagger");
-	const documentConfiguration = new DocumentBuilder().setTitle("Ventairy Internal API").setVersion("1.0").build();
+	const documentConfiguration = new DocumentBuilder().setTitle("Ventairy Public API").setVersion("1.0").build();
 	const document = SwaggerModule.createDocument(application, documentConfiguration);
 
 	SwaggerModule.setup("docs", application, document, {
