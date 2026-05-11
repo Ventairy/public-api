@@ -1,6 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { Public } from "@shared/decorators/public.decorator";
+import { RateLimit } from "@shared/rate-limit/rate-limit.decorator";
 import { CreateUserInputDto } from "./dto/create-user-input.dto";
 import { CreateUserOutputDto } from "./dto/create-user-output.dto";
 import { ApiCreateUserDocs } from "./docs/api-create-user-docs.decorator";
@@ -14,6 +15,7 @@ export class UserController {
 	@Post("create")
 	@HttpCode(HttpStatus.CREATED)
 	@Public()
+	@RateLimit({ limit: 5, ttlSeconds: 60 })
 	@ApiCreateUserDocs()
 	public async create(
 		@Body() body: CreateUserInputDto,

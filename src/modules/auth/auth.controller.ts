@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, 
 import type { Request, Response } from "express";
 import { Public } from "@shared/decorators/public.decorator";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
+import { RateLimit } from "@shared/rate-limit/rate-limit.decorator";
 import type { Actor } from "@shared/types/actor.type";
 import { WalletAuthService } from "./wallet/wallet-auth.service";
 import { AuthService } from "./auth.service";
@@ -30,6 +31,7 @@ export class AuthController {
 	@Post("wallet/nonce/create")
 	@HttpCode(HttpStatus.CREATED)
 	@Public()
+	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiCreateNonceDocs()
 	public async createNonce(@Body() body: NonceInputDto): Promise<NonceOutputDto> {
 		return this._walletAuthService.createNonce(body.walletAddress);
@@ -38,6 +40,7 @@ export class AuthController {
 	@Post("wallet/login")
 	@HttpCode(HttpStatus.OK)
 	@Public()
+	@RateLimit({ limit: 5, ttlSeconds: 300 })
 	@ApiLoginDocs()
 	public async login(
 		@Body() body: LoginInputDto,
@@ -60,6 +63,7 @@ export class AuthController {
 	@Post("refresh")
 	@HttpCode(HttpStatus.OK)
 	@Public()
+	@RateLimit({ limit: 20, ttlSeconds: 3600 })
 	@ApiRefreshTokensDocs()
 	public async refresh(
 		@Req() req: Request,
@@ -74,6 +78,7 @@ export class AuthController {
 
 	@Post("logout")
 	@HttpCode(HttpStatus.NO_CONTENT)
+	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiLogoutDocs()
 	public async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
 		await this._authService.logout(req);
@@ -83,6 +88,7 @@ export class AuthController {
 
 	@Get("sessions")
 	@HttpCode(HttpStatus.OK)
+	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiListSessionsDocs()
 	public async listSessions(@CurrentActor() actor: Actor): Promise<SessionsListOutputDto> {
 		return this._authService.listSessions(actor.id, actor.sessionId);
@@ -90,6 +96,7 @@ export class AuthController {
 
 	@Delete("sessions/:session_id")
 	@HttpCode(HttpStatus.NO_CONTENT)
+	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiRevokeSessionDocs()
 	public async revokeSession(
 		@CurrentActor() actor: Actor,
@@ -107,6 +114,7 @@ export class AuthController {
 
 	@Post("logout/others")
 	@HttpCode(HttpStatus.NO_CONTENT)
+	@RateLimit({ limit: 5, ttlSeconds: 60 })
 	@ApiLogoutOthersDocs()
 	public async logoutOthers(@CurrentActor() actor: Actor, @Res({ passthrough: true }) res: Response): Promise<void> {
 		await this._authService.logoutOthers(actor.id, actor.sessionId);

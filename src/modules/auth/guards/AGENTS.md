@@ -2,7 +2,7 @@
 
 ## Purpose
 
-NestJS guards that protect routes by (1) validating JWT access tokens and (2) enforcing user type restrictions. Both are registered as global `APP_GUARD` providers — `JwtAuthGuard` runs first (authenticates), then `UserTypeGuard` runs second (authorizes by user type).
+NestJS guards that protect routes by (1) validating JWT access tokens, (2) rate limiting, and (3) enforcing user type restrictions. Three global `APP_GUARD` providers run in order: `JwtAuthGuard` (authenticates), `RateLimitGuard` (rate limits — defined in `@shared/rate-limit/`), `UserTypeGuard` (authorizes by user type).
 
 ## Files
 

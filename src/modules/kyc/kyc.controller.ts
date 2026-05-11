@@ -8,6 +8,7 @@ import {
 	UseInterceptors,
 } from "@nestjs/common";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
+import { RateLimit } from "@shared/rate-limit/rate-limit.decorator";
 import type { Actor } from "@shared/types/actor.type";
 import { KycService } from "./kyc.service";
 import { KycSubmissionOutputDto, KycStatusOutputDto } from "./dto";
@@ -21,6 +22,7 @@ export class KycController {
 
 	@Post("submit")
 	@HttpCode(HttpStatus.OK)
+	@RateLimit({ limit: 3, ttlSeconds: 900 })
 	@ApiSubmitKycDocs()
 	public async submitKyc(@CurrentActor() actor: Actor): Promise<KycSubmissionOutputDto> {
 		return this.kycService.submitKyc(actor.id);
@@ -28,6 +30,7 @@ export class KycController {
 
 	@Get("status")
 	@HttpCode(HttpStatus.OK)
+	@RateLimit({ limit: 20, ttlSeconds: 60 })
 	@ApiGetKycStatusDocs()
 	public async getKycStatus(@CurrentActor() actor: Actor): Promise<KycStatusOutputDto> {
 		return this.kycService.getKycStatus(actor.id);

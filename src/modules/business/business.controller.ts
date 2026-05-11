@@ -16,6 +16,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
 import { BusinessUserOnly } from "@shared/decorators/user-type.decorator";
+import { RateLimit } from "@shared/rate-limit/rate-limit.decorator";
 import type { Actor } from "@shared/types/actor.type";
 import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
@@ -40,6 +41,7 @@ export class BusinessController {
 	@Post("files/upload")
 	@UseInterceptors(FileInterceptor("file"))
 	@HttpCode(HttpStatus.CREATED)
+	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiUploadBusinessFileDocs()
 	public async uploadFile(
 		@CurrentActor() actor: Actor,
@@ -52,6 +54,7 @@ export class BusinessController {
 	@Post("controller/:controller_id/files/upload")
 	@UseInterceptors(FileInterceptor("file"))
 	@HttpCode(HttpStatus.CREATED)
+	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiUploadBusinessControllerFileDocs()
 	public async uploadBusinessControllerFile(
 		@CurrentActor() actor: Actor,
@@ -64,16 +67,15 @@ export class BusinessController {
 
 	@Put()
 	@HttpCode(HttpStatus.OK)
+	@RateLimit({ limit: 20, ttlSeconds: 60 })
 	@ApiSaveBusinessDocs()
-	public async saveBusiness(
-		@CurrentActor() actor: Actor,
-		@Body() body: BusinessInputDto,
-	): Promise<BusinessOutputDto> {
+	public async saveBusiness(@CurrentActor() actor: Actor, @Body() body: BusinessInputDto): Promise<BusinessOutputDto> {
 		return this.businessService.saveBusiness(actor.id, body);
 	}
 
 	@Get()
 	@HttpCode(HttpStatus.OK)
+	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiGetBusinessDocs()
 	public async getBusiness(@CurrentActor() actor: Actor): Promise<BusinessOutputDto> {
 		return this.businessService.getBusiness(actor.id);
@@ -81,6 +83,7 @@ export class BusinessController {
 
 	@Get("files")
 	@HttpCode(HttpStatus.OK)
+	@RateLimit({ limit: 5, ttlSeconds: 60 })
 	@ApiGetFileDocs()
 	public async getBusinessFile(
 		@CurrentActor() actor: Actor,
@@ -98,6 +101,7 @@ export class BusinessController {
 
 	@Get("controller/:controller_id/files")
 	@HttpCode(HttpStatus.OK)
+	@RateLimit({ limit: 5, ttlSeconds: 60 })
 	@ApiGetBusinessControllerFileDocs()
 	public async getBusinessControllerFile(
 		@CurrentActor() actor: Actor,

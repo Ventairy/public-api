@@ -20,3 +20,4 @@ export { KycSubmissionLockedException } from "./kyc-submission-locked.exception"
 export { BusinessNotFoundException } from "./business-not-found.exception";
 export { SessionNotFoundException } from "./session-not-found.exception";
 export { SessionExpiredException } from "./session-expired.exception";
+export { RateLimitException } from "./rate-limit.exception";

@@ -32,6 +32,8 @@ async function bootstrap(): Promise<void> {
 		defaultVersion: "1",
 	});
 
+	application.set("trust proxy", true);
+
 	application.use(helmet());
 	application.use(cookieParser());
 

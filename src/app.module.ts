@@ -17,8 +17,9 @@ import { BusinessModule } from './modules/business';
     BusinessModule,
     ThrottlerModule.forRoot([
       {
+        name: 'default',
         ttl: 60_000,
-        limit: 100,
+        limit: 20,
       },
     ]),
     EventEmitterModule.forRoot(),

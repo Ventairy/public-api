@@ -1,6 +1,7 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { UserModule } from "@modules/user/user.module";
+import { RateLimitGuard } from "@shared/rate-limit/rate-limit.guard";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { WalletAuthService } from "./wallet/wallet-auth.service";
@@ -26,6 +27,10 @@ import { UserTypeGuard } from "./guards/user-type.guard";
 		{
 			provide: APP_GUARD,
 			useClass: JwtAuthGuard,
+		},
+		{
+			provide: APP_GUARD,
+			useClass: RateLimitGuard,
 		},
 		{
 			provide: APP_GUARD,
