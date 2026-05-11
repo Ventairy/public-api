@@ -16,6 +16,7 @@ export const validationSchema = Joi.object({
 
 	JWT_SECRET: Joi.string().min(32).required(),
 
+
 	R2_ENDPOINT: Joi.string().required(),
 	R2_BUSINESS_FILES_ACCESS_KEY_ID: Joi.string().required(),
 	R2_BUSINESS_FILES_SECRET_ACCESS_KEY: Joi.string().required(),

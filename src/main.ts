@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { NestFactory, Reflector } from "@nestjs/core";
 import { ClassSerializerInterceptor, VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { json, urlencoded } from "express";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { NestExpressApplication } from "@nestjs/platform-express";
@@ -17,6 +18,7 @@ import { LoggingInterceptor, TransformInterceptor, TimeoutInterceptor } from "./
 async function bootstrap(): Promise<void> {
 	const application = await NestFactory.create<NestExpressApplication>(AppModule, {
 		bufferLogs: true,
+		bodyParser: false,
 	});
 
 	const configService = application.get(ConfigService);
@@ -34,6 +36,9 @@ async function bootstrap(): Promise<void> {
 
 	application.set("trust proxy", true);
 
+	application.use(json({ limit: "1mb" }));
+	application.use(urlencoded({ extended: true, limit: "1mb" }));
+
 	application.use(helmet());
 	application.use(cookieParser());
 
@@ -45,7 +50,7 @@ async function bootstrap(): Promise<void> {
 	application.useGlobalInterceptors(
 		new LoggingInterceptor(),
 		new TransformInterceptor(clsService),
-		new TimeoutInterceptor(),
+		new TimeoutInterceptor(configService),
 		new ClassSerializerInterceptor(application.get(Reflector), { excludeExtraneousValues: true }),
 	);
 

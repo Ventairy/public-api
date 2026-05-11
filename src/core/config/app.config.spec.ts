@@ -18,6 +18,7 @@ describe("appConfig", () => {
 		const config = appConfig();
 		
 		expect(config.port).toBe(3000);
+		expect(config.requestTimeoutMs).toBe(10000);
 	});
 
 	it("should return values from environment variables", () => {
@@ -28,6 +29,7 @@ describe("appConfig", () => {
 
 		expect(config.nodeEnv).toBe("production");
 		expect(config.port).toBe(4000);
+		expect(config.requestTimeoutMs).toBe(10000);
 	});
 
 	it("should handle invalid port by falling back to default", () => {
