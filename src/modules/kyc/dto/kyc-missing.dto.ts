@@ -6,7 +6,7 @@ export class KycMissingDataDto {
 	@ApiProperty({
 		name: "fields",
 		description:
-			"List of data field paths that are missing for KYC submission. Uses dot notation for nested fields (e.g., 'address.country_code'). Controller fields include the controller ID (e.g., 'controllers.abc-123.legal_first_name'). If no controllers exist, 'controllers' appears alone.",
+			"List of data field paths that are missing for KYC submission. Uses dot notation for nested fields (e.g., 'address.country_code'). Fields that has multiple items include the IDs (e.g., 'controllers.abc-123.legal_first_name').",
 		type: [String],
 		example: ["business.legal_name", "business.address.country_code", "business.controllers.abc-123.legal_first_name"],
 	})
@@ -16,7 +16,7 @@ export class KycMissingDataDto {
 	@ApiProperty({
 		name: "files",
 		description:
-			"List of file identifiers that are missing for KYC submission. Business-level files use the enum value (e.g., 'PROOF_OF_ADDRESS'). Controller files include the controller ID (e.g., 'controllers.abc-123.IDENTIFICATION_FRONT').",
+			"List of file identifiers that are missing for KYC submission. Uses dot notation for nested fields (e.g., 'business.PROOF_OF_ADDRESS'). Fields that has multiple items include the IDs (e.g., 'controllers.abc-123.PROOF_OF_ADDRESS').",
 		type: [String],
 		example: [
 			`business.${BusinessFileType.PROOF_OF_ADDRESS}`,

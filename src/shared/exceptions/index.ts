@@ -17,6 +17,7 @@ export { BusinessControllerFileNotFoundException } from "./business-controller-f
 export { BusinessControllerNotFoundException } from "./business-controller-not-found.exception";
 export { KycSubmissionNotFoundException } from "./kyc-submission-not-found.exception";
 export { KycSubmissionLockedException } from "./kyc-submission-locked.exception";
+export { KycSubmissionRequirementsNotMetException } from "./kyc-submission-requirements-not-met.exception";
 export { BusinessNotFoundException } from "./business-not-found.exception";
 export { SessionNotFoundException } from "./session-not-found.exception";
 export { SessionExpiredException } from "./session-expired.exception";

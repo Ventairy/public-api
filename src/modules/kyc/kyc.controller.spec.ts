@@ -3,7 +3,7 @@ import { UserType } from "@shared/enums/user-type";
 import { KycController } from "./kyc.controller";
 import { KycService } from "./kyc.service";
 import type { Actor } from "@shared/types/actor.type";
-import { KycStatusOutputDto, KycMissingDto } from "./dto";
+import { KycStatusOutputDto, KycMissingDto, KycSubmissionOutputDto } from "./dto";
 import { VentairyKycStatus } from "@shared/constants";
 
 const MOCK_ACTOR: Actor = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS };
@@ -30,6 +30,24 @@ describe("KycController", () => {
 	beforeEach(() => {
 		mockService = createMockKycService();
 		controller = new KycController(mockService as unknown as KycService);
+	});
+
+	describe("submitKyc", () => {
+		it("should delegate to service.submitKyc with the full actor", async () => {
+			const mockResult = new KycSubmissionOutputDto({
+				id: "kyc-1",
+				userId: "user-1",
+				ventairyKycStatus: VentairyKycStatus.VERIFYING,
+				submittedAt: "2026-05-12T10:00:00.000Z",
+				createdAt: "2026-05-01T00:00:00.000Z",
+			});
+			mockService.submitKyc.mockResolvedValue(mockResult);
+
+			const result = await controller.submitKyc(MOCK_ACTOR);
+
+			expect(mockService.submitKyc).toHaveBeenCalledWith(MOCK_ACTOR);
+			expect(result).toBe(mockResult);
+		});
 	});
 
 	describe("getKycStatus", () => {

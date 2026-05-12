@@ -6,6 +6,7 @@ import {
 	type RequiredForKycDecoratorMetadata,
 } from "@shared/decorators/required-for-kyc.decorator";
 import { KycSubmissionLockedException } from "@shared/exceptions/kyc-submission-locked.exception";
+import { KycSubmissionRequirementsNotMetException } from "@shared/exceptions/kyc-submission-requirements-not-met.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { BusinessService } from "@modules/business/business.service";
@@ -22,40 +23,60 @@ export class KycService {
 		private readonly _businessService: BusinessService,
 	) {}
 
-	public async submitKyc(userId: string): Promise<KycSubmissionOutputDto> {
-		const kycRow = await this._getKycDatabaseRow(userId);
+	public async submitKyc(actor: Actor): Promise<KycSubmissionOutputDto> {
+		const [currentKycStatus, missingKycData] = await Promise.all([
+			this._getKycDatabaseRow(actor.id).then((row) => row.ventairy_kyc_status),
+			this._getMissingKYCData({ actor, notFoundBehaviour: "throw" }),
+		]);
 
-		if (kycRow.ventairy_kyc_status !== VentairyKycStatus.PENDING) {
-			throw new KycSubmissionLockedException({ userId, kycStatus: kycRow.ventairy_kyc_status });
+		if (currentKycStatus !== VentairyKycStatus.PENDING) {
+			throw new KycSubmissionLockedException({ userId: actor.id, kycStatus: currentKycStatus });
+		}
+
+		if (!this._canSubmitKYC(currentKycStatus, missingKycData)) {
+			throw new KycSubmissionRequirementsNotMetException({
+				userId: actor.id,
+				missing: { fields: missingKycData.fields, files: missingKycData.files },
+			});
 		}
 
 		const now = new Date().toISOString();
-		await this._kycRepository.updateStatusByUserId({ userId, status: VentairyKycStatus.VERIFYING, submittedAt: now });
+		const updatedRow = await this._kycRepository.updateStatusByUserId({
+			userId: actor.id,
+			status: VentairyKycStatus.VERIFYING,
+			submittedAt: now,
+		});
 
-		return this._getKycDataAsDto(userId);
+		return KycSubmissionOutputDto.fromDatabaseRow(updatedRow);
 	}
 
 	public async getKycStatus(actor: Actor): Promise<KycStatusOutputDto> {
-		const kycRow = await this._getKycDatabaseRow(actor.id);
-		const missing = await this._getMissingKYCDataForBusiness(actor.id, actor.userType);
+		const [kycRow, missingKYCData] = await Promise.all([
+			this._getKycDatabaseRow(actor.id),
+			this._getMissingKYCData({ actor, notFoundBehaviour: "null" }),
+		]);
 
-		const canSubmitKyc =
-			missing.fields.length === 0 &&
-			missing.files.length === 0 &&
-			kycRow.ventairy_kyc_status === VentairyKycStatus.PENDING;
-
-		return KycStatusOutputDto.fromDatabaseRow(kycRow, canSubmitKyc, missing);
+		const canSubmitKyc = this._canSubmitKYC(kycRow.ventairy_kyc_status, missingKYCData);
+		return KycStatusOutputDto.fromDatabaseRow(kycRow, canSubmitKyc, missingKYCData);
 	}
 
-	private async _getMissingKYCDataForBusiness(userId: string, userType: UserType): Promise<KycMissingDto> {
-		let business: BusinessOutputDto | null = null;
+	private async _getMissingKYCData(params: {
+		actor: Actor;
+		notFoundBehaviour: "null" | "throw";
+	}): Promise<KycMissingDto> {
+		switch (params.actor.userType) {
+			case UserType.BUSINESS: {
+				const business = await this._businessService.getBusiness(params.actor.id).catch((error) => {
+					if (error instanceof BusinessNotFoundException && params.notFoundBehaviour === "null") return null;
+					throw error;
+				});
 
-		try {
-			business = await this._businessService.getBusiness(userId);
-		} catch (error) {
-			if (!(error instanceof BusinessNotFoundException)) throw error;
+				return this._getMissingKYCDataForBusiness(business, params.actor.userType);
+			}
 		}
+	}
 
+	private _getMissingKYCDataForBusiness(business: BusinessOutputDto | null, userType: UserType): KycMissingDto {
 		const missingFields = this._getKYCMissingFieldsForBusiness(business, userType);
 		const missingFiles = this._getKYCMissingFilesForBusiness(business);
 
@@ -145,10 +166,8 @@ export class KycService {
 		});
 	}
 
-	private async _getKycDataAsDto(userId: string): Promise<KycSubmissionOutputDto> {
-		const kycRow = await this._getKycDatabaseRow(userId);
-
-		return KycSubmissionOutputDto.fromDatabaseRow(kycRow);
+	private _canSubmitKYC(kycStatus: VentairyKycStatus, missing: KycMissingDto): boolean {
+		return kycStatus === VentairyKycStatus.PENDING && missing.fields.length === 0 && missing.files.length === 0;
 	}
 
 	private async _getKycDatabaseRow(userId: string): Promise<import("@db/schema/kyc-table").KycRow> {

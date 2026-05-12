@@ -88,12 +88,12 @@ describe("KycRepository", () => {
 	});
 
 	describe("updateStatusByUserId", () => {
-		it("should update kyc status and submitted_at", async () => {
-			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn() };
+		it("should update kyc status and submitted_at and return the updated row", async () => {
+			const updatedRow = { id: "kyc-1", user_id: "user-1", ventairy_kyc_status: VentairyKycStatus.VERIFYING, kyc_submitted_at: "2026-01-01T00:00:00.000Z" };
+			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn().mockResolvedValue([updatedRow]) };
 			mockDb.update.mockReturnValue(updateBuilder);
-			updateBuilder.where.mockResolvedValue(undefined);
 
-			await repository.updateStatusByUserId({
+			const result = await repository.updateStatusByUserId({
 				userId: "user-1",
 				status: VentairyKycStatus.VERIFYING,
 				submittedAt: "2026-01-01T00:00:00.000Z",
@@ -104,18 +104,22 @@ describe("KycRepository", () => {
 				ventairy_kyc_status: VentairyKycStatus.VERIFYING,
 				kyc_submitted_at: "2026-01-01T00:00:00.000Z",
 			});
+			expect(updateBuilder.returning).toHaveBeenCalledTimes(1);
+			expect(result).toEqual(updatedRow);
 		});
 
 		it("should update only status when submittedAt is not provided", async () => {
-			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn() };
+			const updatedRow = { id: "kyc-1", user_id: "user-1", ventairy_kyc_status: VentairyKycStatus.REJECTED, kyc_submitted_at: null };
+			const updateBuilder = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn().mockResolvedValue([updatedRow]) };
 			mockDb.update.mockReturnValue(updateBuilder);
-			updateBuilder.where.mockResolvedValue(undefined);
 
-			await repository.updateStatusByUserId({ userId: "user-1", status: VentairyKycStatus.REJECTED });
+			const result = await repository.updateStatusByUserId({ userId: "user-1", status: VentairyKycStatus.REJECTED });
 
 			expect(updateBuilder.set).toHaveBeenCalledWith({
 				ventairy_kyc_status: VentairyKycStatus.REJECTED,
 			});
+			expect(updateBuilder.returning).toHaveBeenCalledTimes(1);
+			expect(result).toEqual(updatedRow);
 		});
 	});
 });

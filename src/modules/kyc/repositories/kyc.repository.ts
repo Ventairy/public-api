@@ -30,10 +30,13 @@ export class KycRepository {
 		userId: string;
 		status: VentairyKycStatus;
 		submittedAt?: string;
-	}): Promise<void> {
+	}): Promise<KycRow> {
 		const data: Partial<KycRow> = { ventairy_kyc_status: params.status };
 		if (params.submittedAt !== undefined) data.kyc_submitted_at = params.submittedAt;
 
-		await this._db.update(kycTable).set(data).where(eq(kycTable.user_id, params.userId));
+		const rows = await this._db.update(kycTable).set(data).where(eq(kycTable.user_id, params.userId)).returning();
+		if (!rows[0]) throw new Error(`KYC row not found after update for user`);
+
+		return rows[0];
 	}
 }

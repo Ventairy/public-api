@@ -6,13 +6,13 @@ Handles Know Your Customer (KYC) workflows: status tracking, submission for veri
 
 ## Files
 
-| File                     | Description                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| `kyc.module.ts`          | NestJS module definition — registers service, controller, imports BusinessModule |
-| `kyc.controller.ts`      | REST endpoints for KYC operations: submit, status                                |
-| `kyc.controller.spec.ts` | Unit tests for KycController                                                     |
-| `kyc.service.ts`         | Business logic: KYC submission guard, status retrieval, missing computation      |
-| `kyc.service.spec.ts`    | Unit tests for KycService                                                        |
+| File                     | Description                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `kyc.module.ts`          | NestJS module definition — registers service, controller, imports BusinessModule                           |
+| `kyc.controller.ts`      | REST endpoints for KYC operations: submit, status                                                          |
+| `kyc.controller.spec.ts` | Unit tests for KycController                                                                               |
+| `kyc.service.ts`         | Business logic: KYC submission guard, status retrieval, missing computation, `_canSubmitKYC` pure function |
+| `kyc.service.spec.ts`    | Unit tests for KycService                                                                                  |
 
 ### Docs
 
@@ -38,17 +38,18 @@ Handles Know Your Customer (KYC) workflows: status tracking, submission for veri
 
 ## Endpoints
 
-| Method | Route         | Rate Limit     | Description                                                        |
-| ------ | ------------- | -------------- | ------------------------------------------------------------------ |
-| `POST` | `/kyc/submit` | 3 req / 15 min | Submit KYC for verification                                        |
-| `GET`  | `/kyc/status` | 20 req / 60s   | Get KYC status + missing fields/files for KYC submission readiness |
+| Method | Route         | Rate Limit     | Description                                                                                           |
+| ------ | ------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| `POST` | `/kyc/submit` | 3 req / 15 min | Submit KYC for verification — gated on status (PENDING) AND requirements (all fields + files present) |
+| `GET`  | `/kyc/status` | 20 req / 60s   | Get KYC status + missing fields/files for KYC submission readiness                                    |
 
 ## Principles
 
 - Missing fields and files are computed dynamically based on `actor.userType` — currently only `BUSINESS` is supported
 - The `@RequiredForKYC([UserType])` decorator on input DTO properties marks which data fields are required for KYC per user type
 - Required file types are defined in `KYC_REQUIRED_BUSINESS_FILES` and `KYC_REQUIRED_CONTROLLER_FILES` constants
-- `can_submit_kyc` is true only when both `missing.fields` and `missing.files` are empty AND the KYC status is `PENDING`
+- `can_submit_kyc` is determined by `_canSubmitKYC(kycStatus, missing)` — true only when status is PENDING and both `missing.fields` and `missing.files` are empty
+- `submitKyc` uses `_canSubmitKYC` to gate submission; if requirements aren't met, throws `KycSubmissionRequirementsNotMetException` (422) with missing details
 - Controller role distribution is NOT validated by this endpoint — it is checked at submission time with a specific error
 - `fantasy_name` is NOT a KYC requirement; `IDENTIFICATION_BACK` is NOT required (only front)
 - No business data yet → all required fields and files appear in `missing`

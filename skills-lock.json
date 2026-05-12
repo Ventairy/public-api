@@ -30,6 +30,12 @@
 			"skillPath": "skills/durable-objects/SKILL.md",
 			"computedHash": "72efa2277fea08f43b393c74abaacc9fa575e20bc63bdc9d46829b8a39352852"
 		},
+		"find-bugs": {
+			"source": "getsentry/skills",
+			"sourceType": "github",
+			"skillPath": "skills/find-bugs/SKILL.md",
+			"computedHash": "7bf00be700d1d205b747126aa96d3587bbc2855cd09897614676e179eebe35ed"
+		},
 		"nestjs-best-practices": {
 			"source": "kadajett/agent-nestjs-skills",
 			"sourceType": "github",
@@ -41,6 +47,18 @@
 			"sourceType": "github",
 			"skillPath": "skills/nestjs-expert/SKILL.md",
 			"computedHash": "0775f4ba14e4f372b894cc86feb0bf58a51b2038bc98b3ff18f2021565cea494"
+		},
+		"security-best-practices": {
+			"source": "openai/skills",
+			"sourceType": "github",
+			"skillPath": "skills/.curated/security-best-practices/SKILL.md",
+			"computedHash": "c27616fb4e27999605b90b261dc729784420c8d77bd1a98748384ffaa5b35704"
+		},
+		"security-review": {
+			"source": "getsentry/skills",
+			"sourceType": "github",
+			"skillPath": "skills/security-review/SKILL.md",
+			"computedHash": "ec9792f5fd065e020c48ab5a57707c83435c286c449ba98dfa726d7b1842c868"
 		},
 		"testing-patterns": {
 			"source": "sickn33/antigravity-awesome-skills",

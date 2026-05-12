@@ -25,7 +25,7 @@ export class KycController {
 	@RateLimit({ limit: 3, ttlSeconds: 900 })
 	@ApiSubmitKycDocs()
 	public async submitKyc(@CurrentActor() actor: Actor): Promise<KycSubmissionOutputDto> {
-		return this.kycService.submitKyc(actor.id);
+		return this.kycService.submitKyc(actor);
 	}
 
 	@Get("status")

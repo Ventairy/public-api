@@ -146,6 +146,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 			details.hint = exception.details["hint"];
 		}
 
+		if (Object.keys(details).length === 0 && exception.details && Object.keys(exception.details).length > 0) {
+			details.context = exception.details as Record<string, unknown>;
+		}
+
 		if (Object.keys(details).length === 0) {
 			return undefined;
 		}
