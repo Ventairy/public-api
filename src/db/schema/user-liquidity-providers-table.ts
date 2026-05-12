@@ -9,6 +9,7 @@ export const userLiquidityProvidersTable = sqliteTable(
 		id: text("id").primaryKey(),
 		user_id: text("user_id").notNull(),
 		liquidity_provider: text("liquidity_provider").notNull().$type<LiquidityProvider>(),
+		liquidity_provider_user_id: text("liquidity_provider_user_id"),
 		status: text("status").notNull().$type<LiquidityProviderStatus>().default(LiquidityProviderStatusEnum.PENDING),
 		created_at: text("created_at")
 			.notNull()

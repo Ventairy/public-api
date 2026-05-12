@@ -1,0 +1,1 @@
+ALTER TABLE `user_liquidity_providers` ADD `liquidity_provider_user_id` text;
