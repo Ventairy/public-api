@@ -60,9 +60,11 @@ export class BusinessOutputDto {
 	@ApiProperty({ name: "id", description: "Unique ID of the business record.", format: "uuid" })
 	@Expose({ name: "id" })
 	id: string;
+
 	@ApiProperty({ name: "legal_name", description: "Legal name of the business.", example: "Acme Corporation Ltd." })
 	@Expose({ name: "legal_name" })
 	legalName: string | null;
+
 	@ApiProperty({
 		name: "fantasy_name",
 		description: "Doing-business-as (fantasy) name.",
@@ -71,6 +73,7 @@ export class BusinessOutputDto {
 	})
 	@Expose({ name: "fantasy_name" })
 	fantasyName: string | null;
+
 	@ApiProperty({
 		name: "formation_date",
 		description: "Date the business was formed (ISO 8601).",
@@ -79,9 +82,11 @@ export class BusinessOutputDto {
 	})
 	@Expose({ name: "formation_date" })
 	formationDate: string | null;
+
 	@ApiProperty({ name: "email", description: "Business email address.", example: "contact@acme.com", nullable: true })
 	@Expose({ name: "email" })
 	email: string | null;
+
 	@ApiProperty({
 		name: "tax_id",
 		description: "Business tax identification number.",
@@ -90,6 +95,7 @@ export class BusinessOutputDto {
 	})
 	@Expose({ name: "tax_id" })
 	taxId: string | null;
+
 	@ApiProperty({
 		name: "phone_number",
 		description: "Business phone number.",
@@ -98,9 +104,11 @@ export class BusinessOutputDto {
 	})
 	@Expose({ name: "phone_number" })
 	phoneNumber: string | null;
+
 	@ApiProperty({ name: "website", description: "Business website URL.", example: "https://acme.com", nullable: true })
 	@Expose({ name: "website" })
 	website: string | null;
+
 	@ApiProperty({
 		name: "address",
 		description: "Business address details.",
@@ -109,6 +117,7 @@ export class BusinessOutputDto {
 	})
 	@Expose({ name: "address" })
 	address: BusinessAddressOutputDto | null;
+
 	@ApiProperty({
 		name: "file_types_uploaded",
 		description: "List of business file types that have been uploaded already.",
@@ -117,6 +126,7 @@ export class BusinessOutputDto {
 	})
 	@Expose({ name: "file_types_uploaded" })
 	fileTypesUploaded: BusinessFileType[];
+
 	@ApiProperty({
 		name: "controllers",
 		description:
@@ -125,6 +135,7 @@ export class BusinessOutputDto {
 	})
 	@Expose({ name: "controllers" })
 	controllers: BusinessControllerOutputDto[];
+
 	@ApiProperty({
 		name: "created_at",
 		description: "ISO-8601 timestamp when the business record was created.",

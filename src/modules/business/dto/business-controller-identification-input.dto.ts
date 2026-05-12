@@ -1,7 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsEnum, IsISO31661Alpha2, IsOptional, IsString } from "class-validator";
-import { IdentificationDocumentType } from "@shared/constants";
+import { IdentificationDocumentType, UserType } from "@shared/constants";
+import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
 
 export class BusinessControllerIdentificationInputDto {
 	@ApiProperty({
@@ -11,6 +12,7 @@ export class BusinessControllerIdentificationInputDto {
 		required: false,
 	})
 	@Expose({ name: "country_code" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	@IsISO31661Alpha2()
@@ -23,6 +25,7 @@ export class BusinessControllerIdentificationInputDto {
 		required: false,
 	})
 	@Expose({ name: "document_type" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsEnum(IdentificationDocumentType)
 	documentType?: IdentificationDocumentType;

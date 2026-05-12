@@ -1,7 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsEnum, IsISO31661Alpha2, IsOptional, IsString } from "class-validator";
-import { ProofAddressType } from "@shared/constants";
+import { ProofAddressType, UserType } from "@shared/constants";
+import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
 
 export class BusinessAddressInputDto {
 	@ApiProperty({
@@ -11,6 +12,7 @@ export class BusinessAddressInputDto {
 		required: false,
 	})
 	@Expose({ name: "country_code" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	@IsISO31661Alpha2()
@@ -18,24 +20,28 @@ export class BusinessAddressInputDto {
 
 	@ApiProperty({ name: "street", description: "Street address.", example: "123 Main St", required: false })
 	@Expose({ name: "street" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	street?: string;
 
 	@ApiProperty({ name: "city", description: "City.", example: "Sao Paulo", required: false })
 	@Expose({ name: "city" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	city?: string;
 
 	@ApiProperty({ name: "state", description: "State, province, or region.", example: "SP", required: false })
 	@Expose({ name: "state" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	state?: string;
 
 	@ApiProperty({ name: "postal_code", description: "Postal code.", example: "01310-100", required: false })
 	@Expose({ name: "postal_code" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	postalCode?: string;
@@ -47,6 +53,7 @@ export class BusinessAddressInputDto {
 		required: false,
 	})
 	@Expose({ name: "address_proof_type" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsEnum(ProofAddressType)
 	addressProofType?: ProofAddressType;

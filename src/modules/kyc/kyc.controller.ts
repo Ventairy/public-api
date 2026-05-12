@@ -33,6 +33,6 @@ export class KycController {
 	@RateLimit({ limit: 20, ttlSeconds: 60 })
 	@ApiGetKycStatusDocs()
 	public async getKycStatus(@CurrentActor() actor: Actor): Promise<KycStatusOutputDto> {
-		return this.kycService.getKycStatus(actor.id);
+		return this.kycService.getKycStatus(actor);
 	}
 }

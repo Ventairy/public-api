@@ -1,7 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 import { IsEnum, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from "class-validator";
-import { ControllerRole } from "@shared/constants";
+import { ControllerRole, UserType } from "@shared/constants";
+import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
 import { BusinessControllerIdentificationInputDto } from "./business-controller-identification-input.dto";
 import { BusinessControllerAddressInputDto } from "./business-controller-address-input.dto";
 
@@ -20,6 +21,7 @@ export class BusinessControllerInputDto {
 
 	@ApiProperty({ name: "role", description: "Role of the controller.", enum: ControllerRole, required: false })
 	@Expose({ name: "role" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsEnum(ControllerRole)
 	role?: ControllerRole;
@@ -31,6 +33,7 @@ export class BusinessControllerInputDto {
 		required: false,
 	})
 	@Expose({ name: "ownership_percentage" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsNumber()
 	@Min(0)
@@ -44,18 +47,21 @@ export class BusinessControllerInputDto {
 		required: false,
 	})
 	@Expose({ name: "title" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	title?: string;
 
 	@ApiProperty({ name: "legal_first_name", description: "Legal first name.", example: "João", required: false })
 	@Expose({ name: "legal_first_name" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	legalFirstName?: string;
 
 	@ApiProperty({ name: "legal_last_name", description: "Legal last name.", example: "Silva", required: false })
 	@Expose({ name: "legal_last_name" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	legalLastName?: string;
@@ -67,6 +73,7 @@ export class BusinessControllerInputDto {
 		required: false,
 	})
 	@Expose({ name: "date_of_birth" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	dateOfBirth?: string;
@@ -78,6 +85,7 @@ export class BusinessControllerInputDto {
 		required: false,
 	})
 	@Expose({ name: "tax_id" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	taxId?: string;
@@ -89,6 +97,7 @@ export class BusinessControllerInputDto {
 		required: false,
 	})
 	@Expose({ name: "identification" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@ValidateNested()
 	@Type(() => BusinessControllerIdentificationInputDto)
@@ -101,6 +110,7 @@ export class BusinessControllerInputDto {
 		required: false,
 	})
 	@Expose({ name: "address" })
+	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@ValidateNested()
 	@Type(() => BusinessControllerAddressInputDto)
