@@ -8,3 +8,5 @@ export { AddressProofType as ProofAddressType } from "../enums/address-proof-typ
 export { PersonalIdentificationDocumentType as IdentificationDocumentType } from "../enums/personal-identification-document-type";
 export { R2BucketType } from "../enums/r2-bucket-type";
 export { UserType } from "../enums/user-type";
+export { LiquidityProvider } from "../enums/liquidity-provider";
+export { LiquidityProviderStatus } from "../enums/liquidity-provider-status";

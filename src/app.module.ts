@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user';
 import { KycModule } from './modules/kyc';
 import { BusinessModule } from './modules/business';
+import { LiquidityProviderModule } from './modules/liquidity-provider';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { BusinessModule } from './modules/business';
     UserModule,
     KycModule,
     BusinessModule,
+    LiquidityProviderModule,
     ThrottlerModule.forRoot([
       {
         name: 'default',

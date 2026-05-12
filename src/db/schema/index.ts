@@ -6,3 +6,4 @@ export { businessControllersTable as businessControllers } from "./business-cont
 export { businessFilesTable as businessFiles } from "./business-files-table";
 export { businessControllerFilesTable as businessControllerFiles } from "./business-controller-files-table";
 export { userSessionsTable as userSessions } from "./user-sessions-table";
+export { userLiquidityProvidersTable as userLiquidityProviders } from "./user-liquidity-providers-table";
