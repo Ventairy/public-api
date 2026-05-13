@@ -1,7 +1,7 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "6f6ea93d-a833-4e05-b8e0-433754d611f6",
+	"id": "cf3a44e4-355f-4ebe-9f38-d2d18aae6c94",
 	"prevId": "77b4aa66-9f4a-4c4d-8011-e920ab164cfc",
 	"tables": {
 		"business_controller_files": {
@@ -539,11 +539,18 @@
 					"notNull": true,
 					"autoincrement": false
 				},
-				"liquidity_provider": {
-					"name": "liquidity_provider",
+				"liquidity_provider_id": {
+					"name": "liquidity_provider_id",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true,
+					"autoincrement": false
+				},
+				"liquidity_provider_user_id": {
+					"name": "liquidity_provider_user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
 					"autoincrement": false
 				},
 				"status": {
@@ -560,19 +567,12 @@
 					"primaryKey": false,
 					"notNull": true,
 					"autoincrement": false
-				},
-				"updated_at": {
-					"name": "updated_at",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
 				}
 			},
 			"indexes": {
 				"user_liquidity_provider_unique": {
 					"name": "user_liquidity_provider_unique",
-					"columns": ["user_id", "liquidity_provider"],
+					"columns": ["user_id", "liquidity_provider_id"],
 					"isUnique": true
 				}
 			},

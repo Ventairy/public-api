@@ -22,3 +22,4 @@ export { BusinessNotFoundException } from "./business-not-found.exception";
 export { SessionNotFoundException } from "./session-not-found.exception";
 export { SessionExpiredException } from "./session-expired.exception";
 export { RateLimitException } from "./rate-limit.exception";
+export { NoActiveLiquidityProviderException } from "./no-active-liquidity-provider.exception";

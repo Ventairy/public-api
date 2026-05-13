@@ -33,6 +33,7 @@ Domain-specific exception classes for the Ventairy Public API. All exceptions ex
 | `siwe-message-invalid.exception.ts`                | SIWE message format is invalid                                   |
 | `user-already-exists.exception.ts`                 | User already registered                                          |
 | `user-not-found.exception.ts`                      | User not found in the database                                   |
+| `no-active-liquidity-provider.exception.ts`        | User has no active liquidity providers (422)                     |
 
 ## Conventions
 
