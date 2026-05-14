@@ -7,12 +7,19 @@ import { UserType, VentairyKycStatus } from "@shared/enums";
 import { ALLOWED_USER_TYPES_DECORATOR_KEY } from "@shared/decorators/user-type.decorator";
 import { BusinessOnlyException } from "@shared/exceptions/business-only.exception";
 import { UserTypeGuard } from "@modules/auth/guards/user-type.guard";
-import { BusinessController } from "./business.controller";
-import { BusinessService } from "./business.service";
-import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
-import { UploadBusinessControllerFileBodyDto } from "./dto/upload-business-controller-file-body.dto";
+import { BusinessController } from "../business.controller";
+import { BusinessService } from "../business.service";
+import { UploadBusinessFileBodyDto } from "../dto/upload-business-file-body.dto";
+import { UploadBusinessControllerFileBodyDto } from "../dto/upload-business-controller-file-body.dto";
 
-const MOCK_ACTOR = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.PENDING };
+const MOCK_ACTOR = {
+	id: "user-1",
+	sessionId: "s-1",
+	userType: UserType.BUSINESS,
+	walletAddress: "0xabc",
+	chainId: 8453,
+	kycStatus: VentairyKycStatus.PENDING,
+};
 
 function createMockBusinessService() {
 	return {

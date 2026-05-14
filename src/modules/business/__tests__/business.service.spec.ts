@@ -12,8 +12,8 @@ import { BusinessControllerNotFoundException } from "@shared/exceptions/business
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
 import { ObjectUtils } from "@shared/utils";
-import { BusinessService } from "./business.service";
-import { BUSINESS_MAX_FILE_SIZE_BYTES } from "./business.constants";
+import { BusinessService } from "../business.service";
+import { BUSINESS_MAX_FILE_SIZE_BYTES } from "../business.constants";
 import { businessesTable } from "@db/schema/businesses-table";
 import { businessControllersTable } from "@db/schema/business-controllers-table";
 

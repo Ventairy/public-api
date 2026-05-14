@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { BusinessFileType } from "@shared/enums";
 import { MimeType } from "@shared/enums/mime-type";
-import { BusinessFileTypeUtils } from "./business-file-type.utils";
+import { BusinessFileTypeUtils } from "../business-file-type.utils";
 
 describe("BusinessFileTypeUtils", () => {
 	describe("allowedMimeTypes", () => {
@@ -23,6 +23,4 @@ describe("BusinessFileTypeUtils", () => {
 			expect(result).toEqual([MimeType.PDF, MimeType.JPEG, MimeType.PNG, MimeType.HEIC, MimeType.WEBP, MimeType.AVIF]);
 		});
 	});
-
-
 });
