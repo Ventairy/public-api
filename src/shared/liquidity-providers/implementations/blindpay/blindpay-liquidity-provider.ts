@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { BlindPay, type CreatePayinQuoteInput, type ListBlockchainWalletsResponse } from "@blindpay/node";
 import { BLINDPAY_CONFIG_KEY, type BlindpayConfig } from "@core/config";
-import { LiquidityProviderId, PaymentMethod } from "@shared/constants";
+import { LiquidityProviderId, PaymentMethod } from "@shared/enums";
 import { LiquidityProviderApiException, LiquidityProviderQuoteFailedException } from "@shared/exceptions";
 import { SupportedBlockchain } from "@shared/blockchain";
 import type { ILiquidityProvider, ILiquidityProviderQuote } from "../../interfaces";

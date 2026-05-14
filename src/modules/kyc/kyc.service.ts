@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { KycRepository } from "./repositories/kyc.repository";
-import { VentairyKycStatus, UserType, BusinessFileType, BusinessControllerFileType } from "@shared/constants";
+import { VentairyKycStatus, UserType, BusinessFileType, BusinessControllerFileType } from "@shared/enums";
 import {
 	REQUIRED_FOR_KYC_DECORATOR_KEY,
 	type RequiredForKycDecoratorMetadata,

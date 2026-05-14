@@ -10,7 +10,7 @@ import {
 	ProofAddressType,
 	ControllerRole,
 	IdentificationDocumentType,
-} from "@shared/constants";
+} from "@shared/enums";
 
 describe("BusinessOutputDto", () => {
 	it("should map from database row correctly", () => {

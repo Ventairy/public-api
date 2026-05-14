@@ -1,4 +1,4 @@
-import { ProofAddressType } from "@shared/constants";
+import { ProofAddressType } from "@shared/enums";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const businessesTable = sqliteTable("businesses", {

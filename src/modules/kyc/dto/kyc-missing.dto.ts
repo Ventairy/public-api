@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { BusinessControllerFileType, BusinessFileType } from "@shared/constants";
+import { BusinessControllerFileType, BusinessFileType } from "@shared/enums";
 import { Expose } from "class-transformer";
 
 export class KycMissingDataDto {

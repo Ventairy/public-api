@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { VentairyKycStatus } from "@shared/constants";
+import { VentairyKycStatus } from "@shared/enums";
 import { type KycRow } from "@db/schema/kyc-table";
 export class KycSubmissionOutputDto {
 	static fromDatabaseRow(row: KycRow): KycSubmissionOutputDto {

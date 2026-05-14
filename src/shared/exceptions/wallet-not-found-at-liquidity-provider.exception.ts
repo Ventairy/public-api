@@ -1,7 +1,7 @@
 import { HttpStatus } from "@nestjs/common";
 import { DomainException } from "./domain.exception";
 import { ERROR_CODES } from "@shared/constants";
-import type { LiquidityProviderId } from "@shared/constants";
+import type { LiquidityProviderId } from "@shared/enums";
 import { SupportedBlockchain } from "@shared/blockchain";
 
 export class WalletNotFoundAtLiquidityProviderException extends DomainException {

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StreamableFile } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { BusinessFileType } from "@shared/constants";
-import { BusinessControllerFileType } from "@shared/constants";
+import { BusinessFileType } from "@shared/enums";
+import { BusinessControllerFileType } from "@shared/enums";
 import { UserType } from "@shared/enums/user-type";
 import { ALLOWED_USER_TYPES_DECORATOR_KEY } from "@shared/decorators/user-type.decorator";
 import { BusinessOnlyException } from "@shared/exceptions/business-only.exception";

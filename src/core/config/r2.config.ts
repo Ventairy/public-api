@@ -1,5 +1,5 @@
 import { registerAs } from "@nestjs/config";
-import { R2BucketType } from "@shared/constants";
+import { R2BucketType } from "@shared/enums";
 
 export const R2_CONFIG_KEY = "r2";
 

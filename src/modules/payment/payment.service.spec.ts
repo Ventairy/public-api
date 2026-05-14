@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PaymentService } from "./payment.service";
-import { LiquidityProviderId, PaymentMethod } from "@shared/constants";
+import { LiquidityProviderId, PaymentMethod } from "@shared/enums";
 import { UserLiquidityProviderStatus } from "@shared/enums/user-liquidity-provider-status";
 import { NoActiveLiquidityProviderException } from "@shared/exceptions/no-active-liquidity-provider.exception";
 import type { Actor } from "@shared/types/actor.type";

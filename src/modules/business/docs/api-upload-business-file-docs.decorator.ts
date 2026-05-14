@@ -1,6 +1,6 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common";
 import { ApiBody, ApiConsumes, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { BusinessFileType } from "@shared/constants";
+import { BusinessFileType } from "@shared/enums";
 import { UploadBusinessFileOutputDto } from "../dto/upload-business-file-output.dto";
 
 export function ApiUploadBusinessFileDocs(): MethodDecorator & ClassDecorator {

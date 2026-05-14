@@ -4,7 +4,7 @@ import { UserRepository } from "@modules/user/repositories/user.repository";
 import { BusinessRepository } from "./repositories/business.repository";
 import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
-import { BusinessFileType, BusinessControllerFileType, R2BucketType } from "@shared/constants";
+import { BusinessFileType, BusinessControllerFileType, R2BucketType } from "@shared/enums";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
 import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";

@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { BusinessControllerFileType } from "@shared/constants";
+import { BusinessControllerFileType } from "@shared/enums";
 import { type BusinessControllerFileRow } from "@db/schema/business-controller-files-table";
 export class UploadBusinessControllerFileOutputDto {
 	static fromDatabaseRow(row: BusinessControllerFileRow): UploadBusinessControllerFileOutputDto {

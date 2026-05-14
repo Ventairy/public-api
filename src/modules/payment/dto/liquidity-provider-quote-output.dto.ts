@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { LiquidityProviderId, PaymentMethod } from "@shared/constants";
+import { LiquidityProviderId, PaymentMethod } from "@shared/enums";
 
 export class LiquidityProviderQuoteDto {
 	constructor(data: {

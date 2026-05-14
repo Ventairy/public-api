@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsEnum } from "class-validator";
-import { BusinessControllerFileType } from "@shared/constants";
+import { BusinessControllerFileType } from "@shared/enums";
 
 export class GetBusinessControllerFileQueryDto {
 	@ApiProperty({

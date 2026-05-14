@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsEnum, IsISO31661Alpha2, IsOptional, IsString } from "class-validator";
-import { IdentificationDocumentType, UserType } from "@shared/constants";
+import { IdentificationDocumentType, UserType } from "@shared/enums";
 import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
 
 export class BusinessControllerIdentificationInputDto {

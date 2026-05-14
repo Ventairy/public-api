@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsString, IsNotEmpty, IsEnum } from "class-validator";
-import { PaymentMethod } from "@shared/constants";
+import { PaymentMethod } from "@shared/enums";
 
 export class ReceiveQuoteInputDto {
 	@ApiProperty({

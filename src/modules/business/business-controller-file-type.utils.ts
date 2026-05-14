@@ -1,4 +1,4 @@
-import { BusinessControllerFileType, MimeType } from "@shared/constants";
+import { BusinessControllerFileType, MimeType } from "@shared/enums";
 
 function allowedMimeTypes(fileType: BusinessControllerFileType): readonly MimeType[] {
 	const allowedMimeTypesMap: Record<BusinessControllerFileType, readonly MimeType[]> = {

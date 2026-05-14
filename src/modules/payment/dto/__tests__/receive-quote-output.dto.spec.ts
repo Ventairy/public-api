@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ReceiveQuoteOutputDto } from "../receive-quote-output.dto";
 import { LiquidityProviderQuoteDto } from "../liquidity-provider-quote-output.dto";
-import { LiquidityProviderId, PaymentMethod } from "@shared/constants";
+import { LiquidityProviderId, PaymentMethod } from "@shared/enums";
 import type { ILiquidityProviderQuote } from "@shared/liquidity-providers/interfaces";
 
 function createMockQuote(overrides: Partial<ILiquidityProviderQuote> = {}): ILiquidityProviderQuote {

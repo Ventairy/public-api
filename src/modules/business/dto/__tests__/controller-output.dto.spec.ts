@@ -6,7 +6,7 @@ import {
 	ProofAddressType,
 	ControllerRole,
 	IdentificationDocumentType,
-} from "@shared/constants";
+} from "@shared/enums";
 import { BusinessControllerOutputDto } from "../business-controller-output.dto";
 import { BusinessControllerAddressOutputDto } from "../business-controller-address-output.dto";
 import { BusinessControllerIdentificationOutputDto } from "../business-controller-identification-output.dto";

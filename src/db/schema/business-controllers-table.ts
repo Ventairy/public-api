@@ -1,7 +1,7 @@
 import { sqliteTable, text, real } from "drizzle-orm/sqlite-core";
 import { type BusinessControllerRole } from "@shared/enums/business-controller-role";
 import { type PersonalIdentificationDocumentType } from "@shared/enums/personal-identification-document-type";
-import { ProofAddressType } from "@shared/constants";
+import { ProofAddressType } from "@shared/enums";
 
 export const businessControllersTable = sqliteTable("business_controllers", {
 	id: text("id").primaryKey(),

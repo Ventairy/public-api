@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ReceiveQuoteInputDto } from "../receive-quote-input.dto";
-import { PaymentMethod } from "@shared/constants";
+import { PaymentMethod } from "@shared/enums";
 
 describe("ReceiveQuoteInputDto", () => {
 	it("should have correct properties", () => {

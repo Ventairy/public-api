@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BusinessFileType } from "@shared/constants";
+import { BusinessFileType } from "@shared/enums";
 import { MimeType } from "@shared/enums/mime-type";
 import { BusinessFileTypeUtils } from "./business-file-type.utils";
 

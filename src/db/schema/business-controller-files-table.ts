@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { type BusinessControllerFileType } from "@shared/constants";
+import { type BusinessControllerFileType } from "@shared/enums";
 
 export const businessControllerFilesTable = sqliteTable(
 	"business_controller_files",

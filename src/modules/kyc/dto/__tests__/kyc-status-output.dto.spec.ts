@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { KycStatusOutputDto } from "../kyc-status-output.dto";
 import { KycMissingDataDto } from "../kyc-missing.dto";
 import { type KycRow } from "@db/schema/kyc-table";
-import { VentairyKycStatus } from "@shared/constants";
+import { VentairyKycStatus } from "@shared/enums";
 
 function emptyMissing(): KycMissingDataDto {
 	return new KycMissingDataDto({ fields: [], files: [] });

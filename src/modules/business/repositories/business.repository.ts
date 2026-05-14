@@ -13,7 +13,7 @@ import {
 	type BusinessControllerFileRow,
 	type NewBusinessControllerFileRow,
 } from "@db/schema/business-controller-files-table";
-import { type BusinessFileType, type BusinessControllerFileType } from "@shared/constants";
+import { type BusinessFileType, type BusinessControllerFileType } from "@shared/enums";
 
 @Injectable()
 export class BusinessRepository {

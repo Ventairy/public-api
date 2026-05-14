@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsEnum } from "class-validator";
-import { BusinessFileType } from "@shared/constants";
+import { BusinessFileType } from "@shared/enums";
 
 export class UploadBusinessFileBodyDto {
 	@ApiProperty({

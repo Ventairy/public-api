@@ -4,7 +4,7 @@ import { UserType } from "@shared/enums/user-type";
 import { SupportedBlockchain } from "@shared/blockchain";
 import { UserService } from "./user.service";
 import { UserAlreadyExistsException } from "@shared/exceptions";
-import { VentairyKycStatus } from "@shared/constants";
+import { VentairyKycStatus } from "@shared/enums";
 
 const validWalletAddress = "0x742d35cc6634c0532925a3b844bc9e7595f0beb1";
 const validSiweMessage = "example.com wants you to sign in with your Ethereum account...";

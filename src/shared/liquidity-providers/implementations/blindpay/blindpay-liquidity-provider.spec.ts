@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ConfigService } from "@nestjs/config";
 import { BlindPay } from "@blindpay/node";
 import { BlindpayLiquidityProvider } from "./blindpay-liquidity-provider";
-import { LiquidityProviderId, PaymentMethod } from "@shared/constants";
+import { LiquidityProviderId, PaymentMethod } from "@shared/enums";
 import { LiquidityProviderApiException, LiquidityProviderQuoteFailedException, WalletAtLiquidityProviderMismatchException } from "@shared/exceptions";
 
 const mockBlindPayInstance = {

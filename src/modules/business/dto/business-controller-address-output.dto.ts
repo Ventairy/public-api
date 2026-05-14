@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { ProofAddressType } from "@shared/constants";
+import { ProofAddressType } from "@shared/enums";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 export class BusinessControllerAddressOutputDto {
 	static fromDatabaseRow(row: BusinessControllerDatabaseRow): BusinessControllerAddressOutputDto {

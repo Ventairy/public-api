@@ -3,7 +3,7 @@ import { instanceToPlain } from "class-transformer";
 import { KycSubmissionOutputDto } from "../dto/kyc-submission-output.dto";
 import { KycStatusOutputDto } from "../dto/kyc-status-output.dto";
 import { KycMissingDataDto } from "../dto/kyc-missing.dto";
-import { VentairyKycStatus } from "@shared/constants";
+import { VentairyKycStatus } from "@shared/enums";
 
 describe("KycSubmissionOutputDto - Snake Case Mapping", () => {
 	it("should map camelCase to snake_case when serialized", () => {

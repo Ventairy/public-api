@@ -1,7 +1,7 @@
 import { HttpStatus } from "@nestjs/common";
 import { DomainException } from "./domain.exception";
 import { ERROR_CODES } from "@shared/constants";
-import type { LiquidityProviderId } from "@shared/constants";
+import type { LiquidityProviderId } from "@shared/enums";
 
 export class LiquidityProviderApiException extends DomainException {
 	constructor(params: { liquidityProviderId: LiquidityProviderId; errorMessage: string }) {

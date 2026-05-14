@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { HttpStatus } from "@nestjs/common";
-import { ERROR_CODES, VentairyKycStatus } from "@shared/constants";
+import { ERROR_CODES } from "@shared/constants";
+import { VentairyKycStatus } from "@shared/enums";
 import { KycSubmissionLockedException } from "../kyc-submission-locked.exception";
 
 describe("KycSubmissionLockedException", () => {

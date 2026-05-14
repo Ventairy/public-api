@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PaymentController } from "./payment.controller";
-import { PaymentMethod } from "@shared/constants";
+import { PaymentMethod } from "@shared/enums";
 import type { Actor } from "@shared/types/actor.type";
 import type { UserType } from "@shared/enums/user-type";
 

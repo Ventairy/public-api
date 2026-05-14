@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { DRIZZLE_DB, type DrizzleDb, type AtomicCall } from "@core/database";
 import { kycTable, type KycRow, type NewKycRow } from "@db/schema/kyc-table";
-import { VentairyKycStatus } from "@shared/constants";
+import { VentairyKycStatus } from "@shared/enums";
 
 @Injectable()
 export class KycRepository {

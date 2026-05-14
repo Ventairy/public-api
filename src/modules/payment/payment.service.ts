@@ -4,7 +4,7 @@ import { type ILiquidityProvider, type ILiquidityProviderQuote } from "@shared/l
 import { NoActiveLiquidityProviderException } from "@shared/exceptions/no-active-liquidity-provider.exception";
 import { ReceiveQuoteOutputDto } from "./dto";
 import type { Actor } from "@shared/types/actor.type";
-import { type PaymentMethod } from "@shared/constants";
+import { type PaymentMethod } from "@shared/enums";
 import { AVAILABLE_LIQUIDITY_PROVIDERS_INJECTION_TOKEN } from "@modules/providers/user-liquidity-providers.module";
 
 @Injectable()

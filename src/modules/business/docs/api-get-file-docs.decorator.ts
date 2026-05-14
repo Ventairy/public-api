@@ -1,6 +1,6 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiQuery, ApiProduces } from "@nestjs/swagger";
-import { BusinessFileType } from "@shared/constants";
+import { BusinessFileType } from "@shared/enums";
 
 export function ApiGetFileDocs(): MethodDecorator & ClassDecorator {
 	return applyDecorators(

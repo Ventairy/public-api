@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { UploadBusinessControllerFileOutputDto } from "../upload-business-controller-file-output.dto";
 import { type BusinessControllerFileRow } from "@db/schema/business-controller-files-table";
-import { BusinessControllerFileType } from "@shared/constants";
+import { BusinessControllerFileType } from "@shared/enums";
 
 describe("UploadBusinessControllerFileOutputDto", () => {
 	it("should map from database row correctly", () => {

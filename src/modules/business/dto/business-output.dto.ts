@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { BusinessFileType, BusinessControllerFileType } from "@shared/constants";
+import { BusinessFileType, BusinessControllerFileType } from "@shared/enums";
 import { BusinessControllerOutputDto } from "./business-controller-output.dto";
 import { BusinessAddressOutputDto } from "./business-address-output.dto";
 import { type BusinessDatabaseRow } from "@db/schema/businesses-table";

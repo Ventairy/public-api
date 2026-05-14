@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserLiquidityProvidersService } from "./user-liquidity-providers.service";
-import { LiquidityProviderId } from "@shared/constants";
+import { LiquidityProviderId } from "@shared/enums";
 import type { UserLiquidityProviderRow } from "@db/schema/user-liquidity-providers-table";
 import { UserLiquidityProviderStatus } from "@shared/enums/user-liquidity-provider-status";
 

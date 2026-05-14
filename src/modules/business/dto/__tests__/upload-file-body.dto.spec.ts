@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { validate } from "class-validator";
 import { plainToInstance } from "class-transformer";
-import { BusinessFileType } from "@shared/constants";
+import { BusinessFileType } from "@shared/enums";
 import { UploadBusinessFileBodyDto } from "../upload-business-file-body.dto";
 
 describe("UploadFileBodyDto", () => {

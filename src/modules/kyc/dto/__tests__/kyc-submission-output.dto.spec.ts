@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { KycSubmissionOutputDto } from "../kyc-submission-output.dto";
 import { type KycRow } from "@db/schema/kyc-table";
-import { VentairyKycStatus } from "@shared/constants";
+import { VentairyKycStatus } from "@shared/enums";
 
 describe("KycSubmissionOutputDto", () => {
 	it("should map from database row correctly when submitted", () => {

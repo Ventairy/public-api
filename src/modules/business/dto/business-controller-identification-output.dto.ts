@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { IdentificationDocumentType } from "@shared/constants";
+import { IdentificationDocumentType } from "@shared/enums";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 export class BusinessControllerIdentificationOutputDto {
 	static fromDatabaseRow(row: BusinessControllerDatabaseRow): BusinessControllerIdentificationOutputDto {

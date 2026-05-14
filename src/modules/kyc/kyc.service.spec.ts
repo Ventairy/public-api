@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { VentairyKycStatus, UserType, BusinessFileType, BusinessControllerFileType, ControllerRole } from "@shared/constants";
+import { VentairyKycStatus, UserType, BusinessFileType, BusinessControllerFileType, ControllerRole } from "@shared/enums";
 import { KycSubmissionLockedException } from "@shared/exceptions/kyc-submission-locked.exception";
 import { KycSubmissionRequirementsNotMetException } from "@shared/exceptions/kyc-submission-requirements-not-met.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
