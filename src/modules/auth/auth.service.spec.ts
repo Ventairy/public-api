@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
-import { UserType } from "@shared/enums/user-type";
+import { UserType, VentairyKycStatus } from "@shared/enums";
 import { AuthService } from "./auth.service";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
 import { UserRepository } from "@modules/user/repositories/user.repository";
+import { KycService } from "@modules/kyc/kyc.service";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
@@ -37,7 +38,9 @@ function createMockAuthServiceDeps() {
 			deleteByUserId: vi.fn().mockResolvedValue(undefined),
 			deleteExpired: vi.fn().mockResolvedValue(0),
 		} as unknown as UserSessionRepository,
-		configService: {} as ConfigService,
+		kycService: {
+			getRawKycStatus: vi.fn(),
+		} as unknown as KycService,
 	};
 }
 
@@ -55,18 +58,19 @@ describe("AuthService", () => {
 			deps.userRepository,
 			deps.jwtService,
 			deps.userSessionRepository,
-			deps.configService,
+			deps.kycService,
 		);
 	});
 
 	describe("login", () => {
-		it("should parse and verify SIWE, find user, create session, and return tokens", async () => {
+		it("should parse and verify SIWE, find user, create session, fetch KYC status, and return tokens", async () => {
 			deps.userRepository.findByWalletAddress = vi.fn().mockResolvedValue({
 				id: "u-1",
 				wallet_address: "0xabc",
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
+			deps.kycService.getRawKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.APPROVED);
 
 			const result = await service.login({
 				message: "siwe-message",
@@ -78,6 +82,7 @@ describe("AuthService", () => {
 				signature: "0xsig",
 			});
 			expect(deps.userRepository.findByWalletAddress).toHaveBeenCalledWith("0xabc");
+			expect(deps.kycService.getRawKycStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.userSessionRepository.create).toHaveBeenCalled();
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
@@ -85,10 +90,28 @@ describe("AuthService", () => {
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
+				kycStatus: VentairyKycStatus.APPROVED,
 			});
 			expect(result.output.expiresAt).toBeTruthy();
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.rawRefreshToken).toBe("raw-refresh-token-64-chars-hex-string-abcdef123456");
+		});
+
+		it("should throw UserNotFoundException when KYC row is not found on login", async () => {
+			deps.userRepository.findByWalletAddress = vi.fn().mockResolvedValue({
+				id: "u-1",
+				wallet_address: "0xabc",
+				chain_id: 8453,
+				user_type: UserType.BUSINESS,
+			});
+			deps.kycService.getRawKycStatus = vi.fn().mockRejectedValue(new UserNotFoundException("u-1"));
+
+			await expect(
+				service.login({
+					message: "siwe-message",
+					signature: "0xsig",
+				}),
+			).rejects.toThrow(UserNotFoundException);
 		});
 
 		it("should throw UserNotFoundException when user does not exist", async () => {
@@ -145,7 +168,7 @@ describe("AuthService", () => {
 			await expect(service.refreshTokens(request)).rejects.toThrow(SessionExpiredException);
 		});
 
-		it("should rotate tokens and return new ones", async () => {
+		it("should rotate tokens and return new ones with KYC status", async () => {
 			const futureDate = new Date(Date.now() + 86400000).toISOString();
 			deps.userSessionRepository.findByRefreshTokenHash = vi.fn().mockResolvedValue({
 				id: "s-1",
@@ -158,17 +181,20 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
+			deps.kycService.getRawKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.VERIFYING);
 			const request = { headers: { cookie: "__Host-ventairy-refresh=valid-token" } } as Request;
 
 			const result = await service.refreshTokens(request);
 
 			expect(deps.userSessionRepository.updateRefreshTokenHash).toHaveBeenCalled();
+			expect(deps.kycService.getRawKycStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
 				sessionId: "s-1",
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
+				kycStatus: VentairyKycStatus.VERIFYING,
 			});
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.output.expiresAt).toBeTruthy();

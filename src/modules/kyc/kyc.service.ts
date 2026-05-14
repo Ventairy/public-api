@@ -7,7 +7,7 @@ import {
 } from "@shared/decorators/required-for-kyc.decorator";
 import { KycSubmissionLockedException } from "@shared/exceptions/kyc-submission-locked.exception";
 import { KycSubmissionRequirementsNotMetException } from "@shared/exceptions/kyc-submission-requirements-not-met.exception";
-import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
+import { UserKycNotFoundException } from "@shared/exceptions";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { BusinessService } from "@modules/business/business.service";
 import { KycSubmissionOutputDto, KycStatusOutputDto, KycMissingDto } from "./dto";
@@ -170,9 +170,15 @@ export class KycService {
 		return kycStatus === VentairyKycStatus.PENDING && missing.fields.length === 0 && missing.files.length === 0;
 	}
 
+	public async getRawKycStatus(userId: string): Promise<VentairyKycStatus> {
+		const row = await this._getKycDatabaseRow(userId);
+
+		return row.ventairy_kyc_status;
+	}
+
 	private async _getKycDatabaseRow(userId: string): Promise<import("@db/schema/kyc-table").KycRow> {
 		const row = await this._kycRepository.findByUserId(userId);
-		if (!row) throw new UserNotFoundException(userId);
+		if (!row) throw new UserKycNotFoundException(userId);
 
 		return row;
 	}

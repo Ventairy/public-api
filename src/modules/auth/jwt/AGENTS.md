@@ -2,7 +2,7 @@
 
 ## Purpose
 
-HS256 JWT signing and verification layer using the `jose` library. Generates access tokens with `sub` (userId), `sid` (sessionId), and `user_type` (UserType) claims. Tokens are verified by the global `JwtAuthGuard` on every protected request.
+HS256 JWT signing and verification layer using the `jose` library. Generates access tokens with `sub` (userId), `sid` (sessionId), `user_type` (UserType), and `kyc_status` (VentairyKycStatus) claims. Tokens are verified by the global `JwtAuthGuard` on every protected request.
 
 ## Files
 
@@ -19,10 +19,11 @@ HS256 JWT signing and verification layer using the `jose` library. Generates acc
 
 ## JWT Claims
 
-| Claim            | Description                                                          |
-| ---------------- | -------------------------------------------------------------------- |
-| `sub`            | User ID (UUID)                                                       |
-| `sid`            | Session ID (UUID)                                                    |
-| `user_type`      | User type (e.g., `BUSINESS`)                                         |
-| `wallet_address` | Ethereum wallet address (lowercased). Embedded for stateless access. |
-| `chain_id`       | Blockchain chain ID (e.g., `8453` for Base).                         |
+| Claim            | Description                                                                                                          |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `sub`            | User ID (UUID)                                                                                                       |
+| `sid`            | Session ID (UUID)                                                                                                    |
+| `user_type`      | User type (e.g., `BUSINESS`)                                                                                         |
+| `wallet_address` | Ethereum wallet address (lowercased). Embedded for stateless access.                                                 |
+| `chain_id`       | Blockchain chain ID (e.g., `8453` for Base).                                                                         |
+| `kyc_status`     | KYC status (`APPROVED`, `PENDING`, `VERIFYING`, `REJECTED`). Embedded for stateless KYC authorization by `KYCGuard`. |

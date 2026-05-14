@@ -6,9 +6,9 @@ TypeScript interfaces for JWT-related data structures. Interfaces use the `I` pr
 
 ## Files
 
-| File                                | Description                                                                                                |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `access-token-payload.interface.ts` | `IAccessTokenPayload` — defines the shape of the JWT payload (`sub`, `sid`, `user_type`, `wallet_address`) |
+| File                                | Description                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `access-token-payload.interface.ts` | `IAccessTokenPayload` — defines the shape of the JWT payload (`sub`, `sid`, `user_type`, `wallet_address`, `chain_id`, `kyc_status`) |
 
 ## Principles
 

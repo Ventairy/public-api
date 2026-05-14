@@ -63,7 +63,7 @@ describe("KycRepository", () => {
 		const kycData = { id: "kyc-1", user_id: "user-1" };
 
 		it("should return a AtomicCall without executing the query", () => {
-			const insertBuilder = { values: vi.fn().mockReturnThis() };
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn().mockReturnThis() };
 			mockDb.insert.mockReturnValue(insertBuilder);
 
 			const result = repository.create_atomicCall(kycData);
@@ -73,17 +73,29 @@ describe("KycRepository", () => {
 			expect(typeof result.processResult).toBe("function");
 			expect(mockDb.insert).toHaveBeenCalledWith(expect.anything());
 			expect(insertBuilder.values).toHaveBeenCalledWith(kycData);
+			expect(insertBuilder.returning).toHaveBeenCalled();
 			expect(mockDb.values).not.toHaveBeenCalledWith(expect.anything());
 		});
 
-		it("processResult should return undefined", () => {
-			const insertBuilder = { values: vi.fn().mockReturnThis() };
+		it("processResult should return the first row", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn().mockReturnThis() };
 			mockDb.insert.mockReturnValue(insertBuilder);
 
 			const call = repository.create_atomicCall(kycData);
 
-			expect(call.processResult([{ id: "kyc-1" }])).toBeUndefined();
-			expect(call.processResult([])).toBeUndefined();
+			expect(call.processResult([{ id: "kyc-1", ventairy_kyc_status: "PENDING" }])).toEqual({
+				id: "kyc-1",
+				ventairy_kyc_status: "PENDING",
+			});
+		});
+
+		it("processResult should throw if no rows returned", () => {
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn().mockReturnThis() };
+			mockDb.insert.mockReturnValue(insertBuilder);
+
+			const call = repository.create_atomicCall(kycData);
+
+			expect(() => call.processResult([])).toThrow("KYC insert returned no rows");
 		});
 	});
 

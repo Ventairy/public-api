@@ -6,7 +6,7 @@ import type { Actor } from "@shared/types/actor.type";
 import { KycStatusOutputDto, KycMissingDto, KycSubmissionOutputDto } from "./dto";
 import { VentairyKycStatus } from "@shared/enums";
 
-const MOCK_ACTOR: Actor = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
+const MOCK_ACTOR: Actor = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.APPROVED };
 
 const MOCK_STATUS = new KycStatusOutputDto({
 	userId: "user-1",

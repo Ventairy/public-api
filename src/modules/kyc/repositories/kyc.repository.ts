@@ -17,12 +17,18 @@ export class KycRepository {
 		await this._db.insert(kycTable).values(data);
 	}
 
-	create_atomicCall(data: NewKycRow): AtomicCall<void> {
-		const query = this._db.insert(kycTable).values(data);
+	create_atomicCall(data: NewKycRow): AtomicCall<KycRow> {
+		const query = this._db.insert(kycTable).values(data).returning();
 
 		return {
 			query,
-			processResult: () => undefined,
+			processResult: (rawRows: unknown[]) => {
+				const rows = rawRows as KycRow[];
+				const row = rows[0];
+
+				if (!row) throw new Error("KYC insert returned no rows");
+				return row;
+			},
 		};
 	}
 

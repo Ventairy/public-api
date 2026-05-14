@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "./jwt.service";
 import { UserType } from "@shared/enums/user-type";
+import { VentairyKycStatus } from "@shared/enums";
 
 function createMockConfigService(secret: string): ConfigService {
 	return {
@@ -22,7 +23,7 @@ describe("JwtService", () => {
 		service = new JwtService(configService);
 	});
 
-	const defaultParams = { userId: "u-1", sessionId: "s-1", userType: UserType.BUSINESS as UserType, walletAddress: "0xabc", chainId: 8453 };
+	const defaultParams = { userId: "u-1", sessionId: "s-1", userType: UserType.BUSINESS as UserType, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.APPROVED };
 
 	describe("generateAccessToken", () => {
 		it("should generate a valid JWT string", async () => {
@@ -44,6 +45,7 @@ describe("JwtService", () => {
 			expect(payload.user_type).toBe(UserType.BUSINESS);
 			expect(payload.wallet_address).toBe("0xabc");
 			expect(payload.chain_id).toBe(8453);
+			expect(payload.kyc_status).toBe(VentairyKycStatus.APPROVED);
 			expect(payload.iat).toBeGreaterThan(0);
 			expect(payload.exp).toBeGreaterThan(0);
 		});
@@ -112,6 +114,18 @@ describe("JwtService", () => {
 			const { SignJWT } = await import("jose");
 			const secret = new TextEncoder().encode(validSecret);
 			const token = await new SignJWT({ sub: "u-1", sid: "s-1", user_type: UserType.BUSINESS })
+				.setProtectedHeader({ alg: "HS256" })
+				.setIssuedAt()
+				.setExpirationTime("900s")
+				.sign(secret);
+
+			await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedException);
+		});
+
+		it("should throw UnauthorizedException when kyc_status is missing", async () => {
+			const { SignJWT } = await import("jose");
+			const secret = new TextEncoder().encode(validSecret);
+			const token = await new SignJWT({ sub: "u-1", sid: "s-1", user_type: UserType.BUSINESS, wallet_address: "0xabc" })
 				.setProtectedHeader({ alg: "HS256" })
 				.setIssuedAt()
 				.setExpirationTime("900s")

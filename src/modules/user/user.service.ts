@@ -53,7 +53,7 @@ export class UserService {
 		const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
 		try {
-			const [[insertedRow, session]] = await Promise.all([
+			const [[insertedRow, session, kyc]] = await Promise.all([
 				this._atomicExecutionService.execute(
 					this._userRepository.create_atomicCall({
 						id: newUserId,
@@ -83,6 +83,7 @@ export class UserService {
 				userType: params.userType,
 				walletAddress: siweWalletAddress,
 				chainId: siweChainId,
+				kycStatus: kyc.ventairy_kyc_status,
 			});
 
 			return {

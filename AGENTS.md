@@ -96,6 +96,9 @@ This is a financial infrastructure application. A single vulnerability results i
 - **Test-Driven Development (TDD):** You MUST write tests _before_ the implementation. Define the contract and edge cases in the spec file, then write the minimal code to satisfy the requirements.
 - **Logic Validation:** Do not just test "success paths." Every conditional branch, every error state, and every data transformation MUST be verified.
 - **DTO & Serialization Testing:** Since we use strict `snake_case` wire formats, you MUST write tests to ensure DTOs correctly transform database rows and request payloads.
+- **Input Validation Testing:** Every DTO input validation (`class-validator` decorators like `@IsString`, `@IsEnum`, `@IsNotEmpty`, etc.) MUST have a corresponding test that validates the validation will never break and works as intended. These tests MUST use `class-validator`'s `validate()` function with `plainToInstance()` from `class-transformer` to programmatically verify each decorator rejects invalid inputs and accepts valid ones.
+  - Cover EVERY possible way of passing each parameter: wrong types (number, boolean, object, array, null for a string field), missing fields, empty strings, invalid enum values, and extra unknown fields. Each decorator and each invalid variant MUST be tested independently.
+  - This applies to ALL DTOs across the entire codebase — any DTO without such tests is considered incomplete.
 - **Mocking Strategy:**
   - **External Providers:** Heavily mock `Blindpay`, `Lumx`, `Bridge.xyz`, etc., to simulate failures, timeouts, and unexpected payloads.
   - **Database:** Mock the `DrizzleService` to verify query parameters and transaction logic without needing a live DB.

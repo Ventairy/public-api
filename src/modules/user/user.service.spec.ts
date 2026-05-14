@@ -76,8 +76,9 @@ describe("UserService", () => {
 		};
 
 		const defaultSessionRow = { id: "s-1", user_id: defaultInsertedRow.id };
+		const defaultKycRow = { id: "kyc-1", user_id: defaultInsertedRow.id, ventairy_kyc_status: VentairyKycStatus.PENDING };
 
-		const defaultBatchResult = [defaultInsertedRow, defaultSessionRow, undefined] as const;
+		const defaultBatchResult = [defaultInsertedRow, defaultSessionRow, defaultKycRow] as const;
 
 		it("should parse and verify SIWE before creating a user", async () => {
 			mockAtomicExecutionService.execute.mockResolvedValue(defaultBatchResult);
@@ -119,6 +120,23 @@ describe("UserService", () => {
 			});
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.rawRefreshToken).toBe("raw-refresh-token");
+			expect(mockJwtService.generateAccessToken).toHaveBeenCalledWith(
+				expect.objectContaining({ kycStatus: defaultKycRow.ventairy_kyc_status }),
+			);
+		});
+
+		it("should pass the KYC row status from the atomic batch to generateAccessToken", async () => {
+			mockAtomicExecutionService.execute.mockResolvedValue([
+				defaultInsertedRow,
+				defaultSessionRow,
+				{ id: "kyc-2", user_id: defaultInsertedRow.id, ventairy_kyc_status: VentairyKycStatus.PENDING },
+			] as const);
+
+			await service.createUser(defaultCreateParams);
+
+			expect(mockJwtService.generateAccessToken).toHaveBeenCalledWith(
+				expect.objectContaining({ kycStatus: VentairyKycStatus.PENDING }),
+			);
 		});
 
 		it("should batch user, session, and KYC inserts atomically", async () => {
@@ -142,7 +160,11 @@ describe("UserService", () => {
 					id: "00000000-0000-0000-0000-000000000002",
 					user_id: "00000000-0000-0000-0000-000000000001",
 				},
-				undefined,
+				{
+					id: "00000000-0000-0000-0000-000000000003",
+					user_id: "00000000-0000-0000-0000-000000000001",
+					ventairy_kyc_status: VentairyKycStatus.PENDING,
+				},
 			] as const);
 
 			await service.createUser(defaultCreateParams);
@@ -202,7 +224,7 @@ describe("UserService", () => {
 			mockAtomicExecutionService.execute.mockResolvedValue([
 				{ id: "test-id", wallet_address: siweReturnedWallet, created_at: "2026-05-04T14:48:00.000Z", ...createRowDefaults },
 				defaultSessionRow,
-				undefined,
+				{ id: "kyc-1", user_id: "test-id", ventairy_kyc_status: VentairyKycStatus.PENDING },
 			] as const);
 
 			await service.createUser(defaultCreateParams);

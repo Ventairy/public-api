@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { VentairyKycStatus, UserType, BusinessFileType, BusinessControllerFileType, ControllerRole } from "@shared/enums";
+import { UserType, BusinessFileType, BusinessControllerFileType, ControllerRole } from "@shared/enums";
+import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
 import { KycSubmissionLockedException } from "@shared/exceptions/kyc-submission-locked.exception";
 import { KycSubmissionRequirementsNotMetException } from "@shared/exceptions/kyc-submission-requirements-not-met.exception";
-import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
+import { UserKycNotFoundException } from "@shared/exceptions";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { KycService } from "./kyc.service";
 import type { Actor } from "@shared/types/actor.type";
 
 const MOCK_USER_ID = "user-123";
-const MOCK_ACTOR: Actor = { id: MOCK_USER_ID, sessionId: "session-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
+const MOCK_ACTOR: Actor = { id: MOCK_USER_ID, sessionId: "session-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.APPROVED };
 
 function createMockKyc(overrides: Record<string, unknown> = {}) {
 	return {
@@ -94,10 +95,10 @@ describe("KycService", () => {
 	});
 
 	describe("submitKyc", () => {
-		it("should throw UserNotFoundException when user has no kyc record", async () => {
+		it("should throw UserKycNotFoundException when user has no kyc record", async () => {
 			mockKycRepository.findByUserId.mockResolvedValue(undefined);
 
-			await expect(service.submitKyc(MOCK_ACTOR)).rejects.toThrow(UserNotFoundException);
+			await expect(service.submitKyc(MOCK_ACTOR)).rejects.toThrow(UserKycNotFoundException);
 		});
 
 		it("should throw KycSubmissionLockedException when user is APPROVED", async () => {
@@ -204,10 +205,10 @@ describe("KycService", () => {
 	});
 
 	describe("getKycStatus", () => {
-		it("should throw UserNotFoundException when user has no kyc record", async () => {
+		it("should throw UserKycNotFoundException when user has no kyc record", async () => {
 			mockKycRepository.findByUserId.mockResolvedValue(undefined);
 
-			await expect(service.getKycStatus(MOCK_ACTOR)).rejects.toThrow(UserNotFoundException);
+			await expect(service.getKycStatus(MOCK_ACTOR)).rejects.toThrow(UserKycNotFoundException);
 		});
 
 		it("should return non-controller fields plus business.controllers when no business exists", async () => {

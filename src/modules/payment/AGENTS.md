@@ -44,5 +44,6 @@ Handles payment operations: quoting, execution, and status tracking. Currently s
 ## Principles
 
 - All endpoints require authentication (no `@Public` decorator)
+- All endpoints require KYC approval (`@KYCRequired()` on controller). Non‑APPROVED KYC status returns 403.
 - Quotes are returned sorted by target amount descending (best rate first)
 - Failed provider quotes are silently skipped — only successful quotes are returned

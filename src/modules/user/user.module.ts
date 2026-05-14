@@ -6,7 +6,7 @@ import { UserService } from "./user.service";
 import { UserRepository } from "./repositories/user.repository";
 
 @Module({
-	imports: [forwardRef(() => AuthModule), KycModule],
+	imports: [forwardRef(() => AuthModule), forwardRef(() => KycModule)],
 	controllers: [UserController],
 	providers: [UserService, UserRepository],
 	exports: [UserService, UserRepository],

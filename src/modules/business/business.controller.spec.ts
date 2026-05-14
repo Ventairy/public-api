@@ -3,7 +3,7 @@ import { StreamableFile } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { BusinessFileType } from "@shared/enums";
 import { BusinessControllerFileType } from "@shared/enums";
-import { UserType } from "@shared/enums/user-type";
+import { UserType, VentairyKycStatus } from "@shared/enums";
 import { ALLOWED_USER_TYPES_DECORATOR_KEY } from "@shared/decorators/user-type.decorator";
 import { BusinessOnlyException } from "@shared/exceptions/business-only.exception";
 import { UserTypeGuard } from "@modules/auth/guards/user-type.guard";
@@ -12,7 +12,7 @@ import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessControllerFileBodyDto } from "./dto/upload-business-controller-file-body.dto";
 
-const MOCK_ACTOR = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
+const MOCK_ACTOR = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.PENDING };
 
 function createMockBusinessService() {
 	return {

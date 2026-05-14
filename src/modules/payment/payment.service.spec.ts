@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PaymentService } from "./payment.service";
-import { LiquidityProviderId, PaymentMethod } from "@shared/enums";
+import { LiquidityProviderId, PaymentMethod, VentairyKycStatus } from "@shared/enums";
 import { UserLiquidityProviderStatus } from "@shared/enums/user-liquidity-provider-status";
 import { NoActiveLiquidityProviderException } from "@shared/exceptions/no-active-liquidity-provider.exception";
 import type { Actor } from "@shared/types/actor.type";
@@ -15,6 +15,7 @@ const MOCK_ACTOR: Actor = {
 	userType: "BUSINESS" as UserType,
 	walletAddress: MOCK_WALLET_ADDRESS,
 	chainId: 8453,
+	kycStatus: VentairyKycStatus.APPROVED,
 };
 
 function createMockQuote(overrides: Partial<ILiquidityProviderQuote> = {}): ILiquidityProviderQuote {

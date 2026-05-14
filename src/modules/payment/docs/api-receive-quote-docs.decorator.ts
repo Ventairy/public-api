@@ -16,8 +16,12 @@ export function ApiReceiveQuoteDocs(): MethodDecorator & ClassDecorator {
 			type: ReceiveQuoteOutputDto,
 		}),
 		ApiResponse({
+			status: HttpStatus.FORBIDDEN,
+			description: "KYC approval is required to access this resource. ",
+		}),
+		ApiResponse({
 			status: HttpStatus.UNPROCESSABLE_ENTITY,
-			description: "User has no active liquidity providers. KYC may still be pending approval.",
+			description: "User has no active liquidity providers.",
 		}),
 	);
 }
