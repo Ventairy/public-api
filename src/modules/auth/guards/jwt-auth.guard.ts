@@ -33,6 +33,8 @@ export class JwtAuthGuard implements CanActivate {
 			id: payload.sub,
 			sessionId: payload.sid,
 			userType: payload.user_type as UserType,
+			walletAddress: payload.wallet_address,
+			chainId: payload.chain_id,
 		};
 
 		return true;

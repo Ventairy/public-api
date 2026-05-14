@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { IsEthereumAddress, IsString } from "class-validator";
+import { IsEthereumAddress, IsEnum, IsString } from "class-validator";
+import { SupportedBlockchain } from "@shared/blockchain";
 
 export class NonceInputDto {
 	@ApiProperty({
@@ -13,4 +14,14 @@ export class NonceInputDto {
 	@IsString()
 	@IsEthereumAddress()
 	walletAddress!: string;
+
+	@ApiProperty({
+		name: "chain_id",
+		description: "The blockchain chain ID the nonce is being created for. Must match the chain_id in the SIWE message signature to ensure the signed chain matches the intended chain.",
+		enum: SupportedBlockchain,
+		example: SupportedBlockchain.BASE,
+	})
+	@Expose({ name: "chain_id" })
+	@IsEnum(SupportedBlockchain)
+	chainId!: SupportedBlockchain;
 }

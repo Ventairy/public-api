@@ -66,13 +66,27 @@ describe("SiweVerifierService", () => {
 		const validSignature =
 			"0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e";
 
-		function setupNonceFound(walletAddress: string, expiresAt: string) {
+		function setupNonceFound(walletAddress: string, expiresAt: string, overrides: Record<string, unknown> = {}) {
 			mockNonceService.findNonce.mockResolvedValueOnce({
 				id: "nonce-id",
 				nonce: validNonce,
 				wallet_address: walletAddress,
+				chain_id: 8453,
 				expires_at: expiresAt,
 				created_at: new Date().toISOString(),
+				...overrides,
+			});
+		}
+
+		function setupNonceRow(overrides: Record<string, unknown> = {}) {
+			mockNonceService.findNonce.mockResolvedValueOnce({
+				id: "nonce-id",
+				nonce: validNonce,
+				wallet_address: WALLET_ADDRESS,
+				chain_id: 8453,
+				expires_at: new Date(Date.now() + 180_000).toISOString(),
+				created_at: new Date().toISOString(),
+				...overrides,
 			});
 		}
 
@@ -83,7 +97,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "not-a-valid-siwe-message",
 					signature: validSignature,
 				}),
@@ -95,7 +108,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -107,25 +119,10 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
 			).rejects.toThrow("uri mismatch");
-		});
-
-		it("should throw SiweMessageInvalidException when address mismatches wallet_address", async () => {
-			mockSiweMessageConstructor.mockReturnValue(
-				createMockSiweMessage({ address: "0xdifferentcc6634c0532925a3b844bc9e7595f0beb1" }),
-			);
-
-			await expect(
-				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
-					message: "some-message",
-					signature: validSignature,
-				}),
-			).rejects.toThrow("address mismatch");
 		});
 
 		it("should throw SiweMessageInvalidException for unsupported chain ID", async () => {
@@ -133,7 +130,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -147,7 +143,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -159,7 +154,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -172,7 +166,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -181,17 +174,12 @@ describe("SiweVerifierService", () => {
 
 		it("should throw NonceWalletMismatchException when nonce belongs to a different wallet", async () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage());
-			mockNonceService.findNonce.mockResolvedValueOnce({
-				id: "nonce-id",
-				nonce: validNonce,
+			setupNonceRow({
 				wallet_address: "0xdifferentcc6634c0532925a3b844bc9e7595f0beb1",
-				expires_at: new Date(Date.now() + 180_000).toISOString(),
-				created_at: new Date().toISOString(),
 			});
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -200,17 +188,12 @@ describe("SiweVerifierService", () => {
 
 		it("should throw NonceExpiredException when nonce has expired in DB", async () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage());
-			mockNonceService.findNonce.mockResolvedValueOnce({
-				id: "nonce-id",
-				nonce: validNonce,
-				wallet_address: WALLET_ADDRESS,
+			setupNonceRow({
 				expires_at: new Date(Date.now() - 60_000).toISOString(),
-				created_at: new Date().toISOString(),
 			});
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -224,7 +207,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -238,7 +220,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -253,7 +234,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -267,7 +247,6 @@ describe("SiweVerifierService", () => {
 			mockNonceService.deleteNonce.mockResolvedValueOnce(undefined);
 
 			await service.verify({
-				expectedSignerWalletAddress: WALLET_ADDRESS,
 				message: "some-message",
 				signature: validSignature,
 			});
@@ -280,7 +259,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "any-message",
 					signature: validSignature,
 				}),
@@ -295,7 +273,6 @@ describe("SiweVerifierService", () => {
 
 			await expect(
 				service.verify({
-					expectedSignerWalletAddress: WALLET_ADDRESS,
 					message: "some-message",
 					signature: validSignature,
 				}),

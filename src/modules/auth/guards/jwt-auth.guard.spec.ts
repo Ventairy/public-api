@@ -29,13 +29,13 @@ function createMockReflector(isPublic: boolean): Reflector {
 	} as unknown as Reflector;
 }
 
-function createMockJwtService(shouldSucceed: boolean): JwtService {
-	return {
-		verifyAccessToken: shouldSucceed
-			? vi.fn().mockResolvedValue({ sub: "u-1", sid: "s-1", user_type: UserType.BUSINESS, iat: 1000, exp: 2000 })
-			: vi.fn().mockRejectedValue(new UnauthorizedException("Invalid token")),
-	} as unknown as JwtService;
-}
+	function createMockJwtService(shouldSucceed: boolean): JwtService {
+		return {
+			verifyAccessToken: shouldSucceed
+				? vi.fn().mockResolvedValue({ sub: "u-1", sid: "s-1", user_type: UserType.BUSINESS, wallet_address: "0xabc", chain_id: 8453, iat: 1000, exp: 2000 })
+				: vi.fn().mockRejectedValue(new UnauthorizedException("Invalid token")),
+		} as unknown as JwtService;
+	}
 
 describe("JwtAuthGuard", () => {
 	describe("canActivate", () => {
@@ -57,7 +57,7 @@ describe("JwtAuthGuard", () => {
 			expect(result).toBe(true);
 		});
 
-		it("should set request.user with id, sessionId, and userType from payload", async () => {
+		it("should set request.user with id, sessionId, userType, walletAddress, and chainId from payload", async () => {
 			const guard = new JwtAuthGuard(createMockReflector(false), createMockJwtService(true));
 			const request = { headers: { cookie: "__Host-ventairy-access=valid-token" } };
 			const context = {
@@ -74,6 +74,8 @@ describe("JwtAuthGuard", () => {
 				id: "u-1",
 				sessionId: "s-1",
 				userType: UserType.BUSINESS,
+				walletAddress: "0xabc",
+				chainId: 8453,
 			});
 		});
 

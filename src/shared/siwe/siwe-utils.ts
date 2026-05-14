@@ -3,11 +3,6 @@ import { getBlockchainByChainId } from "@shared/blockchain";
 import { SiweMessageInvalidException } from "@shared/exceptions/siwe-message-invalid.exception";
 import type { SiweConfig } from "@core/config";
 
-export interface SiweValidationContext {
-	siweConfig: SiweConfig;
-	expectedWalletAddress: string;
-}
-
 export function parseSiweMessage(rawMessage: string): SiweMessage {
 	try {
 		return new SiweMessage(rawMessage);
@@ -28,14 +23,6 @@ export function validateSiweMessageUri(message: SiweMessage, expectedUri: string
 	}
 }
 
-export function validateSiweMessageAddress(message: SiweMessage, expectedWalletAddress: string): void {
-	if (message.address.toLowerCase() !== expectedWalletAddress.toLowerCase()) {
-		throw new SiweMessageInvalidException(
-			`address mismatch: message address "${message.address}" does not match requested wallet address`,
-		);
-	}
-}
-
 export function validateSiweMessageChainId(message: SiweMessage): void {
 	const blockchainDescriptor = getBlockchainByChainId(message.chainId);
 	if (!blockchainDescriptor) {
@@ -46,6 +33,7 @@ export function validateSiweMessageChainId(message: SiweMessage): void {
 export function validateSiweMessageExpiration(message: SiweMessage): void {
 	if (message.expirationTime) {
 		const expirationDate = new Date(message.expirationTime);
+
 		if (expirationDate.getTime() < Date.now()) {
 			throw new SiweMessageInvalidException("message has expired");
 		}
@@ -58,13 +46,18 @@ export function validateSiweMessageNonce(message: SiweMessage): void {
 	}
 }
 
-export function parseAndValidateSiweMessage(rawMessage: string, context: SiweValidationContext): SiweMessage {
+export function parseAndValidateSiweMessage(
+	rawMessage: string,
+	context: {
+		siweConfig: SiweConfig;
+	},
+): SiweMessage {
 	const message = parseSiweMessage(rawMessage);
 	validateSiweMessageDomain(message, context.siweConfig.domain);
 	validateSiweMessageUri(message, context.siweConfig.uri);
-	validateSiweMessageAddress(message, context.expectedWalletAddress);
 	validateSiweMessageChainId(message);
 	validateSiweMessageExpiration(message);
 	validateSiweMessageNonce(message);
+
 	return message;
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
 import { UserType } from "@shared/enums/user-type";
+import { SupportedBlockchain } from "@shared/blockchain";
 import { UserService } from "./user.service";
 import { UserAlreadyExistsException } from "@shared/exceptions";
 import { VentairyKycStatus } from "@shared/constants";
@@ -20,6 +21,7 @@ describe("UserService", () => {
 
 	const defaultCreateParams = {
 		walletAddress: validWalletAddress,
+		chainId: SupportedBlockchain.BASE,
 		siweMessage: validSiweMessage,
 		siweSignature: validSiweSignature,
 		userType: UserType.BUSINESS as UserType,
@@ -60,6 +62,7 @@ describe("UserService", () => {
 	describe("createUser", () => {
 		const createRowDefaults = {
 			user_type: UserType.BUSINESS,
+			chain_id: 8453,
 		};
 
 		const defaultInsertedRow = {
@@ -79,7 +82,6 @@ describe("UserService", () => {
 			await service.createUser(defaultCreateParams);
 
 			expect(mockSiweVerifierService.verify).toHaveBeenCalledWith({
-				expectedSignerWalletAddress: validWalletAddress,
 				message: validSiweMessage,
 				signature: validSiweSignature,
 			});
@@ -105,6 +107,7 @@ describe("UserService", () => {
 			expect(result.user).toEqual({
 				id: defaultInsertedRow.id,
 				walletAddress: validWalletAddress,
+				chainId: 8453,
 				userType: UserType.BUSINESS,
 				ventairyKycStatus: VentairyKycStatus.PENDING,
 				createdAt: defaultInsertedRow.created_at,
@@ -142,6 +145,7 @@ describe("UserService", () => {
 			expect(mockUserRepository.create_atomicCall).toHaveBeenCalledWith({
 				id: "00000000-0000-0000-0000-000000000001",
 				wallet_address: validWalletAddress.toLowerCase(),
+				chain_id: SupportedBlockchain.BASE,
 				user_type: UserType.BUSINESS,
 			});
 			expect(mockUserSessionRepository.create_atomicCall).toHaveBeenCalledWith(

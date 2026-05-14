@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { SupportedBlockchain } from "@shared/blockchain";
 import { UserType } from "@shared/enums/user-type";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
@@ -37,9 +38,9 @@ describe("AuthController", () => {
 	});
 
 	describe("createNonce", () => {
-		it("should call walletAuthService.createNonce and return result", async () => {
-			const result = await controller.createNonce({ walletAddress: "0xabc" } as any);
-			expect(mockWalletAuthService.createNonce).toHaveBeenCalledWith("0xabc");
+		it("should call walletAuthService.createNonce with walletAddress and chainId and return result", async () => {
+			const result = await controller.createNonce({ walletAddress: "0xabc", chainId: SupportedBlockchain.BASE } as any);
+			expect(mockWalletAuthService.createNonce).toHaveBeenCalledWith("0xabc", SupportedBlockchain.BASE);
 			expect(result.nonce).toBe("abc123");
 		});
 	});
@@ -105,7 +106,7 @@ describe("AuthController", () => {
 	describe("listSessions", () => {
 		it("should return sessions for the current actor", async () => {
 			mockAuthService.listSessions.mockResolvedValue({ sessions: [] });
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.listSessions(actor);
 
@@ -117,7 +118,7 @@ describe("AuthController", () => {
 		it("should clear cookies when revoking own session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: true });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.revokeSession(actor, "s-1", mockRes as any);
 
@@ -127,7 +128,7 @@ describe("AuthController", () => {
 		it("should not clear cookies when revoking another session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: false });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.revokeSession(actor, "s-2", mockRes as any);
 
@@ -138,7 +139,7 @@ describe("AuthController", () => {
 	describe("logoutOthers", () => {
 		it("should call authService.logoutOthers and clear cookies", async () => {
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.logoutOthers(actor, mockRes as any);
 

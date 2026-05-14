@@ -1,9 +1,11 @@
-import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import type { SupportedBlockchain } from "@shared/blockchain";
 
 export const signatureNoncesTable = sqliteTable("signature_nonces", {
 	id: text("id").primaryKey(),
 	nonce: text("nonce").notNull(),
 	wallet_address: text("wallet_address").notNull(),
+	chain_id: integer("chain_id").notNull().$type<SupportedBlockchain>(),
 	expires_at: text("expires_at").notNull(),
 	created_at: text("created_at")
 		.notNull()

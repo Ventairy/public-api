@@ -8,7 +8,14 @@ import type { UserType } from "@shared/enums/user-type";
 import type { ILiquidityProvider, ILiquidityProviderQuote } from "@shared/liquidity-providers";
 
 const MOCK_USER_ID = "user-1";
-const MOCK_ACTOR: Actor = { id: MOCK_USER_ID, sessionId: "session-1", userType: "BUSINESS" as UserType };
+const MOCK_WALLET_ADDRESS = "0x742d35cc6634c0532925a3b844bc9e7595f0beb1";
+const MOCK_ACTOR: Actor = {
+	id: MOCK_USER_ID,
+	sessionId: "session-1",
+	userType: "BUSINESS" as UserType,
+	walletAddress: MOCK_WALLET_ADDRESS,
+	chainId: 8453,
+};
 
 function createMockQuote(overrides: Partial<ILiquidityProviderQuote> = {}): ILiquidityProviderQuote {
 	return {
@@ -26,7 +33,7 @@ function createMockProvider(overrides: Partial<ILiquidityProvider> = {}): ILiqui
 	return {
 		liquidityProviderId: LiquidityProviderId.BLINDPAY,
 		supportedPaymentMethods: [PaymentMethod.PIX],
-		quote: vi.fn(),
+		quoteReceive: vi.fn(),
 		...overrides,
 	};
 }
@@ -80,7 +87,7 @@ describe("PaymentService", () => {
 		it("should return quotes from eligible providers", async () => {
 			const mockQuote = createMockQuote();
 			mockLiquidityProviderService.getActiveLiquidityProviders.mockResolvedValue([createMockUserProviderDto()]);
-			(mockProviders[0]!).quote = vi.fn().mockResolvedValue(mockQuote);
+			mockProviders[0]!.quoteReceive = vi.fn().mockResolvedValue(mockQuote);
 			service = new PaymentService(mockLiquidityProviderService as any, mockProviders);
 
 			const result = await service.getReceiveQuote({
@@ -97,7 +104,7 @@ describe("PaymentService", () => {
 			mockLiquidityProviderService.getActiveLiquidityProviders.mockResolvedValue([createMockUserProviderDto()]);
 
 			const provider = createMockProvider();
-			provider.quote = vi
+			provider.quoteReceive = vi
 				.fn()
 				.mockResolvedValueOnce(createMockQuote({ targetAmount: "18.00" }))
 				.mockResolvedValueOnce(createMockQuote({ targetAmount: "19.00" }));
@@ -120,7 +127,7 @@ describe("PaymentService", () => {
 			mockLiquidityProviderService.getActiveLiquidityProviders.mockResolvedValue([createMockUserProviderDto()]);
 
 			const failingProvider = createMockProvider();
-			failingProvider.quote = vi.fn().mockRejectedValue(new Error("Provider error"));
+			failingProvider.quoteReceive = vi.fn().mockRejectedValue(new Error("Provider error"));
 
 			mockProviders = [failingProvider];
 			service = new PaymentService(mockLiquidityProviderService as any, mockProviders);
@@ -139,7 +146,7 @@ describe("PaymentService", () => {
 			mockLiquidityProviderService.getActiveLiquidityProviders.mockResolvedValue([
 				createMockUserProviderDto({ liquidityProviderUserId: null }),
 			]);
-			(mockProviders[0]!).quote = vi.fn().mockResolvedValue(mockQuote);
+			mockProviders[0]!.quoteReceive = vi.fn().mockResolvedValue(mockQuote);
 			service = new PaymentService(mockLiquidityProviderService as any, mockProviders);
 
 			const result = await service.getReceiveQuote({

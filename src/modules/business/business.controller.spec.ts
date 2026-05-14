@@ -12,7 +12,7 @@ import { BusinessService } from "./business.service";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessControllerFileBodyDto } from "./dto/upload-business-controller-file-body.dto";
 
-const MOCK_ACTOR = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS };
+const MOCK_ACTOR = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 function createMockBusinessService() {
 	return {

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { SupportedBlockchain } from "@shared/blockchain";
 import { WalletNonceService } from "./wallet-nonce.service";
 
 describe("WalletNonceService", () => {
@@ -22,14 +23,16 @@ describe("WalletNonceService", () => {
 
 	describe("createNonce", () => {
 		const validWalletAddress = "0x742d35cc6634c0532925a3b844bc9e7595f0beb1";
+		const validChainId = SupportedBlockchain.BASE;
 
 		it("should insert a nonce row and return nonce output", async () => {
-			const result = await service.createNonce(validWalletAddress, 180);
+			const result = await service.createNonce(validWalletAddress, validChainId, 180);
 
 			expect(mockSignatureNonceRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					nonce: expect.any(String),
 					wallet_address: validWalletAddress,
+					chain_id: validChainId,
 					expires_at: expect.any(String),
 				}),
 			);
@@ -37,22 +40,24 @@ describe("WalletNonceService", () => {
 				nonce: expect.any(String),
 				expiresAt: expect.any(String),
 				walletAddress: validWalletAddress,
+				chainId: validChainId,
 			});
 		});
 
 		it("should normalize wallet address to lowercase", async () => {
 			const mixedCaseWallet = "0x742D35Cc6634C0532925a3b844Bc9e7595f0BEb1";
-			await service.createNonce(mixedCaseWallet, 180);
+			await service.createNonce(mixedCaseWallet, validChainId, 180);
 
 			expect(mockSignatureNonceRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
+					chain_id: validChainId,
 					wallet_address: mixedCaseWallet.toLowerCase(),
 				}),
 			);
 		});
 
 		it("should generate a nonce matching the SIWE regex (alphanumeric, 8+ chars)", async () => {
-			const result = await service.createNonce(validWalletAddress, 180);
+			const result = await service.createNonce(validWalletAddress, validChainId, 180);
 
 			expect(result.nonce).toMatch(/^[a-zA-Z0-9]{8,}$/);
 		});
@@ -61,7 +66,7 @@ describe("WalletNonceService", () => {
 			const beforeCreate = Date.now();
 			const ttlMs = 180 * 1000;
 
-			const result = await service.createNonce(validWalletAddress, 180);
+			const result = await service.createNonce(validWalletAddress, validChainId, 180);
 
 			const expiresAtMs = new Date(result.expiresAt).getTime();
 			expect(expiresAtMs).toBeGreaterThanOrEqual(beforeCreate + ttlMs - 1000);
@@ -69,8 +74,8 @@ describe("WalletNonceService", () => {
 		});
 
 		it("should generate different nonces on successive calls", async () => {
-			const result1 = await service.createNonce(validWalletAddress, 180);
-			const result2 = await service.createNonce(validWalletAddress, 180);
+			const result1 = await service.createNonce(validWalletAddress, validChainId, 180);
+			const result2 = await service.createNonce(validWalletAddress, validChainId, 180);
 
 			expect(result1.nonce).not.toBe(result2.nonce);
 		});
@@ -78,7 +83,7 @@ describe("WalletNonceService", () => {
 		it("should generate UUID for nonce row id", async () => {
 			const uuidSpy = vi.spyOn(crypto, "randomUUID");
 
-			await service.createNonce(validWalletAddress, 180);
+			await service.createNonce(validWalletAddress, validChainId, 180);
 
 			expect(uuidSpy).toHaveBeenCalledTimes(1);
 		});

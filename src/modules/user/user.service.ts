@@ -4,7 +4,8 @@ import type { UserType } from "@shared/enums/user-type";
 import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
 import { UserRepository } from "./repositories/user.repository";
 import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
-import { CryptoUtils } from "@shared/utils/crypto.utils";
+import { SupportedBlockchain } from "@shared/blockchain";
+import { CryptoUtils } from "@shared/utils";
 import { SiweVerifierService } from "@modules/auth/verification/siwe-verifier.service";
 import { JwtService } from "@modules/auth/jwt/jwt.service";
 import { UserSessionRepository } from "@modules/auth/repositories/user-session.repository";
@@ -35,6 +36,7 @@ export class UserService {
 
 	public async createUser(params: {
 		walletAddress: string;
+		chainId: SupportedBlockchain;
 		siweMessage: string;
 		siweSignature: string;
 		deviceInfo?: string;
@@ -42,7 +44,6 @@ export class UserService {
 		userType: UserType;
 	}): Promise<CreateUserResult> {
 		await this._siweVerifierService.verify({
-			expectedSignerWalletAddress: params.walletAddress,
 			message: params.siweMessage,
 			signature: params.siweSignature,
 		});
@@ -60,6 +61,7 @@ export class UserService {
 					this._userRepository.create_atomicCall({
 						id: newUserId,
 						wallet_address: normalizedWalletAddress,
+						chain_id: params.chainId,
 						user_type: params.userType,
 					}),
 					this._userSessionRepository.create_atomicCall({
@@ -82,6 +84,8 @@ export class UserService {
 				userId: newUserId,
 				sessionId: session.id,
 				userType: params.userType,
+				walletAddress: normalizedWalletAddress,
+				chainId: params.chainId,
 			});
 
 			return {

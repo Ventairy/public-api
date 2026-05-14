@@ -92,6 +92,34 @@
 			"when": 1778628000000,
 			"tag": "0012_rename_and_drop",
 			"breakpoints": true
+		},
+		{
+			"idx": 13,
+			"version": "6",
+			"when": 1778684264831,
+			"tag": "0013_talented_masque",
+			"breakpoints": true
+		},
+		{
+			"idx": 14,
+			"version": "6",
+			"when": 1778684987362,
+			"tag": "0014_rename_wallet_network_to_chain_id",
+			"breakpoints": true
+		},
+		{
+			"idx": 15,
+			"version": "6",
+			"when": 1778702532608,
+			"tag": "0015_warm_gravity",
+			"breakpoints": true
+		},
+		{
+			"idx": 16,
+			"version": "6",
+			"when": 1778758184558,
+			"tag": "0016_zippy_misty_knight",
+			"breakpoints": true
 		}
 	]
 }

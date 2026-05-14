@@ -24,6 +24,7 @@ export class UserController {
 	): Promise<CreateUserOutputDto> {
 		const { user, accessToken, rawRefreshToken } = await this._userService.createUser({
 			walletAddress: body.walletAddress,
+			chainId: body.chainId,
 			siweMessage: body.siwe.message,
 			siweSignature: body.siwe.signature,
 			deviceInfo: req.headers["user-agent"],

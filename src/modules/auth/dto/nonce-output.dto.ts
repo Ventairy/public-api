@@ -1,10 +1,12 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
+import { SupportedBlockchain } from "@shared/blockchain";
 export class NonceOutputDto {
-	constructor(data: { nonce: string; expiresAt: string; walletAddress: string }) {
+	constructor(data: { nonce: string; expiresAt: string; walletAddress: string; chainId: SupportedBlockchain }) {
 		this.nonce = data.nonce;
 		this.expiresAt = data.expiresAt;
 		this.walletAddress = data.walletAddress;
+		this.chainId = data.chainId;
 	}
 
 	@ApiProperty({
@@ -29,4 +31,12 @@ export class NonceOutputDto {
 	})
 	@Expose({ name: "wallet_address" })
 	walletAddress: string;
+	@ApiProperty({
+		name: "chain_id",
+		description: "Blockchain chain ID this nonce is bound to. Must match the chain_id in the SIWE message signature.",
+		enum: SupportedBlockchain,
+		example: SupportedBlockchain.BASE,
+	})
+	@Expose({ name: "chain_id" })
+	chainId: SupportedBlockchain;
 }

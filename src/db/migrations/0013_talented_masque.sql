@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `wallet_network` text;

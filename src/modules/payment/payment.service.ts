@@ -50,8 +50,10 @@ export class PaymentService {
 						);
 					}
 
-					return liquidityProviderImpl.quote({
+					return liquidityProviderImpl.quoteReceive({
 						liquidityProviderUserId: userLiquidityProvider.liquidityProviderUserId,
+						receiverWalletAddress: params.actor.walletAddress,
+						chainId: params.actor.chainId,
 						amount: params.amount,
 						paymentMethod: params.paymentMethod,
 					});

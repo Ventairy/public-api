@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
+import type { SupportedBlockchain } from "@shared/blockchain";
 import { SignatureNonceRepository } from "../repositories/signature-nonce.repository";
 import { NONCE_BYTE_LENGTH, NONCE_BASE32_CHARSET } from "../constants";
 import { NonceNotFoundException } from "@shared/exceptions/nonce-not-found.exception";
-import { SignatureNonceRow } from "@db/schema/signature-nonces-table";
+import type { SignatureNonceRow } from "@db/schema/signature-nonces-table";
 
 @Injectable()
 export class WalletNonceService {
@@ -10,11 +11,13 @@ export class WalletNonceService {
 
 	public async createNonce(
 		walletAddress: string,
+		chainId: SupportedBlockchain,
 		ttlSeconds: number,
 	): Promise<{
 		nonce: string;
 		expiresAt: string;
 		walletAddress: string;
+		chainId: SupportedBlockchain;
 	}> {
 		const normalizedWalletAddress = walletAddress.toLowerCase();
 		const nonce = this._generateNonce();
@@ -24,6 +27,7 @@ export class WalletNonceService {
 			id: crypto.randomUUID(),
 			nonce,
 			wallet_address: normalizedWalletAddress,
+			chain_id: chainId,
 			expires_at: expiresAt.toISOString(),
 		});
 
@@ -31,6 +35,7 @@ export class WalletNonceService {
 			nonce,
 			expiresAt: expiresAt.toISOString(),
 			walletAddress: normalizedWalletAddress,
+			chainId,
 		};
 	}
 

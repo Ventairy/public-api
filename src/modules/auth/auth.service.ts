@@ -33,7 +33,6 @@ export class AuthService {
 		ipAddress?: string;
 	}): Promise<{ output: LoginOutputDto; accessToken: string; rawRefreshToken: string }> {
 		await this._siweVerifierService.verify({
-			expectedSignerWalletAddress: params.walletAddress,
 			message: params.message,
 			signature: params.signature,
 		});
@@ -64,6 +63,8 @@ export class AuthService {
 			userId: user.id,
 			sessionId: session.id,
 			userType: user.user_type,
+			walletAddress: user.wallet_address,
+			chainId: user.chain_id,
 		});
 
 		return {
@@ -113,6 +114,8 @@ export class AuthService {
 			userId: currentSession.user_id,
 			sessionId: currentSession.id,
 			userType: user.user_type,
+			walletAddress: user.wallet_address,
+			chainId: user.chain_id,
 		});
 
 		return {

@@ -30,6 +30,7 @@ describe("SignatureNonceRepository", () => {
 				id: "uuid-1",
 				nonce: "abc123",
 				wallet_address: "0xabc",
+				chain_id: 8453,
 				expires_at: "2026-01-01T00:00:00.000Z",
 			};
 

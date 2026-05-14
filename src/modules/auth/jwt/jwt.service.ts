@@ -5,6 +5,7 @@ import { JWT_CONFIG_KEY, type JwtConfig } from "@core/config";
 import type { UserType } from "@shared/enums/user-type";
 import { ACCESS_TOKEN_TTL_SECONDS } from "../constants/token.constants";
 import type { IAccessTokenPayload } from "./interfaces/access-token-payload.interface";
+import { SupportedBlockchain } from "@shared/blockchain";
 
 @Injectable()
 export class JwtService {
@@ -17,11 +18,19 @@ export class JwtService {
 		this._secret = new TextEncoder().encode(config.secret);
 	}
 
-	public async generateAccessToken(params: { userId: string; sessionId: string; userType: UserType }): Promise<string> {
+	public async generateAccessToken(params: {
+		userId: string;
+		sessionId: string;
+		userType: UserType;
+		walletAddress: string;
+		chainId: SupportedBlockchain;
+	}): Promise<string> {
 		const jwtPayload: JWTPayload & IAccessTokenPayload = {
 			sub: params.userId,
 			sid: params.sessionId,
 			user_type: params.userType,
+			wallet_address: params.walletAddress,
+			chain_id: params.chainId,
 		};
 
 		const jwt = await new SignJWT(jwtPayload)
@@ -38,9 +47,11 @@ export class JwtService {
 			const { payload } = await jwtVerify(token, this._secret, { algorithms: ["HS256"] });
 
 			return {
-				sub: this._getRequiredClaim(payload, "sub"),
-				sid: this._getRequiredClaim(payload, "sid"),
-				user_type: this._getRequiredClaim(payload, "user_type"),
+				sub: this._getRequiredClaimString(payload, "sub"),
+				sid: this._getRequiredClaimString(payload, "sid"),
+				user_type: this._getRequiredClaimString(payload, "user_type"),
+				wallet_address: this._getRequiredClaimString(payload, "wallet_address"),
+				chain_id: Number(this._getRequiredClaimString(payload, "chain_id")),
 				iat: payload.iat ?? 0,
 				exp: payload.exp ?? 0,
 			};
@@ -50,11 +61,15 @@ export class JwtService {
 		}
 	}
 
-	private _getRequiredClaim(payload: JWTPayload, claim: keyof IAccessTokenPayload): string {
+	private _getRequiredClaimString(payload: JWTPayload, claim: keyof IAccessTokenPayload): string {
 		const value = payload[claim];
+
+		if (typeof value === "number") return String(value);
+
 		if (typeof value !== "string" || !value) {
 			throw new UnauthorizedException(`Invalid token payload: missing or invalid '${claim}'`);
 		}
+
 		return value;
 	}
 }

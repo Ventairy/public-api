@@ -4,7 +4,7 @@ import { PaymentMethod } from "@shared/constants";
 import type { Actor } from "@shared/types/actor.type";
 import type { UserType } from "@shared/enums/user-type";
 
-const MOCK_ACTOR: Actor = { id: "user-1", sessionId: "session-1", userType: "BUSINESS" as UserType };
+const MOCK_ACTOR: Actor = { id: "user-1", sessionId: "session-1", userType: "BUSINESS" as UserType, walletAddress: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1", chainId: 8453 };
 
 describe("PaymentController", () => {
 	let controller: PaymentController;

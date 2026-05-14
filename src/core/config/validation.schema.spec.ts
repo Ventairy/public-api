@@ -17,6 +17,8 @@ describe("validationSchema", () => {
 		R2_BUSINESS_FILES_ACCESS_KEY_ID: "test-access-key",
 		R2_BUSINESS_FILES_SECRET_ACCESS_KEY: "test-secret-key",
 		R2_BUSINESS_FILES_BUCKET_NAME: "test-bucket",
+		BLINDPAY_API_KEY: "bp_key_abc123",
+		BLINDPAY_INSTANCE_ID: "in_000000000000",
 	};
 
 	it("should validate a correct environment configuration", () => {
@@ -38,6 +40,8 @@ describe("validationSchema", () => {
 			R2_BUSINESS_FILES_ACCESS_KEY_ID: "test-access-key",
 			R2_BUSINESS_FILES_SECRET_ACCESS_KEY: "test-secret-key",
 			R2_BUSINESS_FILES_BUCKET_NAME: "test-bucket",
+			BLINDPAY_API_KEY: "bp_key_abc123",
+			BLINDPAY_INSTANCE_ID: "in_000000000000",
 		};
 		const { error, value } = validationSchema.validate(minimalEnv);
 		expect(error).toBeUndefined();

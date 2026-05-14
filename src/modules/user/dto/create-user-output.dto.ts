@@ -3,12 +3,14 @@ import { Expose } from "class-transformer";
 import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
 import { UserType } from "@shared/enums/user-type";
 import { type UserRow } from "@db/schema/users-table";
+import { SupportedBlockchain } from "@shared/blockchain";
 
 export class CreateUserOutputDto {
 	static fromDatabaseRow(row: UserRow): CreateUserOutputDto {
 		return new CreateUserOutputDto({
 			id: row.id,
 			walletAddress: row.wallet_address,
+			chainId: row.chain_id,
 			userType: row.user_type,
 			ventairyKycStatus: VentairyKycStatus.PENDING,
 			createdAt: row.created_at,
@@ -18,12 +20,14 @@ export class CreateUserOutputDto {
 	constructor(data: {
 		id: string;
 		walletAddress: string;
+		chainId: SupportedBlockchain;
 		userType: UserType;
 		ventairyKycStatus: VentairyKycStatus;
 		createdAt: string;
 	}) {
 		this.id = data.id;
 		this.walletAddress = data.walletAddress;
+		this.chainId = data.chainId;
 		this.userType = data.userType;
 		this.ventairyKycStatus = data.ventairyKycStatus;
 		this.createdAt = data.createdAt;
@@ -46,6 +50,15 @@ export class CreateUserOutputDto {
 	})
 	@Expose({ name: "wallet_address" })
 	walletAddress: string;
+
+	@ApiProperty({
+		name: "chain_id",
+		description: "The blockchain network (chain ID) where the user's wallet operates. Used for settlement routing",
+		enum: SupportedBlockchain,
+		example: SupportedBlockchain.BASE,
+	})
+	@Expose({ name: "chain_id" })
+	chainId: SupportedBlockchain;
 
 	@ApiProperty({
 		name: "user_type",

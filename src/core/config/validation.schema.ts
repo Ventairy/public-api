@@ -21,4 +21,7 @@ export const validationSchema = Joi.object({
 	R2_BUSINESS_FILES_ACCESS_KEY_ID: Joi.string().required(),
 	R2_BUSINESS_FILES_SECRET_ACCESS_KEY: Joi.string().required(),
 	R2_BUSINESS_FILES_BUCKET_NAME: Joi.string().required(),
+
+	BLINDPAY_API_KEY: Joi.string().required(),
+	BLINDPAY_INSTANCE_ID: Joi.string().required(),
 });

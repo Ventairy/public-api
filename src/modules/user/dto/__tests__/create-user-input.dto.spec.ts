@@ -6,6 +6,7 @@ import { CreateUserInputDto } from "../create-user-input.dto";
 describe("CreateUserInputDto", () => {
 	const validInput = {
 		wallet_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0BEb1",
+		chain_id: 8453,
 		user_type: "BUSINESS",
 		siwe: {
 			message: "test message",

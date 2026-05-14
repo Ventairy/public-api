@@ -22,7 +22,7 @@ describe("JwtService", () => {
 		service = new JwtService(configService);
 	});
 
-	const defaultParams = { userId: "u-1", sessionId: "s-1", userType: UserType.BUSINESS as UserType };
+	const defaultParams = { userId: "u-1", sessionId: "s-1", userType: UserType.BUSINESS as UserType, walletAddress: "0xabc", chainId: 8453 };
 
 	describe("generateAccessToken", () => {
 		it("should generate a valid JWT string", async () => {
@@ -42,6 +42,8 @@ describe("JwtService", () => {
 			expect(payload.sub).toBe("u-1");
 			expect(payload.sid).toBe("s-1");
 			expect(payload.user_type).toBe(UserType.BUSINESS);
+			expect(payload.wallet_address).toBe("0xabc");
+			expect(payload.chain_id).toBe(8453);
 			expect(payload.iat).toBeGreaterThan(0);
 			expect(payload.exp).toBeGreaterThan(0);
 		});
@@ -98,6 +100,18 @@ describe("JwtService", () => {
 			const { SignJWT } = await import("jose");
 			const secret = new TextEncoder().encode(validSecret);
 			const token = await new SignJWT({ sub: "u-1", sid: "s-1" })
+				.setProtectedHeader({ alg: "HS256" })
+				.setIssuedAt()
+				.setExpirationTime("900s")
+				.sign(secret);
+
+			await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedException);
+		});
+
+		it("should throw UnauthorizedException when wallet_address is missing", async () => {
+			const { SignJWT } = await import("jose");
+			const secret = new TextEncoder().encode(validSecret);
+			const token = await new SignJWT({ sub: "u-1", sid: "s-1", user_type: UserType.BUSINESS })
 				.setProtectedHeader({ alg: "HS256" })
 				.setIssuedAt()
 				.setExpirationTime("900s")

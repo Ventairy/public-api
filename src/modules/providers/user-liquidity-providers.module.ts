@@ -9,7 +9,12 @@ export const AVAILABLE_LIQUIDITY_PROVIDERS_INJECTION_TOKEN = Symbol("LIQUIDITY_P
 	providers: [
 		UserLiquidityProvidersService,
 		UserLiquidityProvidersRepository,
-		{ provide: AVAILABLE_LIQUIDITY_PROVIDERS_INJECTION_TOKEN, useValue: [new BlindpayLiquidityProvider()] },
+		BlindpayLiquidityProvider,
+		{
+			provide: AVAILABLE_LIQUIDITY_PROVIDERS_INJECTION_TOKEN,
+			useFactory: (blindpayProvider: BlindpayLiquidityProvider) => [blindpayProvider],
+			inject: [BlindpayLiquidityProvider],
+		},
 	],
 	exports: [
 		UserLiquidityProvidersService,

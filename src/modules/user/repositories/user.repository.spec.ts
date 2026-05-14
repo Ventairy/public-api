@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DRIZZLE_DB, type DrizzleDb, type AtomicCall } from "@core/database";
+import { SupportedBlockchain } from "@shared/blockchain/supported-blockchains";
 import { UserType } from "@shared/enums/user-type";
 import { UserRepository } from "./user.repository";
 
@@ -72,12 +73,12 @@ describe("UserRepository", () => {
 
 	describe("create", () => {
 		it("should insert a user and return the inserted row", async () => {
-			const insertedRow = { id: "user-1", wallet_address: "0xabc", created_at: "2026-01-01T00:00:00.000Z" };
+			const insertedRow = { id: "user-1", wallet_address: "0xabc", chain_id: SupportedBlockchain.BASE, user_type: UserType.BUSINESS, created_at: "2026-01-01T00:00:00.000Z" };
 			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };
 			mockDb.insert.mockReturnValue(insertBuilder);
 			insertBuilder.returning.mockResolvedValue([insertedRow]);
 
-			const result = await repository.create({ id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS });
+			const result = await repository.create({ id: "user-1", wallet_address: "0xabc", chain_id: SupportedBlockchain.BASE, user_type: UserType.BUSINESS });
 
 			expect(result).toEqual(insertedRow);
 			expect(mockDb.insert).toHaveBeenCalledTimes(1);
@@ -89,13 +90,13 @@ describe("UserRepository", () => {
 			insertBuilder.returning.mockResolvedValue([]);
 
 			await expect(
-				repository.create({ id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS }),
+				repository.create({ id: "user-1", wallet_address: "0xabc", chain_id: SupportedBlockchain.BASE, user_type: UserType.BUSINESS }),
 			).rejects.toThrow("User insert returned no rows");
 		});
 	});
 
 	describe("create_atomicCall", () => {
-		const userData = { id: "user-1", wallet_address: "0xabc", user_type: UserType.BUSINESS };
+		const userData = { id: "user-1", wallet_address: "0xabc", chain_id: SupportedBlockchain.BASE, user_type: UserType.BUSINESS };
 
 		it("should return a AtomicCall without executing the query", () => {
 			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn() };

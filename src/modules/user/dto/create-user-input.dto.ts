@@ -3,6 +3,7 @@ import { Expose, Transform, Type } from "class-transformer";
 import { IsDefined, IsEnum, IsEthereumAddress, IsString, ValidateNested } from "class-validator";
 import { SiweVerificationInputDto } from "@modules/auth/dto/siwe-verification-input.dto";
 import { UserType } from "@shared/enums/user-type";
+import { SupportedBlockchain } from "@shared/blockchain";
 
 export class CreateUserInputDto {
 	@ApiProperty({
@@ -17,6 +18,16 @@ export class CreateUserInputDto {
 	@IsEthereumAddress()
 	@Transform(({ value }) => (typeof value === "string" ? value.toLowerCase() : value))
 	walletAddress!: string;
+
+	@ApiProperty({
+		name: "chain_id",
+		description: "The blockchain network (chain ID) where the user's wallet operates. Required for settlement routing.",
+		enum: SupportedBlockchain,
+		example: SupportedBlockchain.BASE,
+	})
+	@Expose({ name: "chain_id" })
+	@IsEnum(SupportedBlockchain)
+	chainId!: SupportedBlockchain;
 
 	@ApiProperty({
 		name: "user_type",

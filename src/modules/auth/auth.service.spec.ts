@@ -59,6 +59,7 @@ describe("AuthService", () => {
 			deps.userRepository.findByWalletAddress = vi.fn().mockResolvedValue({
 				id: "u-1",
 				wallet_address: "0xabc",
+				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
 
@@ -69,7 +70,6 @@ describe("AuthService", () => {
 			});
 
 			expect(deps.siweVerifierService.verify).toHaveBeenCalledWith({
-				expectedSignerWalletAddress: "0xabc",
 				message: "siwe-message",
 				signature: "0xsig",
 			});
@@ -79,6 +79,8 @@ describe("AuthService", () => {
 				userId: "u-1",
 				sessionId: "s-1",
 				userType: UserType.BUSINESS,
+				walletAddress: "0xabc",
+				chainId: 8453,
 			});
 			expect(result.output.expiresAt).toBeTruthy();
 			expect(result.accessToken).toBe("access-token-123");
@@ -150,6 +152,7 @@ describe("AuthService", () => {
 			deps.userRepository.findById = vi.fn().mockResolvedValue({
 				id: "u-1",
 				wallet_address: "0xabc",
+				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
 			const request = { headers: { cookie: "__Host-ventairy-refresh=valid-token" } } as Request;
@@ -161,6 +164,8 @@ describe("AuthService", () => {
 				userId: "u-1",
 				sessionId: "s-1",
 				userType: UserType.BUSINESS,
+				walletAddress: "0xabc",
+				chainId: 8453,
 			});
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.output.expiresAt).toBeTruthy();

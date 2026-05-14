@@ -34,7 +34,7 @@ export class AuthController {
 	@RateLimit({ limit: 10, ttlSeconds: 60 })
 	@ApiCreateNonceDocs()
 	public async createNonce(@Body() body: NonceInputDto): Promise<NonceOutputDto> {
-		return this._walletAuthService.createNonce(body.walletAddress);
+		return this._walletAuthService.createNonce(body.walletAddress, body.chainId);
 	}
 
 	@Post("wallet/login")

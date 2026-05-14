@@ -6,8 +6,8 @@ Sign-In with Ethereum (EIP-4361) verification logic. Parses SIWE messages, valid
 
 ## Files
 
-| File                            | Description                                                                                                                             |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `siwe-verifier.service.ts`      | `SiweVerifierService` — full verification flow: message parsing, nonce lookup, on-chain signature verification, consumed nonce deletion |
-| `siwe-verifier.service.spec.ts` | Unit tests for SiweVerifierService                                                                                                      |
-| `index.ts`                      | Barrel export                                                                                                                           |
+| File                            | Description                                                                                                                                                                                                                                   |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `siwe-verifier.service.ts`      | `SiweVerifierService` — full verification flow: SIWE message parsing (domain/uri/chainId/expiration/nonce), nonce lookup, wallet address and chain ID matching against stored nonce, on-chain signature verification, consumed nonce deletion |
+| `siwe-verifier.service.spec.ts` | Unit tests for SiweVerifierService                                                                                                                                                                                                            |
+| `index.ts`                      | Barrel export                                                                                                                                                                                                                                 |

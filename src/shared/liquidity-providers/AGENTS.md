@@ -6,13 +6,13 @@ Defines the contract and implementations for external liquidity provider integra
 
 ## Files
 
-| File                                                           | Description                                                                   |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `interfaces/liquidity-provider-quote.interface.ts`             | Shape of a provider's quote response (`ILiquidityProviderQuote`)              |
-| `interfaces/liquidity-provider.interface.ts`                   | Contract all liquidity provider implementations follow (`ILiquidityProvider`) |
-| `interfaces/index.ts`                                          | Barrel exports for interfaces                                                 |
-| `implementations/blindpay/blindpay-liquidity-provider.ts`      | Blindpay provider stub (throws "not implemented")                             |
-| `implementations/blindpay/blindpay-liquidity-provider.spec.ts` | Unit tests for BlindpayLiquidityProvider                                      |
+| File                                                           | Description                                                                                                                                                                  |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `interfaces/liquidity-provider-quote.interface.ts`             | Shape of a provider's quote response (`ILiquidityProviderQuote`)                                                                                                             |
+| `interfaces/liquidity-provider.interface.ts`                   | Contract all liquidity provider implementations follow (`ILiquidityProvider`)                                                                                                |
+| `interfaces/index.ts`                                          | Barrel exports for interfaces                                                                                                                                                |
+| `implementations/blindpay/blindpay-liquidity-provider.ts`      | Blindpay provider — `@Injectable()` wrapper using `@blindpay/node` SDK for real-time payin quotes. Contains `_mapBlindpayNetworkToChainId()` for network-to-chain-id mapping |
+| `implementations/blindpay/blindpay-liquidity-provider.spec.ts` | Unit tests for BlindpayLiquidityProvider                                                                                                                                     |
 
 ## Principles
 
