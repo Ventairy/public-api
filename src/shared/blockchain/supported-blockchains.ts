@@ -1,21 +1,21 @@
-import { base } from "viem/chains";
+import { base, Chain } from "viem/chains";
 
 export enum SupportedBlockchain {
 	BASE = 8453,
 }
 
-export interface BlockchainDescriptor {
+export interface BlockchainMetadata {
 	name: string;
 	chainId: SupportedBlockchain;
-	chain: typeof base;
+	viemChain: Chain;
 	publicRpcUrls: readonly string[];
 }
 
-export const SUPPORTED_BLOCKCHAINS: Record<SupportedBlockchain, BlockchainDescriptor> = {
+export const BLOCKCHAIN_METADATA: Record<SupportedBlockchain, BlockchainMetadata> = {
 	[SupportedBlockchain.BASE]: {
 		name: "Base",
 		chainId: SupportedBlockchain.BASE,
-		chain: base,
+		viemChain: base,
 		publicRpcUrls: [
 			"https://mainnet.base.org",
 			"https://base.llamarpc.com",
@@ -27,6 +27,6 @@ export const SUPPORTED_BLOCKCHAINS: Record<SupportedBlockchain, BlockchainDescri
 	},
 };
 
-export function getBlockchainByChainId(chainId: number): BlockchainDescriptor | undefined {
-	return SUPPORTED_BLOCKCHAINS[chainId as SupportedBlockchain];
+export function getBlockchainMetadata(chainId: SupportedBlockchain): BlockchainMetadata {
+	return BLOCKCHAIN_METADATA[chainId];
 }

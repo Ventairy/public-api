@@ -4,7 +4,7 @@ import { SiweMessage } from "siwe";
 import { createPublicClient, fallback, http, type Hex } from "viem";
 import { SIWE_CONFIG_KEY, type SiweConfig } from "@core/config";
 import { parseAndValidateSiweMessage } from "@shared/siwe/siwe-utils";
-import { getBlockchainByChainId } from "@shared/blockchain";
+import { getBlockchainByChainId, SupportedBlockchain } from "@shared/blockchain";
 import { WalletNonceService } from "@modules/auth/wallet/wallet-nonce.service";
 import { InvalidSiweSignatureException } from "@shared/exceptions/invalid-siwe-signature.exception";
 import { NonceExpiredException } from "@shared/exceptions/nonce-expired.exception";
@@ -21,7 +21,10 @@ export class SiweVerifierService {
 		private readonly configService: ConfigService,
 	) {}
 
-	public async verify(params: { message: string; signature: string }): Promise<void> {
+	public async parseAndVerifyMessage(params: {
+		message: string;
+		signature: string;
+	}): Promise<{ walletAddress: string; chainId: SupportedBlockchain }> {
 		const siweConfig = this.configService.get<SiweConfig>(SIWE_CONFIG_KEY);
 		if (!siweConfig) throw new Error("SIWE configuration is missing");
 
@@ -53,21 +56,30 @@ export class SiweVerifierService {
 		await this._verifySignatureOnChain(siweMessage, params.signature as Hex);
 
 		await this.nonceService.deleteNonce(siweMessage.nonce, siweMessage.address.toLowerCase());
+
+		return {
+			walletAddress: siweMessage.address.toLowerCase(),
+			chainId: siweMessage.chainId as SupportedBlockchain,
+		};
 	}
 
 	private async _verifySignatureOnChain(siweMessage: SiweMessage, signature: Hex): Promise<void> {
-		const blockchainDescriptor = getBlockchainByChainId(siweMessage.chainId);
-		if (!blockchainDescriptor) throw new SiweMessageInvalidException(`unsupported chain ID: ${siweMessage.chainId}`);
+		const messageBlockchainMetadata = getBlockchainByChainId(siweMessage.chainId);
+
+		if (!messageBlockchainMetadata) {
+			throw new SiweMessageInvalidException(`unsupported chain ID: ${siweMessage.chainId}`);
+		}
 
 		const client = createPublicClient({
-			chain: blockchainDescriptor.chain,
-			transport: fallback(blockchainDescriptor.publicRpcUrls.map((url) => http(url, { timeout: 5_000 }))),
+			chain: messageBlockchainMetadata.viemChain,
+			transport: fallback(messageBlockchainMetadata.publicRpcUrls.map((url) => http(url, { timeout: 5_000 }))),
 		});
 
 		try {
 			const valid = await client.verifyMessage({
 				address: siweMessage.address as Hex,
 				message: siweMessage.prepareMessage(),
+				chain: messageBlockchainMetadata.viemChain,
 				signature,
 			});
 

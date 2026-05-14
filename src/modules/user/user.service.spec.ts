@@ -14,14 +14,12 @@ describe("UserService", () => {
 	let service: UserService;
 	let mockUserRepository: any;
 	let mockKycRepository: any;
-	let mockSiweVerifierService: { verify: ReturnType<typeof vi.fn> };
+	let mockSiweVerifierService: { parseAndVerifyMessage: ReturnType<typeof vi.fn> };
 	let mockJwtService: { generateAccessToken: ReturnType<typeof vi.fn> };
 	let mockUserSessionRepository: any;
 	let mockAtomicExecutionService: { execute: ReturnType<typeof vi.fn> };
 
 	const defaultCreateParams = {
-		walletAddress: validWalletAddress,
-		chainId: SupportedBlockchain.BASE,
 		siweMessage: validSiweMessage,
 		siweSignature: validSiweSignature,
 		userType: UserType.BUSINESS as UserType,
@@ -41,7 +39,12 @@ describe("UserService", () => {
 			create_atomicCall: vi.fn(),
 			updateStatusByUserId: vi.fn(),
 		} as any;
-		mockSiweVerifierService = { verify: vi.fn().mockResolvedValue(undefined) };
+		mockSiweVerifierService = {
+			parseAndVerifyMessage: vi.fn().mockResolvedValue({
+				walletAddress: validWalletAddress,
+				chainId: SupportedBlockchain.BASE,
+			}),
+		};
 		mockJwtService = { generateAccessToken: vi.fn().mockResolvedValue("access-token-123") } as any;
 		mockUserSessionRepository = {
 			create: vi.fn().mockResolvedValue({ id: "s-1", user_id: "new-user-id" }),
@@ -76,12 +79,12 @@ describe("UserService", () => {
 
 		const defaultBatchResult = [defaultInsertedRow, defaultSessionRow, undefined] as const;
 
-		it("should verify SIWE before creating a user", async () => {
+		it("should parse and verify SIWE before creating a user", async () => {
 			mockAtomicExecutionService.execute.mockResolvedValue(defaultBatchResult);
 
 			await service.createUser(defaultCreateParams);
 
-			expect(mockSiweVerifierService.verify).toHaveBeenCalledWith({
+			expect(mockSiweVerifierService.parseAndVerifyMessage).toHaveBeenCalledWith({
 				message: validSiweMessage,
 				signature: validSiweSignature,
 			});
@@ -91,7 +94,9 @@ describe("UserService", () => {
 			const { InvalidSiweSignatureException: InvalidSiweSignatureException } = await import(
 				"@shared/exceptions/invalid-siwe-signature.exception"
 			);
-			mockSiweVerifierService.verify.mockRejectedValue(new InvalidSiweSignatureException(validWalletAddress));
+			mockSiweVerifierService.parseAndVerifyMessage.mockRejectedValue(
+				new InvalidSiweSignatureException(validWalletAddress),
+			);
 
 			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				InvalidSiweSignatureException,
@@ -188,21 +193,33 @@ describe("UserService", () => {
 			);
 		});
 
-		it("should normalize wallet address to lowercase before inserting", async () => {
-			const mixedCaseWallet = "0x742D35Cc6634C0532925a3b844Bc9e7595f0BEb1";
-			const normalizedWallet = mixedCaseWallet.toLowerCase();
+		it("should insert the wallet address returned by SIWE verifier (not from request body)", async () => {
+			const siweReturnedWallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+			mockSiweVerifierService.parseAndVerifyMessage.mockResolvedValue({
+				walletAddress: siweReturnedWallet,
+				chainId: SupportedBlockchain.BASE,
+			});
 			mockAtomicExecutionService.execute.mockResolvedValue([
-				{ id: "test-id", wallet_address: normalizedWallet, created_at: "2026-05-04T14:48:00.000Z", ...createRowDefaults },
+				{ id: "test-id", wallet_address: siweReturnedWallet, created_at: "2026-05-04T14:48:00.000Z", ...createRowDefaults },
 				defaultSessionRow,
 				undefined,
 			] as const);
 
-			await service.createUser({ ...defaultCreateParams, walletAddress: mixedCaseWallet });
+			await service.createUser(defaultCreateParams);
 
 			expect(mockUserRepository.create_atomicCall).toHaveBeenCalledWith(
 				expect.objectContaining({
-					wallet_address: normalizedWallet,
+					wallet_address: siweReturnedWallet,
 				}),
+			);
+		});
+
+		it("should propagate nonce-related exceptions from SIWE verifier", async () => {
+			const { NonceNotFoundException } = await import("@shared/exceptions/nonce-not-found.exception");
+			mockSiweVerifierService.parseAndVerifyMessage.mockRejectedValue(new NonceNotFoundException("abc123"));
+
+			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
+				NonceNotFoundException,
 			);
 		});
 
@@ -234,15 +251,6 @@ describe("UserService", () => {
 
 			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
 				genericError,
-			);
-		});
-
-		it("should propagate nonce-related exceptions from SIWE verifier", async () => {
-			const { NonceNotFoundException } = await import("@shared/exceptions/nonce-not-found.exception");
-			mockSiweVerifierService.verify.mockRejectedValue(new NonceNotFoundException("abc123"));
-
-			await expect(service.createUser(defaultCreateParams)).rejects.toThrow(
-				NonceNotFoundException,
 			);
 		});
 	});

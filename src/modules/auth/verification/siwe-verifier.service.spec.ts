@@ -61,7 +61,7 @@ describe("SiweVerifierService", () => {
 		);
 	});
 
-	describe("verify", () => {
+	describe("parseAndVerifyMessage", () => {
 		const validNonce = "ABCDEFGH12345678";
 		const validSignature =
 			"0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e";
@@ -96,7 +96,7 @@ describe("SiweVerifierService", () => {
 			});
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "not-a-valid-siwe-message",
 					signature: validSignature,
 				}),
@@ -107,7 +107,7 @@ describe("SiweVerifierService", () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage({ domain: "evil.com" }));
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -118,7 +118,7 @@ describe("SiweVerifierService", () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage({ uri: "https://evil.com" }));
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -129,7 +129,7 @@ describe("SiweVerifierService", () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage({ chainId: 1 }));
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -142,7 +142,7 @@ describe("SiweVerifierService", () => {
 			);
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -153,7 +153,7 @@ describe("SiweVerifierService", () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage({ nonce: "AB" }));
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -165,7 +165,7 @@ describe("SiweVerifierService", () => {
 			mockNonceService.findNonce.mockResolvedValueOnce(undefined);
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -179,7 +179,7 @@ describe("SiweVerifierService", () => {
 			});
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -193,7 +193,7 @@ describe("SiweVerifierService", () => {
 			});
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -206,7 +206,7 @@ describe("SiweVerifierService", () => {
 			mockVerifyMessage.mockResolvedValue(false);
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -219,7 +219,7 @@ describe("SiweVerifierService", () => {
 			mockVerifyMessage.mockRejectedValue(new Error("RPC timeout"));
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
@@ -233,24 +233,28 @@ describe("SiweVerifierService", () => {
 			mockNonceService.deleteNonce.mockRejectedValueOnce(new Error("The provided nonce does not exist"));
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "some-message",
 					signature: validSignature,
 				}),
 			).rejects.toThrow("The provided nonce does not exist");
 		});
 
-		it("should successfully verify and consume nonce when all checks pass", async () => {
+		it("should successfully verify, consume nonce, and return wallet + chainId when all checks pass", async () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage());
 			setupNonceFound(WALLET_ADDRESS, new Date(Date.now() + 180_000).toISOString());
 			mockVerifyMessage.mockResolvedValue(true);
 			mockNonceService.deleteNonce.mockResolvedValueOnce(undefined);
 
-			await service.verify({
+			const result = await service.parseAndVerifyMessage({
 				message: "some-message",
 				signature: validSignature,
 			});
 
+			expect(result).toEqual({
+				walletAddress: WALLET_ADDRESS,
+				chainId: 8453,
+			});
 			expect(mockNonceService.deleteNonce).toHaveBeenCalledWith(validNonce, WALLET_ADDRESS);
 		});
 
@@ -258,7 +262,7 @@ describe("SiweVerifierService", () => {
 			mockConfigService.get.mockReturnValue(undefined);
 
 			await expect(
-				service.verify({
+				service.parseAndVerifyMessage({
 					message: "any-message",
 					signature: validSignature,
 				}),
@@ -271,12 +275,15 @@ describe("SiweVerifierService", () => {
 			mockVerifyMessage.mockResolvedValue(true);
 			mockNonceService.deleteNonce.mockResolvedValueOnce(undefined);
 
-			await expect(
-				service.verify({
-					message: "some-message",
-					signature: validSignature,
-				}),
-			).resolves.toBeUndefined();
+			const result = await service.parseAndVerifyMessage({
+				message: "some-message",
+				signature: validSignature,
+			});
+
+			expect(result).toEqual({
+				walletAddress: WALLET_ADDRESS,
+				chainId: 8453,
+			});
 		});
 	});
 });

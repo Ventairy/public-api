@@ -23,7 +23,7 @@ export function ApiLoginDocs(): MethodDecorator & ClassDecorator {
 		}),
 		ApiBadRequestResponse({
 			description:
-				"Request body validation failed (e.g., missing or malformed wallet_address, invalid siwe structure).",
+				"Request body validation failed (e.g., missing or malformed siwe structure).",
 		}),
 		ApiUnauthorizedResponse({
 			description:

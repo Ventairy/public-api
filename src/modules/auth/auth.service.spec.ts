@@ -14,7 +14,12 @@ import { SessionNotFoundException } from "@shared/exceptions/session-not-found.e
 
 function createMockAuthServiceDeps() {
 	return {
-		siweVerifierService: { verify: vi.fn().mockResolvedValue(undefined) } as unknown as SiweVerifierService,
+		siweVerifierService: {
+			parseAndVerifyMessage: vi.fn().mockResolvedValue({
+				walletAddress: "0xabc",
+				chainId: 8453,
+			}),
+		} as unknown as SiweVerifierService,
 		userRepository: {
 			findByWalletAddress: vi.fn(),
 			findById: vi.fn(),
@@ -55,7 +60,7 @@ describe("AuthService", () => {
 	});
 
 	describe("login", () => {
-		it("should verify SIWE, find user, create session, and return tokens", async () => {
+		it("should parse and verify SIWE, find user, create session, and return tokens", async () => {
 			deps.userRepository.findByWalletAddress = vi.fn().mockResolvedValue({
 				id: "u-1",
 				wallet_address: "0xabc",
@@ -64,12 +69,11 @@ describe("AuthService", () => {
 			});
 
 			const result = await service.login({
-				walletAddress: "0xabc",
 				message: "siwe-message",
 				signature: "0xsig",
 			});
 
-			expect(deps.siweVerifierService.verify).toHaveBeenCalledWith({
+			expect(deps.siweVerifierService.parseAndVerifyMessage).toHaveBeenCalledWith({
 				message: "siwe-message",
 				signature: "0xsig",
 			});
@@ -92,7 +96,6 @@ describe("AuthService", () => {
 
 			await expect(
 				service.login({
-					walletAddress: "0xnonexistent",
 					message: "msg",
 					signature: "0xsig",
 				}),

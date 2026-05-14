@@ -56,13 +56,12 @@ describe("AuthController", () => {
 			const mockReq = { headers: { "user-agent": "Mozilla" }, ip: "127.0.0.1" };
 
 			const result = await controller.login(
-				{ walletAddress: "0xabc", siwe: { message: "msg", signature: "0xsig" } } as any,
+				{ siwe: { message: "msg", signature: "0xsig" } } as any,
 				mockReq as any,
 				mockRes as any,
 			);
 
 			expect(mockAuthService.login).toHaveBeenCalledWith({
-				walletAddress: "0xabc",
 				message: "msg",
 				signature: "0xsig",
 				deviceInfo: "Mozilla",

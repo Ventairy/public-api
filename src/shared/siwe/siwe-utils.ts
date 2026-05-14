@@ -25,6 +25,7 @@ export function validateSiweMessageUri(message: SiweMessage, expectedUri: string
 
 export function validateSiweMessageChainId(message: SiweMessage): void {
 	const blockchainDescriptor = getBlockchainByChainId(message.chainId);
+
 	if (!blockchainDescriptor) {
 		throw new SiweMessageInvalidException(`unsupported chain ID: ${message.chainId}`);
 	}

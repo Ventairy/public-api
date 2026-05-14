@@ -42,8 +42,6 @@ describe("UserController", () => {
 
 			const result = await controller.create(
 				{
-					walletAddress: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
-					chainId: 8453,
 					userType: UserType.BUSINESS,
 					siwe: { message: "siwe-message", signature: "0xabc123" },
 				},
@@ -52,8 +50,6 @@ describe("UserController", () => {
 			);
 
 			expect(userService.createUser).toHaveBeenCalledWith({
-				walletAddress: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
-				chainId: 8453,
 				siweMessage: "siwe-message",
 				siweSignature: "0xabc123",
 				deviceInfo: "Mozilla",
@@ -80,8 +76,6 @@ describe("UserController", () => {
 
 			await controller.create(
 				{
-					walletAddress: "0xabc",
-					chainId: 8453,
 					userType: UserType.BUSINESS,
 					siwe: { message: "msg", signature: "0xsig" },
 				},

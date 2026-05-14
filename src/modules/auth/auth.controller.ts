@@ -48,7 +48,6 @@ export class AuthController {
 		@Res({ passthrough: true }) res: Response,
 	): Promise<LoginOutputDto> {
 		const { output, accessToken, rawRefreshToken } = await this._authService.login({
-			walletAddress: body.walletAddress,
 			message: body.siwe.message,
 			signature: body.siwe.signature,
 			deviceInfo: req.headers["user-agent"],

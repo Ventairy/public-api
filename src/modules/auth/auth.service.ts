@@ -26,23 +26,22 @@ export class AuthService {
 	) {}
 
 	public async login(params: {
-		walletAddress: string;
 		message: string;
 		signature: string;
 		deviceInfo?: string;
 		ipAddress?: string;
 	}): Promise<{ output: LoginOutputDto; accessToken: string; rawRefreshToken: string }> {
-		await this._siweVerifierService.verify({
+		const { walletAddress: siweWalletAddress } = await this._siweVerifierService.parseAndVerifyMessage({
 			message: params.message,
 			signature: params.signature,
 		});
 
 		const [user] = await Promise.all([
-			this._userRepository.findByWalletAddress(params.walletAddress),
+			this._userRepository.findByWalletAddress(siweWalletAddress),
 			this._userSessionRepository.deleteExpired(),
 		]);
 
-		if (!user) throw new UserNotFoundException(params.walletAddress);
+		if (!user) throw new UserNotFoundException(siweWalletAddress);
 
 		const rawRefreshToken = CryptoUtils.generateSecureRandom(REFRESH_TOKEN_BYTE_LENGTH);
 		const refreshTokenHash = CryptoUtils.hashSha256(rawRefreshToken);

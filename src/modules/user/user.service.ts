@@ -4,7 +4,6 @@ import type { UserType } from "@shared/enums/user-type";
 import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
 import { UserRepository } from "./repositories/user.repository";
 import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
-import { SupportedBlockchain } from "@shared/blockchain";
 import { CryptoUtils } from "@shared/utils";
 import { SiweVerifierService } from "@modules/auth/verification/siwe-verifier.service";
 import { JwtService } from "@modules/auth/jwt/jwt.service";
@@ -35,20 +34,18 @@ export class UserService {
 	}
 
 	public async createUser(params: {
-		walletAddress: string;
-		chainId: SupportedBlockchain;
 		siweMessage: string;
 		siweSignature: string;
 		deviceInfo?: string;
 		ipAddress?: string;
 		userType: UserType;
 	}): Promise<CreateUserResult> {
-		await this._siweVerifierService.verify({
-			message: params.siweMessage,
-			signature: params.siweSignature,
-		});
+		const { walletAddress: siweWalletAddress, chainId: siweChainId } =
+			await this._siweVerifierService.parseAndVerifyMessage({
+				message: params.siweMessage,
+				signature: params.siweSignature,
+			});
 
-		const normalizedWalletAddress = params.walletAddress.toLowerCase();
 		const newUserId = this._generateUserId();
 		const rawRefreshToken = CryptoUtils.generateSecureRandom(REFRESH_TOKEN_BYTE_LENGTH);
 		const refreshTokenHash = CryptoUtils.hashSha256(rawRefreshToken);
@@ -60,8 +57,8 @@ export class UserService {
 				this._atomicExecutionService.execute(
 					this._userRepository.create_atomicCall({
 						id: newUserId,
-						wallet_address: normalizedWalletAddress,
-						chain_id: params.chainId,
+						wallet_address: siweWalletAddress,
+						chain_id: siweChainId,
 						user_type: params.userType,
 					}),
 					this._userSessionRepository.create_atomicCall({
@@ -84,8 +81,8 @@ export class UserService {
 				userId: newUserId,
 				sessionId: session.id,
 				userType: params.userType,
-				walletAddress: normalizedWalletAddress,
-				chainId: params.chainId,
+				walletAddress: siweWalletAddress,
+				chainId: siweChainId,
 			});
 
 			return {
@@ -94,7 +91,7 @@ export class UserService {
 				rawRefreshToken,
 			};
 		} catch (error) {
-			if (this._isUniqueViolation(error)) throw new UserAlreadyExistsException(normalizedWalletAddress);
+			if (this._isUniqueViolation(error)) throw new UserAlreadyExistsException(siweWalletAddress);
 
 			throw error;
 		}

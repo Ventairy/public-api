@@ -1,6 +1,6 @@
 export {
 	SupportedBlockchain,
-	SUPPORTED_BLOCKCHAINS,
-	getBlockchainByChainId,
-	type BlockchainDescriptor,
+	BLOCKCHAIN_METADATA as SUPPORTED_BLOCKCHAINS,
+	getBlockchainMetadata as getBlockchainByChainId,
+	type BlockchainMetadata as BlockchainDescriptor,
 } from "./supported-blockchains";
