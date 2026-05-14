@@ -4,7 +4,6 @@ import { BlindPay, type CreatePayinQuoteInput, type ListBlockchainWalletsRespons
 import { BLINDPAY_CONFIG_KEY, type BlindpayConfig } from "@core/config";
 import { LiquidityProviderId, PaymentMethod } from "@shared/constants";
 import { LiquidityProviderApiException, LiquidityProviderQuoteFailedException } from "@shared/exceptions";
-import { DateUtils } from "@shared/utils";
 import { SupportedBlockchain } from "@shared/blockchain";
 import type { ILiquidityProvider, ILiquidityProviderQuote } from "../../interfaces";
 import { WalletNotFoundAtLiquidityProviderException } from "@shared/exceptions/wallet-not-found-at-liquidity-provider.exception";
@@ -42,7 +41,7 @@ export class BlindpayLiquidityProvider implements ILiquidityProvider {
 			cover_fees: false,
 			request_amount: this._parseStringAmountToBlindPayAmount(params.amount),
 			payment_method: this._mapReceivePaymentMethodToBlindPay(params.paymentMethod),
-			token: "USDC",
+			token: this._mapChainIdToBlindpayToken(params.chainId),
 			partner_fee_id: null,
 		});
 
@@ -60,8 +59,8 @@ export class BlindpayLiquidityProvider implements ILiquidityProvider {
 			paymentMethod: params.paymentMethod,
 			sourceAmount: this._parseBlindPayAmountToStringAmount(blindpayResponse.sender_amount),
 			targetAmount: this._parseBlindPayAmountToStringAmount(blindpayResponse.receiver_amount),
-			targetCurrency: "USDC",
-			expiresAt: DateUtils.unixSecondsTimestampToISO(blindpayResponse.expires_at),
+			targetCurrency: this._mapChainIdToBlindpayToken(params.chainId),
+			expiresAt: new Date(blindpayResponse.expires_at).toISOString(),
 		};
 	}
 
@@ -80,7 +79,7 @@ export class BlindpayLiquidityProvider implements ILiquidityProvider {
 		}
 
 		const receiverWallet = receiverWallets.data.find((wallet) => {
-			const isChainIdExpected = this._mapBlindpayNetworkToChainId(wallet.network) === params.expectedChainId;
+			const isChainIdExpected = this._mapChainIdToBlindpayNetwork(params.expectedChainId) === wallet.network;
 			const isWalletAddressExpected = wallet.address?.toLowerCase() === params.expectedWalletAddress.toLowerCase();
 
 			return isWalletAddressExpected && isChainIdExpected;
@@ -97,26 +96,24 @@ export class BlindpayLiquidityProvider implements ILiquidityProvider {
 		return receiverWallet;
 	}
 
-	private _mapBlindpayNetworkToChainId(
-		network: ListBlockchainWalletsResponse[number]["network"],
-	): SupportedBlockchain | undefined {
-		const mapping: Record<ListBlockchainWalletsResponse[number]["network"], SupportedBlockchain | undefined> = {
-			base: SupportedBlockchain.BASE,
-			sepolia: undefined,
-			arbitrum_sepolia: undefined,
-			base_sepolia: undefined,
-			arbitrum: undefined,
-			polygon: undefined,
-			polygon_amoy: undefined,
-			ethereum: undefined,
-			stellar: undefined,
-			stellar_testnet: undefined,
-			tron: undefined,
-			solana: undefined,
-			solana_devnet: undefined,
+	private _mapChainIdToBlindpayToken(chainId: SupportedBlockchain): CreatePayinQuoteInput["token"] {
+		const mapping: Record<SupportedBlockchain, CreatePayinQuoteInput["token"]> = {
+			[SupportedBlockchain.BASE]: "USDC",
+			[SupportedBlockchain.BASE_SEPOLIA]: "USDB",
 		};
 
-		return mapping[network];
+		return mapping[chainId];
+	}
+
+	private _mapChainIdToBlindpayNetwork(
+		chainId: SupportedBlockchain,
+	): ListBlockchainWalletsResponse[number]["network"] | undefined {
+		const mapping: Record<SupportedBlockchain, ListBlockchainWalletsResponse[number]["network"] | undefined> = {
+			[SupportedBlockchain.BASE]: "base",
+			[SupportedBlockchain.BASE_SEPOLIA]: "base_sepolia",
+		};
+
+		return mapping[chainId];
 	}
 
 	private _mapReceivePaymentMethodToBlindPay(paymentMethod: PaymentMethod): CreatePayinQuoteInput["payment_method"] {

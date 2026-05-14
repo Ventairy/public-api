@@ -62,7 +62,7 @@ function createMockWallet(overrides: Record<string, unknown> = {}) {
 function createMockQuoteResponse(overrides: Record<string, unknown> = {}) {
 	return {
 		id: "payin_quote_001",
-		expires_at: 1715536800,
+		expires_at: 1715536800000,
 		commercial_quotation: 5.4,
 		blindpay_quotation: 5.45,
 		receiver_amount: 1850,
@@ -255,10 +255,45 @@ describe("BlindpayLiquidityProvider", () => {
 			expect(result.targetAmount).toBe("0.00");
 		});
 
+		it("should map BASE chain ID to USDC token and set targetCurrency to USDC", async () => {
+			mockBlindPayInstance.wallets.blockchain.list.mockResolvedValue({ data: [createMockWallet()], error: null });
+			mockBlindPayInstance.payins.quotes.create.mockResolvedValue({
+				data: createMockQuoteResponse(),
+				error: null,
+			});
+
+			await provider.quoteReceive(DEFAULT_QUOTE_PARAMS);
+
+			expect(mockBlindPayInstance.payins.quotes.create).toHaveBeenCalledWith(
+				expect.objectContaining({ token: "USDC" }),
+			);
+		});
+
+		it("should map BASE_SEPOLIA chain ID to USDB token and set targetCurrency to USDB", async () => {
+			mockBlindPayInstance.wallets.blockchain.list.mockResolvedValue({
+				data: [createMockWallet({ network: "base_sepolia" })],
+				error: null,
+			});
+			mockBlindPayInstance.payins.quotes.create.mockResolvedValue({
+				data: createMockQuoteResponse(),
+				error: null,
+			});
+
+			const result = await provider.quoteReceive({
+				...DEFAULT_QUOTE_PARAMS,
+				chainId: 84532,
+			});
+
+			expect(mockBlindPayInstance.payins.quotes.create).toHaveBeenCalledWith(
+				expect.objectContaining({ token: "USDB" }),
+			);
+			expect(result.targetCurrency).toBe("USDB");
+		});
+
 		it("should convert unix timestamp to ISO string", async () => {
 			mockBlindPayInstance.wallets.blockchain.list.mockResolvedValue({ data: [createMockWallet()], error: null });
 			mockBlindPayInstance.payins.quotes.create.mockResolvedValue({
-				data: createMockQuoteResponse({ expires_at: 1715536800 }),
+				data: createMockQuoteResponse({ expires_at: 1715536800000 }),
 				error: null,
 			});
 
