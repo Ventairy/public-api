@@ -11,7 +11,6 @@ Handles business registration, controller management, and file upload workflows.
 | `__tests__/`    | Unit tests for the module |
 | `docs/`         | Module documentation      |
 | `dto/`          | Data transfer objects     |
-| `guards/`       | Route guards              |
 | `repositories/` | Database repository files |
 
 ## Files

@@ -9,6 +9,8 @@ import { BusinessFileType, BusinessControllerFileType, R2BucketType, VentairyKyc
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
 import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
 import { BusinessFileImmutableException } from "@shared/exceptions/business-file-immutable.exception";
+import { BusinessFieldImmutableException } from "@shared/exceptions/business-field-immutable.exception";
+import { ImmutableFieldUtils } from "@shared/utils/immutable-field.utils";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";
 import { BusinessFileTypeUtils } from "./business-file-type.utils";
 import { BusinessControllerFileTypeUtils } from "./business-controller-file-type.utils";
@@ -17,9 +19,9 @@ import { BusinessControllerNotFoundException } from "@shared/exceptions/business
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
 import { fileTypeFromBuffer } from "file-type";
-import { ObjectUtils } from "@shared/utils";
+import { ObjectUtils, KycUtils } from "@shared/utils";
 import { BUSINESS_MAX_FILE_SIZE_BYTES } from "./business.constants";
-import { type BusinessInputDto, UploadFileOutputDto, BusinessOutputDto, UploadBusinessControllerFileOutputDto } from "./dto";
+import { BusinessInputDto, UploadFileOutputDto, BusinessOutputDto, UploadBusinessControllerFileOutputDto } from "./dto";
 
 @Injectable()
 export class BusinessService {
@@ -58,7 +60,7 @@ export class BusinessService {
 
 		if (oldFile) {
 			const kycStatus = await this._kycRepository.getKycStatus(userId);
-			if (kycStatus === VentairyKycStatus.APPROVED) throw new BusinessFileImmutableException({ fileType });
+			if (!KycUtils.canKycStatusModifyKycData(kycStatus)) throw new BusinessFileImmutableException({ fileType });
 
 			const updatedRow = await this._businessRepository.updateBusinessFile(oldFile.id, {
 				file_name: newFile.originalname,
@@ -122,7 +124,7 @@ export class BusinessService {
 
 		if (oldFile) {
 			const kycStatus = await this._kycRepository.getKycStatus(userId);
-			if (kycStatus === VentairyKycStatus.APPROVED) throw new BusinessFileImmutableException({ fileType });
+			if (!KycUtils.canKycStatusModifyKycData(kycStatus)) throw new BusinessFileImmutableException({ fileType });
 
 			const updatedRow = await this._businessRepository.updateBusinessControllerFile(oldFile.id, {
 				file_name: newFile.originalname,
@@ -155,12 +157,27 @@ export class BusinessService {
 
 		if (!user) throw new UserNotFoundException(userId);
 
-		const [updatedBusiness, existingControllers] = await Promise.all([
-			this._upsertBusiness(userId, existingBusiness, business),
-			Promise.resolve(existingBusiness ? this._businessRepository.findControllersByBusinessId(existingBusiness.id) : []),
-		]);
+		let existingBusinessControllers: BusinessControllerDatabaseRow[] = [];
 
-		const updatedControllers = await this._upsertBusinessControllers(userId, updatedBusiness.id, existingControllers, business.controllers);
+		if (existingBusiness) {
+			let kycStatus: VentairyKycStatus;
+
+			[existingBusinessControllers, kycStatus] = await Promise.all([
+				this._businessRepository.findControllersByBusinessId(existingBusiness.id),
+				this._kycRepository.getKycStatus(userId),
+			]);
+
+			if (!KycUtils.canKycStatusModifyKycData(kycStatus)) {
+				const existingBusinessAsInputDto = BusinessInputDto.fromDatabaseRow(existingBusiness, existingBusinessControllers);
+
+				if (ImmutableFieldUtils.hasImmutableViolations({ requestDto: business, databaseDto: existingBusinessAsInputDto, dtoClass: BusinessInputDto })) {
+					throw new BusinessFieldImmutableException();
+				}
+			}
+		}
+
+		const updatedBusiness = await this._upsertBusiness(userId, existingBusiness, business);
+		const updatedControllers = await this._upsertBusinessControllers(userId, updatedBusiness.id, existingBusinessControllers, business.controllers);
 
 		const [businessFileTypes, controllerFileTypes] = await Promise.all([
 			this._businessRepository.findBusinessFileTypesByUserId(userId),

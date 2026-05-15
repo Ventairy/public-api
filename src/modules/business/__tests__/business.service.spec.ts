@@ -8,6 +8,7 @@ import { R2BucketType } from "@shared/enums/r2-bucket-type";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
 import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
 import { MimeType } from "@shared/enums/mime-type";
+import { BusinessFieldImmutableException } from "@shared/exceptions/business-field-immutable.exception";
 import { BusinessFileImmutableException } from "@shared/exceptions/business-file-immutable.exception";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";
 import { BusinessControllerFileNotFoundException } from "@shared/exceptions/business-controller-file-not-found.exception";
@@ -197,7 +198,7 @@ describe("BusinessService", () => {
 			findBusinessControllerFileTypesByControllerIds: vi.fn(),
 		};
 		mockKycRepository = {
-			getKycStatus: vi.fn(),
+			getKycStatus: vi.fn().mockResolvedValue(VentairyKycStatus.PENDING),
 		};
 		mockR2StorageService = {
 			uploadFile: vi.fn().mockResolvedValue(undefined),
@@ -997,6 +998,130 @@ describe("BusinessService", () => {
 					controllers: [{ id: "invalid-id", role: BusinessControllerRole.CONTROLLING_PERSON }],
 				})),
 			).rejects.toThrow(BusinessControllerNotFoundException);
+		});
+
+		it("should throw BusinessFieldImmutableException when KYC is APPROVED and an immutable field changes", async () => {
+			const mockUser = createMockUser();
+			const mockBusiness = createMockBusiness();
+
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+
+			await expect(
+				service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, { legal_name: "Different Name" })),
+			).rejects.toThrow(BusinessFieldImmutableException);
+		});
+
+		it("should allow when KYC is APPROVED and no fields change (same values)", async () => {
+			const mockUser = createMockUser();
+			const mockBusiness = createMockBusiness();
+
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+
+			const result = await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, { legal_name: "Acme Corp" }));
+
+			expect(result).toBeDefined();
+		});
+
+		it("should allow when KYC is APPROVED and only null fields are set (filling unset fields)", async () => {
+			const mockUser = createMockUser();
+			const mockBusiness = createMockBusiness({ fantasy_name: null });
+
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+
+			await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Acme Corp",
+				fantasy_name: "New Fantasy",
+			}));
+
+			expect(mockBusinessRepository.updateBusiness).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ fantasy_name: "New Fantasy" }));
+		});
+
+		it("should throw BusinessFieldImmutableException when KYC is APPROVED and a controller field changes", async () => {
+			const mockUser = createMockUser();
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController({ id: "ctrl-1", legal_first_name: "João" });
+
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController]);
+
+			await expect(
+				service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+					legal_name: "Acme Corp",
+					controllers: [{ id: "ctrl-1", legal_first_name: "Carlos" }],
+				})),
+			).rejects.toThrow(BusinessFieldImmutableException);
+		});
+
+		it("should allow new controllers (no id) when KYC is APPROVED", async () => {
+			const mockUser = createMockUser();
+			const mockBusiness = createMockBusiness();
+
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.insertBusinessController.mockResolvedValue(createMockController({ id: "ctrl-new" }));
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+
+			const result = await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Acme Corp",
+				controllers: [{ legal_first_name: "New Person" }],
+			}));
+
+			expect(result).toBeDefined();
+		});
+
+		it("should allow field changes when KYC is not APPROVED", async () => {
+			const mockUser = createMockUser();
+			const mockBusiness = createMockBusiness();
+
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+
+			const result = await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, { legal_name: "New Name" }));
+
+			expect(result).toBeDefined();
+			expect(mockBusinessRepository.updateBusiness).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ legal_name: "New Name" }));
+		});
+
+		it("should allow business creation when KYC is APPROVED and no business exists", async () => {
+			const mockUser = createMockUser();
+
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockUserRepository.findById.mockResolvedValue(mockUser);
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(null);
+			mockBusinessRepository.insertBusiness.mockResolvedValue(createMockBusiness());
+			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
+			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
+
+			const result = await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, { legal_name: "New Business" }));
+
+			expect(result).toBeDefined();
+			expect(mockBusinessRepository.insertBusiness).toHaveBeenCalled();
 		});
 	});
 
