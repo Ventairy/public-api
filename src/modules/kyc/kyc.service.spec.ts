@@ -3,7 +3,7 @@ import { UserType, BusinessFileType, BusinessControllerFileType, ControllerRole 
 import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
 import { KycSubmissionLockedException } from "@shared/exceptions/kyc-submission-locked.exception";
 import { KycSubmissionRequirementsNotMetException } from "@shared/exceptions/kyc-submission-requirements-not-met.exception";
-import { UserKycNotFoundException } from "@shared/exceptions";
+import { UserKycNotFoundException } from "@shared/exceptions/user-kyc-not-found.exception";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { KycService } from "./kyc.service";
 import type { Actor } from "@shared/types/actor.type";
@@ -83,6 +83,7 @@ describe("KycService", () => {
 	beforeEach(() => {
 		mockKycRepository = {
 			findByUserId: vi.fn(),
+			getKycStatus: vi.fn(),
 			create: vi.fn(),
 			updateStatusByUserId: vi.fn(),
 		} as any;
@@ -96,39 +97,41 @@ describe("KycService", () => {
 
 	describe("submitKyc", () => {
 		it("should throw UserKycNotFoundException when user has no kyc record", async () => {
-			mockKycRepository.findByUserId.mockResolvedValue(undefined);
+			mockKycRepository.getKycStatus.mockRejectedValue(new UserKycNotFoundException(MOCK_USER_ID));
 
 			await expect(service.submitKyc(MOCK_ACTOR)).rejects.toThrow(UserKycNotFoundException);
 		});
 
 		it("should throw KycSubmissionLockedException when user is APPROVED", async () => {
-			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.APPROVED });
-			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
 
 			await expect(service.submitKyc(MOCK_ACTOR)).rejects.toThrow(KycSubmissionLockedException);
+
+			expect(mockKycRepository.getKycStatus).toHaveBeenCalledWith(MOCK_USER_ID);
 		});
 
 		it("should throw KycSubmissionLockedException when user is REJECTED", async () => {
-			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.REJECTED });
-			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.REJECTED);
 
 			await expect(service.submitKyc(MOCK_ACTOR)).rejects.toThrow(KycSubmissionLockedException);
+
+			expect(mockKycRepository.getKycStatus).toHaveBeenCalledWith(MOCK_USER_ID);
 		});
 
 		it("should throw KycSubmissionRequirementsNotMetException when required fields are missing", async () => {
-			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.PENDING });
-			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
 
 			mockBusinessService.getBusiness.mockResolvedValue(
 				createMockBusinessOutput({ legalName: null, email: null, phoneNumber: null, address: null, controllers: [], fileTypesUploaded: [] }) as any,
 			);
 
 			await expect(service.submitKyc(MOCK_ACTOR)).rejects.toThrow(KycSubmissionRequirementsNotMetException);
+
+			expect(mockKycRepository.getKycStatus).toHaveBeenCalledWith(MOCK_USER_ID);
 		});
 
 		it("should throw KycSubmissionRequirementsNotMetException when required files are missing", async () => {
-			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.PENDING });
-			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
 
 			const mockController = createMockController({
 				fileTypesUploaded: [],
@@ -142,11 +145,12 @@ describe("KycService", () => {
 			);
 
 			await expect(service.submitKyc(MOCK_ACTOR)).rejects.toThrow(KycSubmissionRequirementsNotMetException);
+
+			expect(mockKycRepository.getKycStatus).toHaveBeenCalledWith(MOCK_USER_ID);
 		});
 
 		it("should include missing details in KycSubmissionRequirementsNotMetException", async () => {
-			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.PENDING });
-			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
 
 			mockBusinessService.getBusiness.mockResolvedValue(
 				createMockBusinessOutput({ legalName: null, controllers: [], fileTypesUploaded: [] }) as any,
@@ -165,13 +169,12 @@ describe("KycService", () => {
 		});
 
 		it("should update kyc status to VERIFYING on successful submit", async () => {
-			const mockKyc = createMockKyc({ ventairy_kyc_status: VentairyKycStatus.PENDING });
 			const updatedKyc = createMockKyc({
 				ventairy_kyc_status: VentairyKycStatus.VERIFYING,
 				kyc_submitted_at: "2026-05-05T10:00:00.000Z",
 			});
 
-			mockKycRepository.findByUserId.mockResolvedValue(mockKyc as any);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
 			mockKycRepository.updateStatusByUserId.mockResolvedValue(updatedKyc as any);
 
 			const mockController = createMockController({
@@ -201,6 +204,8 @@ describe("KycService", () => {
 			});
 			expect(result.ventairyKycStatus).toBe(VentairyKycStatus.VERIFYING);
 			expect(result.userId).toBe(MOCK_USER_ID);
+
+			expect(mockKycRepository.getKycStatus).toHaveBeenCalledWith(MOCK_USER_ID);
 		});
 	});
 
@@ -223,6 +228,8 @@ describe("KycService", () => {
 			expect(result.missing.fields).toContain("business.controllers");
 			expect(result.missing.fields).not.toContain("business.controllers.role");
 			expect(result.missing.fields).not.toContain("business.controllers.legal_first_name");
+
+			expect(mockKycRepository.findByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
 		});
 
 		it("should return VERIFYING status when user has kyc_submitted_at", async () => {
@@ -236,6 +243,8 @@ describe("KycService", () => {
 
 			expect(result.ventairyKycStatus).toBe(VentairyKycStatus.VERIFYING);
 			expect(result.submittedAt).toBe("2026-05-05T10:00:00.000Z");
+
+			expect(mockKycRepository.findByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
 		});
 
 		it("should return missing top-level business info fields", async () => {

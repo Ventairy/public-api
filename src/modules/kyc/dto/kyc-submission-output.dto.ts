@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { VentairyKycStatus } from "@shared/enums";
-import { type KycRow } from "@db/schema/kyc-table";
+import { type KycDatabaseRow } from "@db/schema/kyc-table";
 export class KycSubmissionOutputDto {
-	static fromDatabaseRow(row: KycRow): KycSubmissionOutputDto {
+	static fromDatabaseRow(row: KycDatabaseRow): KycSubmissionOutputDto {
 		return new KycSubmissionOutputDto({
 			id: row.id,
 			userId: row.user_id,
@@ -12,13 +12,7 @@ export class KycSubmissionOutputDto {
 			createdAt: row.created_at,
 		});
 	}
-	constructor(data: {
-		id: string;
-		userId: string;
-		ventairyKycStatus: VentairyKycStatus;
-		submittedAt: string | null;
-		createdAt: string;
-	}) {
+	constructor(data: { id: string; userId: string; ventairyKycStatus: VentairyKycStatus; submittedAt: string | null; createdAt: string }) {
 		this.id = data.id;
 		this.userId = data.userId;
 		this.ventairyKycStatus = data.ventairyKycStatus;

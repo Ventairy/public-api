@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { VentairyKycStatus } from "@shared/enums";
-import { type KycRow } from "@db/schema/kyc-table";
+import { type KycDatabaseRow } from "@db/schema/kyc-table";
 import { KycMissingDataDto } from "./kyc-missing.dto";
 export class KycStatusOutputDto {
-	static fromDatabaseRow(row: KycRow, canSubmitKyc: boolean, missing: KycMissingDataDto): KycStatusOutputDto {
+	static fromDatabaseRow(row: KycDatabaseRow, canSubmitKyc: boolean, missing: KycMissingDataDto): KycStatusOutputDto {
 		return new KycStatusOutputDto({
 			userId: row.user_id,
 			ventairyKycStatus: row.ventairy_kyc_status,
@@ -13,13 +13,7 @@ export class KycStatusOutputDto {
 			missing,
 		});
 	}
-	constructor(data: {
-		userId: string;
-		ventairyKycStatus: VentairyKycStatus;
-		submittedAt: string | null;
-		canSubmitKyc: boolean;
-		missing: KycMissingDataDto;
-	}) {
+	constructor(data: { userId: string; ventairyKycStatus: VentairyKycStatus; submittedAt: string | null; canSubmitKyc: boolean; missing: KycMissingDataDto }) {
 		this.userId = data.userId;
 		this.ventairyKycStatus = data.ventairyKycStatus;
 		this.submittedAt = data.submittedAt;
@@ -36,8 +30,7 @@ export class KycStatusOutputDto {
 
 	@ApiProperty({
 		name: "can_submit_kyc",
-		description:
-			"Whether the user can submit their KYC. True only when all required fields and files are provided AND the KYC status is PENDING.",
+		description: "Whether the user can submit their KYC. True only when all required fields and files are provided AND the KYC status is PENDING.",
 	})
 	@Expose({ name: "can_submit_kyc" })
 	canSubmitKyc: boolean;

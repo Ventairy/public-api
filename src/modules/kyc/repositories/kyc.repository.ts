@@ -1,40 +1,41 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { DRIZZLE_DB, type DrizzleDb, type AtomicCall } from "@core/database";
-import { kycTable, type KycRow, type NewKycRow } from "@db/schema/kyc-table";
+import { kycTable, type KycDatabaseRow, type NewKycDatabaseRow } from "@db/schema/kyc-table";
 import { VentairyKycStatus } from "@shared/enums";
 
 @Injectable()
 export class KycRepository {
 	constructor(@Inject(DRIZZLE_DB) private readonly _db: DrizzleDb) {}
 
-	async findByUserId(userId: string): Promise<KycRow | undefined> {
+	async findByUserId(userId: string): Promise<KycDatabaseRow | undefined> {
 		const rows = await this._db.select().from(kycTable).where(eq(kycTable.user_id, userId));
 		return rows[0];
 	}
 
 	async getKycStatus(userId: string): Promise<VentairyKycStatus> {
-		const rows = await this._db
-			.select({ ventairy_kyc_status: kycTable.ventairy_kyc_status })
-			.from(kycTable)
-			.where(eq(kycTable.user_id, userId));
+		const rows = await this._db.select({ ventairy_kyc_status: kycTable.ventairy_kyc_status }).from(kycTable).where(eq(kycTable.user_id, userId));
 
 		if (!rows[0]) throw new Error(`KYC row not found for user ${userId}`);
 
 		return rows[0].ventairy_kyc_status;
 	}
 
-	async create(data: NewKycRow): Promise<void> {
-		await this._db.insert(kycTable).values(data);
+	async create(data: NewKycDatabaseRow): Promise<KycDatabaseRow> {
+		const rows = await this._db.insert(kycTable).values(data).returning();
+		const row = rows[0];
+
+		if (!row) throw new Error("KYC insert returned no rows");
+		return row;
 	}
 
-	create_atomicCall(data: NewKycRow): AtomicCall<KycRow> {
+	create_atomicCall(data: NewKycDatabaseRow): AtomicCall<KycDatabaseRow> {
 		const query = this._db.insert(kycTable).values(data).returning();
 
 		return {
 			query,
 			processResult: (rawRows: unknown[]) => {
-				const rows = rawRows as KycRow[];
+				const rows = rawRows as KycDatabaseRow[];
 				const row = rows[0];
 
 				if (!row) throw new Error("KYC insert returned no rows");
@@ -43,12 +44,8 @@ export class KycRepository {
 		};
 	}
 
-	async updateStatusByUserId(params: {
-		userId: string;
-		status: VentairyKycStatus;
-		submittedAt?: string;
-	}): Promise<KycRow> {
-		const data: Partial<KycRow> = { ventairy_kyc_status: params.status };
+	async updateStatusByUserId(params: { userId: string; status: VentairyKycStatus; submittedAt?: string }): Promise<KycDatabaseRow> {
+		const data: Partial<KycDatabaseRow> = { ventairy_kyc_status: params.status };
 		if (params.submittedAt !== undefined) data.kyc_submitted_at = params.submittedAt;
 
 		const rows = await this._db.update(kycTable).set(data).where(eq(kycTable.user_id, params.userId)).returning();

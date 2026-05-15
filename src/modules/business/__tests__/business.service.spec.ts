@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BusinessFileType } from "@shared/enums/business-file-type";
+import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
 import { plainToInstance } from "class-transformer";
 import { BusinessControllerFileType } from "@shared/enums/business-controller-file-type";
 import { BusinessControllerRole } from "@shared/enums/business-controller-role";
@@ -7,6 +8,7 @@ import { R2BucketType } from "@shared/enums/r2-bucket-type";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
 import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
 import { MimeType } from "@shared/enums/mime-type";
+import { BusinessFileImmutableException } from "@shared/exceptions/business-file-immutable.exception";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";
 import { BusinessControllerFileNotFoundException } from "@shared/exceptions/business-controller-file-not-found.exception";
 import { BusinessControllerNotFoundException } from "@shared/exceptions/business-controller-not-found.exception";
@@ -161,6 +163,9 @@ describe("BusinessService", () => {
 		findBusinessControllerFile: ReturnType<typeof vi.fn>;
 		findBusinessControllerFileTypesByControllerIds: ReturnType<typeof vi.fn>;
 	};
+	let mockKycRepository: {
+		getKycStatus: ReturnType<typeof vi.fn>;
+	};
 	let mockR2StorageService: {
 		uploadFile: ReturnType<typeof vi.fn>;
 		getFileBuffer: ReturnType<typeof vi.fn>;
@@ -191,6 +196,9 @@ describe("BusinessService", () => {
 			findBusinessControllerFile: vi.fn(),
 			findBusinessControllerFileTypesByControllerIds: vi.fn(),
 		};
+		mockKycRepository = {
+			getKycStatus: vi.fn(),
+		};
 		mockR2StorageService = {
 			uploadFile: vi.fn().mockResolvedValue(undefined),
 			getFileBuffer: vi.fn().mockResolvedValue(Buffer.from("file-content")),
@@ -200,6 +208,7 @@ describe("BusinessService", () => {
 		service = new BusinessService(
 			mockUserRepository as any,
 			mockBusinessRepository as any,
+			mockKycRepository as any,
 			mockR2StorageService as any,
 		);
 	});
@@ -274,6 +283,34 @@ describe("BusinessService", () => {
 			});
 			expect(mockBusinessRepository.insertBusinessFile).not.toHaveBeenCalled();
 			expect(result.id).toBe(existingFileRow.id);
+		});
+
+		it("should throw BusinessFileImmutableException when KYC is APPROVED and file already exists", async () => {
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockBusinessRepository.findBusinessFile.mockResolvedValue(createMockFileRow());
+
+			await expect(
+				service.uploadBusinessFile(MOCK_USER_ID, validFile, BusinessFileType.INCORPORATION_DOCUMENT),
+			).rejects.toThrow(BusinessFileImmutableException);
+		});
+
+		it("should allow re-upload when KYC is not APPROVED and file already exists", async () => {
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
+			mockBusinessRepository.findBusinessFile.mockResolvedValue(createMockFileRow());
+			mockBusinessRepository.updateBusinessFile.mockResolvedValue(createMockFileRow());
+
+			const result = await service.uploadBusinessFile(MOCK_USER_ID, validFile, BusinessFileType.INCORPORATION_DOCUMENT);
+
+			expect(result).toBeDefined();
+		});
+
+		it("should allow upload when KYC is APPROVED and no existing file", async () => {
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockBusinessRepository.insertBusinessFile.mockResolvedValue(createMockFileRow());
+
+			const result = await service.uploadBusinessFile(MOCK_USER_ID, validFile, BusinessFileType.INCORPORATION_DOCUMENT);
+
+			expect(result).toBeDefined();
 		});
 
 		it("should throw KycFileTooLargeException when file exceeds max size", async () => {
@@ -502,6 +539,61 @@ describe("BusinessService", () => {
 			});
 			expect(mockBusinessRepository.insertBusinessControllerFile).not.toHaveBeenCalled();
 			expect(result.id).toBe(existingFileRow.id);
+		});
+
+		it("should throw BusinessFileImmutableException when KYC is APPROVED and controller file already exists", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockBusinessRepository.findBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
+
+			await expect(
+				service.uploadBusinessControllerFile(
+					MOCK_USER_ID,
+					MOCK_CONTROLLER_ID,
+					validFile,
+					BusinessControllerFileType.IDENTIFICATION_FRONT,
+				),
+			).rejects.toThrow(BusinessFileImmutableException);
+		});
+
+		it("should allow re-upload of controller file when KYC is not APPROVED", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
+			mockBusinessRepository.findBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
+			mockBusinessRepository.updateBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
+
+			const result = await service.uploadBusinessControllerFile(
+				MOCK_USER_ID,
+				MOCK_CONTROLLER_ID,
+				validFile,
+				BusinessControllerFileType.IDENTIFICATION_FRONT,
+			);
+
+			expect(result).toBeDefined();
+		});
+
+		it("should allow controller file upload when KYC is APPROVED and no existing file", async () => {
+			const mockBusiness = createMockBusiness();
+			const mockController = createMockController();
+			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
+			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
+			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockBusinessRepository.insertBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
+
+			const result = await service.uploadBusinessControllerFile(
+				MOCK_USER_ID,
+				MOCK_CONTROLLER_ID,
+				validFile,
+				BusinessControllerFileType.IDENTIFICATION_FRONT,
+			);
+
+			expect(result).toBeDefined();
 		});
 
 		it("should throw BusinessFileTooLargeException when controller file exceeds max size", async () => {

@@ -8,7 +8,8 @@ Handles Know Your Customer (KYC) workflows: status tracking, submission for veri
 
 | File                     | Description                                                                                                |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `kyc.module.ts`          | NestJS module definition — registers service, controller, imports BusinessModule                           |
+| `kyc.module.ts`          | NestJS module definition — registers service, controller, imports KycDataModule + BusinessModule           |
+| `kyc-data.module.ts`     | Thin module providing only KycRepository — breaks circular dependency between BusinessModule and KycModule |
 | `kyc.controller.ts`      | REST endpoints for KYC operations: submit, status                                                          |
 | `kyc.controller.spec.ts` | Unit tests for KycController                                                                               |
 | `kyc.service.ts`         | Business logic: KYC submission guard, status retrieval, missing computation, `_canSubmitKYC` pure function |

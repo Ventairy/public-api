@@ -1,13 +1,13 @@
-import { Module, forwardRef } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { UserModule } from "@modules/user/user.module";
-import { KycModule } from "@modules/kyc/kyc.module";
+import { KycRepositoryModule } from "@modules/kyc/kyc-repository.module";
 import { BusinessController } from "./business.controller";
 import { BusinessService } from "./business.service";
 import { BusinessRepository } from "./repositories/business.repository";
 import { ImmutableBusinessGuard } from "./guards/immutable-business.guard";
 
 @Module({
-	imports: [forwardRef(() => UserModule), forwardRef(() => KycModule)],
+	imports: [UserModule, KycRepositoryModule],
 	controllers: [BusinessController],
 	providers: [BusinessService, BusinessRepository, ImmutableBusinessGuard],
 	exports: [BusinessService, BusinessRepository],

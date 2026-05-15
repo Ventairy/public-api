@@ -1,13 +1,13 @@
-import { Module, forwardRef } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { BusinessModule } from "@modules/business/business.module";
+import { KycRepositoryModule } from "./kyc-repository.module";
 import { KycController } from "./kyc.controller";
 import { KycService } from "./kyc.service";
-import { KycRepository } from "./repositories/kyc.repository";
 
 @Module({
-	imports: [forwardRef(() => BusinessModule)],
+	imports: [KycRepositoryModule, BusinessModule],
 	controllers: [KycController],
-	providers: [KycService, KycRepository],
-	exports: [KycService, KycRepository],
+	providers: [KycService],
+	exports: [KycService],
 })
 export class KycModule {}

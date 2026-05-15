@@ -8,6 +8,7 @@ Swagger/OpenAPI documentation decorators for every auth endpoint. Each decorator
 
 | File                                   | Description                                  |
 | -------------------------------------- | -------------------------------------------- |
+| `api-register-docs.decorator.ts`       | Docs for `POST /auth/register`               |
 | `api-create-nonce-docs.decorator.ts`   | Docs for `POST /auth/wallet/nonce/create`    |
 | `api-login-docs.decorator.ts`          | Docs for `POST /auth/wallet/login`           |
 | `api-refresh-docs.decorator.ts`        | Docs for `POST /auth/refresh`                |

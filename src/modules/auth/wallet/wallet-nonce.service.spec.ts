@@ -81,11 +81,15 @@ describe("WalletNonceService", () => {
 		});
 
 		it("should generate UUID for nonce row id", async () => {
-			const uuidSpy = vi.spyOn(crypto, "randomUUID");
-
 			await service.createNonce(validWalletAddress, validChainId, 180);
 
-			expect(uuidSpy).toHaveBeenCalledTimes(1);
+			expect(mockSignatureNonceRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					id: expect.stringMatching(
+						/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+					),
+				}),
+			);
 		});
 	});
 

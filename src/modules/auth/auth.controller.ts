@@ -10,11 +10,14 @@ import { NonceInputDto } from "./dto/nonce-input.dto";
 import { NonceOutputDto } from "./dto/nonce-output.dto";
 import { LoginInputDto } from "./dto/login-input.dto";
 import { LoginOutputDto } from "./dto/login-output.dto";
+import { RegisterOutputDto } from "./dto/register-output.dto";
 import { RefreshTokensOutputDto } from "./dto/refresh-tokens-output.dto";
 import { SessionsListOutputDto } from "./dto/session-output.dto";
 import { CookieUtils } from "./utils/cookie.utils";
+import { CreateUserInputDto } from "@modules/user/dto/create-user-input.dto";
 import { ApiCreateNonceDocs } from "./docs/api-create-nonce-docs.decorator";
 import { ApiLoginDocs } from "./docs/api-login-docs.decorator";
+import { ApiRegisterDocs } from "./docs/api-register-docs.decorator";
 import { ApiRefreshTokensDocs } from "./docs/api-refresh-tokens-docs.decorator";
 import { ApiLogoutDocs } from "./docs/api-logout-docs.decorator";
 import { ApiListSessionsDocs } from "./docs/api-list-sessions-docs.decorator";
@@ -27,6 +30,29 @@ export class AuthController {
 		private readonly _walletAuthService: WalletAuthService,
 		private readonly _authService: AuthService,
 	) {}
+
+	@Post("register")
+	@HttpCode(HttpStatus.CREATED)
+	@Public()
+	@RateLimit({ limit: 5, ttlSeconds: 60 })
+	@ApiRegisterDocs()
+	public async register(
+		@Body() body: CreateUserInputDto,
+		@Req() req: Request,
+		@Res({ passthrough: true }) res: Response,
+	): Promise<RegisterOutputDto> {
+		const { user, accessToken, rawRefreshToken } = await this._authService.register({
+			siweMessage: body.siwe.message,
+			siweSignature: body.siwe.signature,
+			deviceInfo: req.headers["user-agent"],
+			ipAddress: req.ip,
+			userType: body.userType,
+		});
+
+		CookieUtils.setAuthCookies(res, { accessToken, refreshToken: rawRefreshToken });
+
+		return user;
+	}
 
 	@Post("wallet/nonce/create")
 	@HttpCode(HttpStatus.CREATED)

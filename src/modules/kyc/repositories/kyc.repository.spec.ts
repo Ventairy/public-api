@@ -70,13 +70,17 @@ describe("KycRepository", () => {
 	});
 
 	describe("create", () => {
-		it("should insert a kyc row", async () => {
+		it("should insert a kyc row and return it", async () => {
 			const data = { id: "kyc-1", user_id: "user-1" };
+			const newRow = { id: "kyc-1", user_id: "user-1", ventairy_kyc_status: VentairyKycStatus.PENDING };
+			const insertBuilder = { values: vi.fn().mockReturnThis(), returning: vi.fn().mockResolvedValue([newRow]) };
+			mockDb.insert.mockReturnValue(insertBuilder);
 
-			await repository.create(data);
+			const result = await repository.create(data);
 
 			expect(mockDb.insert).toHaveBeenCalledTimes(1);
-			expect(mockDb.values).toHaveBeenCalledWith(data);
+			expect(insertBuilder.values).toHaveBeenCalledWith(data);
+			expect(result).toEqual(newRow);
 		});
 	});
 

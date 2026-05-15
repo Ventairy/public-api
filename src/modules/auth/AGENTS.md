@@ -8,11 +8,11 @@ Handles all authentication concerns: SIWE (Sign-In with Ethereum) nonce creation
 
 | File                      | Description                                                                                                       |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `auth.controller.ts`      | REST endpoints — nonce creation, login, refresh, logout, sessions, logout/others                                  |
+| `auth.controller.ts`      | REST endpoints — register, nonce creation, login, refresh, logout, sessions, logout/others                        |
 | `auth.controller.spec.ts` | Unit tests for AuthController                                                                                     |
 | `auth.module.ts`          | NestJS module definition — registers providers, APP_GUARD (JwtAuthGuard, RateLimitGuard, UserTypeGuard, KYCGuard) |
 | `rate-limit/`             | See `@shared/rate-limit/` for `@RateLimit()` decorator and `RateLimitGuard`                                       |
-| `auth.service.ts`         | Orchestration — login, refresh (rotation), logout, session management                                             |
+| `auth.service.ts`         | Orchestration — register, login, refresh (rotation), logout, session management                                   |
 | `auth.service.spec.ts`    | Unit tests for AuthService                                                                                        |
 
 ## Subdirectories
@@ -21,6 +21,7 @@ Each subdirectory has its own `AGENTS.md` — refer to those for details on `con
 
 ## Public Routes (no auth required)
 
+- `POST /v1/auth/register`
 - `POST /v1/auth/wallet/nonce/create`
 - `POST /v1/auth/wallet/login`
 - `POST /v1/auth/refresh`

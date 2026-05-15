@@ -1,13 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { KycRepository } from "./repositories/kyc.repository";
 import { VentairyKycStatus, UserType, BusinessFileType, BusinessControllerFileType } from "@shared/enums";
-import {
-	REQUIRED_FOR_KYC_DECORATOR_KEY,
-	type RequiredForKycDecoratorMetadata,
-} from "@shared/decorators/required-for-kyc.decorator";
+import { REQUIRED_FOR_KYC_DECORATOR_KEY, type RequiredForKycDecoratorMetadata } from "@shared/decorators/required-for-kyc.decorator";
 import { KycSubmissionLockedException } from "@shared/exceptions/kyc-submission-locked.exception";
 import { KycSubmissionRequirementsNotMetException } from "@shared/exceptions/kyc-submission-requirements-not-met.exception";
-import { UserKycNotFoundException } from "@shared/exceptions";
+import { UserKycNotFoundException } from "@shared/exceptions/user-kyc-not-found.exception";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { BusinessService } from "@modules/business/business.service";
 import { KycSubmissionOutputDto, KycStatusOutputDto, KycMissingDto } from "./dto";
@@ -25,7 +22,7 @@ export class KycService {
 
 	public async submitKyc(actor: Actor): Promise<KycSubmissionOutputDto> {
 		const [currentKycStatus, missingKycData] = await Promise.all([
-			this._getKycDatabaseRow(actor.id).then((row) => row.ventairy_kyc_status),
+			this._kycRepository.getKycStatus(actor.id),
 			this._getMissingKYCData({ actor, notFoundBehaviour: "throw" }),
 		]);
 
@@ -51,19 +48,15 @@ export class KycService {
 	}
 
 	public async getKycStatus(actor: Actor): Promise<KycStatusOutputDto> {
-		const [kycRow, missingKYCData] = await Promise.all([
-			this._getKycDatabaseRow(actor.id),
-			this._getMissingKYCData({ actor, notFoundBehaviour: "null" }),
-		]);
+		const [kycRow, missingKYCData] = await Promise.all([this._kycRepository.findByUserId(actor.id), this._getMissingKYCData({ actor, notFoundBehaviour: "null" })]);
+
+		if (!kycRow) throw new UserKycNotFoundException(actor.id);
 
 		const canSubmitKyc = this._canSubmitKYC(kycRow.ventairy_kyc_status, missingKYCData);
 		return KycStatusOutputDto.fromDatabaseRow(kycRow, canSubmitKyc, missingKYCData);
 	}
 
-	private async _getMissingKYCData(params: {
-		actor: Actor;
-		notFoundBehaviour: "null" | "throw";
-	}): Promise<KycMissingDto> {
+	private async _getMissingKYCData(params: { actor: Actor; notFoundBehaviour: "null" | "throw" }): Promise<KycMissingDto> {
 		switch (params.actor.userType) {
 			case UserType.BUSINESS: {
 				const business = await this._businessService.getBusiness(params.actor.id).catch((error) => {
@@ -116,22 +109,12 @@ export class KycService {
 	}
 
 	private _getKYCMissingFilesForBusiness(business: BusinessOutputDto | null): string[] {
-		const requiredBusinessFiles = [
-			BusinessFileType.PROOF_OF_ADDRESS,
-			BusinessFileType.INCORPORATION_DOCUMENT,
-			BusinessFileType.PROOF_OF_OWNERSHIP,
-		];
+		const requiredBusinessFiles = [BusinessFileType.PROOF_OF_ADDRESS, BusinessFileType.INCORPORATION_DOCUMENT, BusinessFileType.PROOF_OF_OWNERSHIP];
 
-		const requiredBusinessControllerFiles = [
-			BusinessControllerFileType.IDENTIFICATION_FRONT,
-			BusinessControllerFileType.PROOF_OF_ADDRESS,
-		];
+		const requiredBusinessControllerFiles = [BusinessControllerFileType.IDENTIFICATION_FRONT, BusinessControllerFileType.PROOF_OF_ADDRESS];
 
 		if (!business) {
-			return [
-				...requiredBusinessFiles,
-				...requiredBusinessControllerFiles.map((fileType) => `controllers.${fileType}`),
-			].map((f) => `business.${f}`);
+			return [...requiredBusinessFiles, ...requiredBusinessControllerFiles.map((fileType) => `controllers.${fileType}`)].map((f) => `business.${f}`);
 		}
 
 		const missingFileTypes: string[] = [];
@@ -156,24 +139,14 @@ export class KycService {
 		return DtoUtils.mapFieldsToPath({
 			dto: BusinessInputDto,
 			filter: (dtoClass, propertyKey) => {
-				const propertyMetadata: RequiredForKycDecoratorMetadata[] =
-					Reflect.getOwnMetadata(REQUIRED_FOR_KYC_DECORATOR_KEY, dtoClass) ?? [];
+				const propertyMetadata: RequiredForKycDecoratorMetadata[] = Reflect.getOwnMetadata(REQUIRED_FOR_KYC_DECORATOR_KEY, dtoClass) ?? [];
 
-				return propertyMetadata.some(
-					(metadata) => metadata.propertyKey === propertyKey && metadata.userTypes.includes(userType),
-				);
+				return propertyMetadata.some((metadata) => metadata.propertyKey === propertyKey && metadata.userTypes.includes(userType));
 			},
 		});
 	}
 
 	private _canSubmitKYC(kycStatus: VentairyKycStatus, missing: KycMissingDto): boolean {
 		return kycStatus === VentairyKycStatus.PENDING && missing.fields.length === 0 && missing.files.length === 0;
-	}
-
-	private async _getKycDatabaseRow(userId: string): Promise<import("@db/schema/kyc-table").KycRow> {
-		const row = await this._kycRepository.findByUserId(userId);
-		if (!row) throw new UserKycNotFoundException(userId);
-
-		return row;
 	}
 }

@@ -192,7 +192,7 @@ describe("KYC Required Guard (e2e)", () => {
 				.set("Cookie", `${ACCESS_COOKIE_NAME}=${token}`)
 				.expect(HttpStatus.FORBIDDEN)
 				.expect((res) => {
-					expect(res.body.code).toBe("KYC_NOT_APPROVED");
+					expect(res.body.code).toBe("KYC_STATUS_NOT_ALLOWED");
 					expect(res.body.details.kycStatus).toBe("REJECTED");
 				});
 		});

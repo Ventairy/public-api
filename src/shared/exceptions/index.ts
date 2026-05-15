@@ -29,5 +29,6 @@ export { WalletNotFoundAtLiquidityProviderException as WalletAtLiquidityProvider
 export { LiquidityProviderApiException } from "./liquidity-provider-api.exception";
 export { KycNotApprovedException } from "./kyc-not-approved.exception";
 export { BusinessFieldImmutableException } from "./business-field-immutable.exception";
+export { BusinessFileImmutableException } from "./business-file-immutable.exception";
 export { KycStatusNotAllowedException } from "./kyc-status-not-allowed.exception";
 export { UserKycNotFoundException } from "./user-kyc-not-found.exception";

@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { describe, it, expect } from "vitest";
 import { AuthController } from "@modules/auth/auth.controller";
-import { UserController } from "@modules/user/user.controller";
 import { KycController } from "@modules/kyc/kyc.controller";
 import { BusinessController } from "@modules/business/business.controller";
 import { HealthController } from "@modules/health/health.controller";
@@ -45,11 +44,9 @@ describe("AuthController rate limits", () => {
 	it("POST /auth/logout/others: 5 req / 60s", () => {
 		expectRateLimit(AuthController, "logoutOthers", { limit: 5, ttl: 60_000 });
 	});
-});
 
-describe("UserController rate limits", () => {
-	it("POST /user/create: 5 req / 60s", () => {
-		expectRateLimit(UserController, "create", { limit: 5, ttl: 60_000 });
+	it("POST /auth/register: 5 req / 60s", () => {
+		expectRateLimit(AuthController, "register", { limit: 5, ttl: 60_000 });
 	});
 });
 

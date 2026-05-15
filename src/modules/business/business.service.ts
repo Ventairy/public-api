@@ -2,11 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { R2StorageService } from "@core/storage/r2-storage.service";
 import { UserRepository } from "@modules/user/repositories/user.repository";
 import { BusinessRepository } from "./repositories/business.repository";
+import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
 import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
-import { BusinessFileType, BusinessControllerFileType, R2BucketType } from "@shared/enums";
+import { BusinessFileType, BusinessControllerFileType, R2BucketType, VentairyKycStatus } from "@shared/enums";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
 import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
+import { BusinessFileImmutableException } from "@shared/exceptions/business-file-immutable.exception";
 import { BusinessFileNotFoundException } from "@shared/exceptions/business-file-not-found.exception";
 import { BusinessFileTypeUtils } from "./business-file-type.utils";
 import { BusinessControllerFileTypeUtils } from "./business-controller-file-type.utils";
@@ -17,56 +19,55 @@ import { UserNotFoundException } from "@shared/exceptions/user-not-found.excepti
 import { fileTypeFromBuffer } from "file-type";
 import { ObjectUtils } from "@shared/utils";
 import { BUSINESS_MAX_FILE_SIZE_BYTES } from "./business.constants";
-import {
-	type BusinessInputDto,
-	UploadFileOutputDto,
-	BusinessOutputDto,
-	UploadBusinessControllerFileOutputDto,
-} from "./dto";
+import { type BusinessInputDto, UploadFileOutputDto, BusinessOutputDto, UploadBusinessControllerFileOutputDto } from "./dto";
 
 @Injectable()
 export class BusinessService {
 	constructor(
 		private readonly _userRepository: UserRepository,
 		private readonly _businessRepository: BusinessRepository,
+		private readonly _kycRepository: KycRepository,
 		private readonly r2StorageService: R2StorageService,
 	) {}
 
 	public async uploadBusinessFile(
 		userId: string,
-		file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+		newFile: { buffer: Buffer; originalname: string; mimetype: string; size: number },
 		fileType: BusinessFileType,
 	): Promise<UploadFileOutputDto> {
 		await this._validateFileToUpload({
-			fileName: file.originalname,
-			fileSize: file.size,
-			mimeType: file.mimetype,
+			fileName: newFile.originalname,
+			fileSize: newFile.size,
+			mimeType: newFile.mimetype,
 			allowedMimeTypes: BusinessFileTypeUtils.allowedMimeTypes(fileType),
 			fileType,
-			buffer: file.buffer,
+			buffer: newFile.buffer,
 		});
 
 		const r2Key = this.r2StorageService.generateFileKey(userId);
 
-		const [existingFile] = await Promise.all([
+		const [oldFile] = await Promise.all([
 			this._businessRepository.findBusinessFile(userId, fileType),
 			this.r2StorageService.uploadFile({
 				bucketType: R2BucketType.BUSINESS_FILES,
 				key: r2Key,
-				body: file.buffer,
-				contentType: file.mimetype,
+				body: newFile.buffer,
+				contentType: newFile.mimetype,
 			}),
 		]);
 
-		if (existingFile) {
-			const updatedRow = await this._businessRepository.updateBusinessFile(existingFile.id, {
-				file_name: file.originalname,
-				file_size: file.size,
-				mime_type: file.mimetype,
+		if (oldFile) {
+			const kycStatus = await this._kycRepository.getKycStatus(userId);
+			if (kycStatus === VentairyKycStatus.APPROVED) throw new BusinessFileImmutableException({ fileType });
+
+			const updatedRow = await this._businessRepository.updateBusinessFile(oldFile.id, {
+				file_name: newFile.originalname,
+				file_size: newFile.size,
+				mime_type: newFile.mimetype,
 				r2_key: r2Key,
 			});
 
-			await this.r2StorageService.deleteFile(R2BucketType.BUSINESS_FILES, existingFile.r2_key);
+			await this.r2StorageService.deleteFile(R2BucketType.BUSINESS_FILES, oldFile.r2_key);
 
 			return UploadFileOutputDto.fromDatabaseRow(updatedRow);
 		}
@@ -74,9 +75,9 @@ export class BusinessService {
 		const insertedRow = await this._businessRepository.insertBusinessFile({
 			id: crypto.randomUUID(),
 			user_id: userId,
-			file_name: file.originalname,
-			file_size: file.size,
-			mime_type: file.mimetype,
+			file_name: newFile.originalname,
+			file_size: newFile.size,
+			mime_type: newFile.mimetype,
 			file_type: fileType,
 			r2_key: r2Key,
 		});
@@ -87,48 +88,50 @@ export class BusinessService {
 	public async uploadBusinessControllerFile(
 		userId: string,
 		controllerId: string,
-		file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+		newFile: { buffer: Buffer; originalname: string; mimetype: string; size: number },
 		fileType: BusinessControllerFileType,
 	): Promise<UploadBusinessControllerFileOutputDto> {
 		await this._validateFileToUpload({
-			fileName: file.originalname,
-			fileSize: file.size,
-			mimeType: file.mimetype,
+			fileName: newFile.originalname,
+			fileSize: newFile.size,
+			mimeType: newFile.mimetype,
 			allowedMimeTypes: BusinessControllerFileTypeUtils.allowedMimeTypes(fileType),
 			fileType,
-			buffer: file.buffer,
+			buffer: newFile.buffer,
 		});
 
-		const business = await this._businessRepository.findBusinessByUserId(userId);
+		const [business, controller] = await Promise.all([
+			await this._businessRepository.findBusinessByUserId(userId),
+			await this._businessRepository.findBusinessControllerById(controllerId),
+		]);
+
 		if (!business) throw new BusinessNotFoundException(userId);
-
-		const controller = await this._businessRepository.findBusinessControllerById(controllerId);
-
-		if (!controller || controller.business_id !== business.id) {
-			throw new BusinessControllerNotFoundException(userId, controllerId);
-		}
+		if (!controller || controller.business_id !== business.id) throw new BusinessControllerNotFoundException(userId, controllerId);
 
 		const r2Key = this.r2StorageService.generateFileKey(userId);
 
-		const [existingFile] = await Promise.all([
+		const [oldFile] = await Promise.all([
 			this._businessRepository.findBusinessControllerFile(userId, controllerId, fileType),
 			this.r2StorageService.uploadFile({
 				bucketType: R2BucketType.BUSINESS_FILES,
 				key: r2Key,
-				body: file.buffer,
-				contentType: file.mimetype,
+				body: newFile.buffer,
+				contentType: newFile.mimetype,
 			}),
 		]);
 
-		if (existingFile) {
-			const updatedRow = await this._businessRepository.updateBusinessControllerFile(existingFile.id, {
-				file_name: file.originalname,
-				file_size: file.size,
-				mime_type: file.mimetype,
+		if (oldFile) {
+			const kycStatus = await this._kycRepository.getKycStatus(userId);
+			if (kycStatus === VentairyKycStatus.APPROVED) throw new BusinessFileImmutableException({ fileType });
+
+			const updatedRow = await this._businessRepository.updateBusinessControllerFile(oldFile.id, {
+				file_name: newFile.originalname,
+				file_size: newFile.size,
+				mime_type: newFile.mimetype,
 				r2_key: r2Key,
 			});
 
-			await this.r2StorageService.deleteFile(R2BucketType.BUSINESS_FILES, existingFile.r2_key);
+			await this.r2StorageService.deleteFile(R2BucketType.BUSINESS_FILES, oldFile.r2_key);
 
 			return UploadBusinessControllerFileOutputDto.fromDatabaseRow(updatedRow);
 		}
@@ -137,9 +140,9 @@ export class BusinessService {
 			id: crypto.randomUUID(),
 			controller_id: controllerId,
 			user_id: userId,
-			file_name: file.originalname,
-			file_size: file.size,
-			mime_type: file.mimetype,
+			file_name: newFile.originalname,
+			file_size: newFile.size,
+			mime_type: newFile.mimetype,
 			file_type: fileType,
 			r2_key: r2Key,
 		});
@@ -148,38 +151,23 @@ export class BusinessService {
 	}
 
 	public async saveBusiness(userId: string, business: BusinessInputDto): Promise<BusinessOutputDto> {
-		const [user, existingBusiness] = await Promise.all([
-			this._userRepository.findById(userId),
-			this._businessRepository.findBusinessByUserId(userId),
-		]);
+		const [user, existingBusiness] = await Promise.all([this._userRepository.findById(userId), this._businessRepository.findBusinessByUserId(userId)]);
 
 		if (!user) throw new UserNotFoundException(userId);
 
 		const [updatedBusiness, existingControllers] = await Promise.all([
 			this._upsertBusiness(userId, existingBusiness, business),
-			Promise.resolve(
-				existingBusiness ? this._businessRepository.findControllersByBusinessId(existingBusiness.id) : [],
-			),
+			Promise.resolve(existingBusiness ? this._businessRepository.findControllersByBusinessId(existingBusiness.id) : []),
 		]);
 
-		const updatedControllers = await this._upsertBusinessControllers(
-			userId,
-			updatedBusiness.id,
-			existingControllers,
-			business.controllers,
-		);
+		const updatedControllers = await this._upsertBusinessControllers(userId, updatedBusiness.id, existingControllers, business.controllers);
 
 		const [businessFileTypes, controllerFileTypes] = await Promise.all([
 			this._businessRepository.findBusinessFileTypesByUserId(userId),
 			this._businessRepository.findBusinessControllerFileTypesByControllerIds(updatedControllers.map((c) => c.id)),
 		]);
 
-		return BusinessOutputDto.fromDatabaseRow(
-			updatedBusiness,
-			updatedControllers,
-			businessFileTypes,
-			controllerFileTypes,
-		);
+		return BusinessOutputDto.fromDatabaseRow(updatedBusiness, updatedControllers, businessFileTypes, controllerFileTypes);
 	}
 
 	public async getBusiness(userId: string): Promise<BusinessOutputDto> {
@@ -191,17 +179,12 @@ export class BusinessService {
 			this._businessRepository.findBusinessFileTypesByUserId(userId),
 		]);
 
-		const controllerFileTypes = await this._businessRepository.findBusinessControllerFileTypesByControllerIds(
-			controllers.map((c) => c.id),
-		);
+		const controllerFileTypes = await this._businessRepository.findBusinessControllerFileTypesByControllerIds(controllers.map((c) => c.id));
 
 		return BusinessOutputDto.fromDatabaseRow(business, controllers, businessFileTypes, controllerFileTypes);
 	}
 
-	public async getBusinessFile(params: {
-		userId: string;
-		fileType: BusinessFileType;
-	}): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
+	public async getBusinessFile(params: { userId: string; fileType: BusinessFileType }): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
 		const fileRow = await this._businessRepository.findBusinessFile(params.userId, params.fileType);
 
 		if (!fileRow) throw new BusinessFileNotFoundException(params.userId, params.fileType);
@@ -215,11 +198,7 @@ export class BusinessService {
 		controllerId: string;
 		fileType: BusinessControllerFileType;
 	}): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
-		const fileRow = await this._businessRepository.findBusinessControllerFile(
-			params.userId,
-			params.controllerId,
-			params.fileType,
-		);
+		const fileRow = await this._businessRepository.findBusinessControllerFile(params.userId, params.controllerId, params.fileType);
 
 		if (!fileRow) throw new BusinessControllerFileNotFoundException(params.userId, params.controllerId);
 
@@ -265,11 +244,7 @@ export class BusinessService {
 		}
 	}
 
-	private async _upsertBusiness(
-		userId: string,
-		existingBusiness: BusinessDatabaseRow | null,
-		data: BusinessInputDto,
-	): Promise<BusinessDatabaseRow> {
+	private async _upsertBusiness(userId: string, existingBusiness: BusinessDatabaseRow | null, data: BusinessInputDto): Promise<BusinessDatabaseRow> {
 		const rawUpdate: {
 			[K in keyof Omit<BusinessDatabaseRow, "id" | "user_id" | "created_at">]-?: BusinessDatabaseRow[K] | undefined;
 		} = {
@@ -320,9 +295,7 @@ export class BusinessService {
 
 		for (const controllerToUpdate of controllersToUpdate) {
 			const rawUpdate: {
-				[K in keyof Omit<BusinessControllerDatabaseRow, "id" | "business_id" | "created_at">]-?:
-					| BusinessControllerDatabaseRow[K]
-					| undefined;
+				[K in keyof Omit<BusinessControllerDatabaseRow, "id" | "business_id" | "created_at">]-?: BusinessControllerDatabaseRow[K] | undefined;
 			} = {
 				role: controllerToUpdate.role,
 				ownership_percentage: controllerToUpdate.ownershipPercentage,
@@ -354,9 +327,7 @@ export class BusinessService {
 					continue;
 				}
 
-				writeOperations.push(
-					this._businessRepository.updateBusinessController(controllerToUpdate.id, updateFields).then((r) => [r]),
-				);
+				writeOperations.push(this._businessRepository.updateBusinessController(controllerToUpdate.id, updateFields).then((r) => [r]));
 			} else {
 				writeOperations.push(
 					this._businessRepository
@@ -371,9 +342,7 @@ export class BusinessService {
 		}
 
 		const writeResults = await Promise.all(writeOperations);
-		const updatedControllers = writeResults
-			.flatMap((rows) => rows)
-			.filter((r): r is BusinessControllerDatabaseRow => r !== undefined);
+		const updatedControllers = writeResults.flatMap((rows) => rows).filter((r): r is BusinessControllerDatabaseRow => r !== undefined);
 
 		return [...untouchedControllers, ...updatedControllers];
 	}

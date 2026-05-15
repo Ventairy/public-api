@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { KycSubmissionOutputDto } from "../kyc-submission-output.dto";
-import { type KycRow } from "@db/schema/kyc-table";
+import { type KycDatabaseRow } from "@db/schema/kyc-table";
 import { VentairyKycStatus } from "@shared/enums";
 
 describe("KycSubmissionOutputDto", () => {
 	it("should map from database row correctly when submitted", () => {
-		const mockRow: KycRow = {
+		const mockRow: KycDatabaseRow = {
 			id: "k-1",
 			user_id: "u-1",
 			ventairy_kyc_status: VentairyKycStatus.VERIFYING,
@@ -23,7 +23,7 @@ describe("KycSubmissionOutputDto", () => {
 	});
 
 	it("should map from database row correctly when in draft", () => {
-		const mockRow: KycRow = {
+		const mockRow: KycDatabaseRow = {
 			id: "k-1",
 			user_id: "u-1",
 			ventairy_kyc_status: VentairyKycStatus.PENDING,

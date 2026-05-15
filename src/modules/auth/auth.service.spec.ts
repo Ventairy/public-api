@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
 import { UserType, VentairyKycStatus } from "@shared/enums";
+import type { AtomicCall } from "@core/database";
 import { AuthService } from "./auth.service";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
 import { UserRepository } from "@modules/user/repositories/user.repository";
@@ -10,6 +11,7 @@ import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
+import { UserAlreadyExistsException } from "@shared/exceptions/user-already-exists.exception";
 import { SessionExpiredException } from "@shared/exceptions/session-expired.exception";
 import { SessionNotFoundException } from "@shared/exceptions/session-not-found.exception";
 
@@ -24,12 +26,15 @@ function createMockAuthServiceDeps() {
 		userRepository: {
 			findByWalletAddress: vi.fn(),
 			findById: vi.fn(),
+			create: vi.fn(),
+			create_atomicCall: vi.fn(),
 		} as unknown as UserRepository,
 		jwtService: {
 			generateAccessToken: vi.fn().mockResolvedValue("access-token-123"),
 		} as unknown as JwtService,
 		userSessionRepository: {
 			create: vi.fn().mockResolvedValue({ id: "s-1", user_id: "u-1" }),
+			create_atomicCall: vi.fn(),
 			findByRefreshTokenHash: vi.fn(),
 			findById: vi.fn(),
 			findByUserId: vi.fn(),
@@ -39,8 +44,13 @@ function createMockAuthServiceDeps() {
 			deleteExpired: vi.fn().mockResolvedValue(0),
 		} as unknown as UserSessionRepository,
 		kycRepository: {
+			create: vi.fn().mockResolvedValue(undefined),
+			create_atomicCall: vi.fn(),
 			getKycStatus: vi.fn(),
 		} as unknown as KycRepository,
+		atomicExecutionService: {
+			execute: vi.fn(),
+		},
 	};
 }
 
@@ -59,7 +69,145 @@ describe("AuthService", () => {
 			deps.jwtService,
 			deps.userSessionRepository,
 			deps.kycRepository,
+			deps.atomicExecutionService as any,
 		);
+	});
+
+	describe("register", () => {
+		const defaultUserRow = { id: "u-1", wallet_address: "0xabc", chain_id: 8453, user_type: UserType.BUSINESS, created_at: "2026-05-04T14:48:00.000Z" };
+		const defaultKycRow = { id: "kyc-1", user_id: "u-1", ventairy_kyc_status: VentairyKycStatus.PENDING };
+		const defaultParams = {
+			siweMessage: "siwe-message",
+			siweSignature: "0xsig",
+			deviceInfo: "Mozilla" as string | undefined,
+			ipAddress: "127.0.0.1" as string | undefined,
+			userType: UserType.BUSINESS,
+		};
+
+		const defaultSessionRow = { id: "s-1", user_id: "u-1", refresh_token_hash: "hashed-raw-refresh-token-64-chars-hex-string-abcdef123456", device_info: "Mozilla", ip_address: "127.0.0.1", expires_at: "2026-05-15T17:00:00.000Z" };
+
+		beforeEach(() => {
+			deps.atomicExecutionService.execute.mockResolvedValue([defaultUserRow, defaultKycRow, defaultSessionRow]);
+			(deps.userRepository.create_atomicCall as any).mockReturnValue({ query: "user-query", processResult: vi.fn() });
+			(deps.kycRepository.create_atomicCall as any).mockReturnValue({ query: "kyc-query", processResult: vi.fn() });
+			(deps.userSessionRepository.create_atomicCall as any).mockReturnValue({ query: "session-query", processResult: vi.fn() });
+		});
+
+		it("should parse and verify SIWE before creating anything", async () => {
+			await service.register(defaultParams);
+
+			expect(deps.siweVerifierService.parseAndVerifyMessage).toHaveBeenCalledWith({
+				message: "siwe-message",
+				signature: "0xsig",
+			});
+		});
+
+		it("should not proceed to atomic execution if SIWE verification fails", async () => {
+			const { InvalidSiweSignatureException } = await import("@shared/exceptions/invalid-siwe-signature.exception");
+			(deps.siweVerifierService.parseAndVerifyMessage as any).mockRejectedValue(new InvalidSiweSignatureException("0xabc"));
+
+			await expect(service.register(defaultParams)).rejects.toThrow(InvalidSiweSignatureException);
+
+			expect(deps.atomicExecutionService.execute).not.toHaveBeenCalled();
+			expect(deps.userSessionRepository.create).not.toHaveBeenCalled();
+		});
+
+		it("should create user and KYC atomic calls with correct data sharing the same userId", async () => {
+			vi.spyOn(crypto, "randomUUID").mockReturnValueOnce("00000000-0000-0000-0000-000000000001").mockReturnValueOnce("00000000-0000-0000-0000-000000000002");
+
+			await service.register(defaultParams);
+
+			expect(deps.userRepository.create_atomicCall).toHaveBeenCalledWith({
+				id: "00000000-0000-0000-0000-000000000001",
+				wallet_address: "0xabc",
+				chain_id: 8453,
+				user_type: UserType.BUSINESS,
+			});
+			expect(deps.kycRepository.create_atomicCall).toHaveBeenCalledWith({
+				id: "00000000-0000-0000-0000-000000000002",
+				user_id: "00000000-0000-0000-0000-000000000001",
+			});
+			expect(deps.atomicExecutionService.execute).toHaveBeenCalledTimes(1);
+		});
+
+		it("should run deleteExpired in parallel with the atomic batch", async () => {
+			await service.register(defaultParams);
+
+			expect(deps.userSessionRepository.deleteExpired).toHaveBeenCalledTimes(1);
+		});
+
+		it("should create a session via atomic batch and generate a JWT using the KYC status from the atomic batch", async () => {
+			await service.register(defaultParams);
+
+			expect(deps.userSessionRepository.create).not.toHaveBeenCalled();
+			expect(deps.userSessionRepository.create_atomicCall).toHaveBeenCalledWith(
+				expect.objectContaining({
+					user_id: expect.any(String),
+					refresh_token_hash: expect.any(String),
+					device_info: "Mozilla",
+					ip_address: "127.0.0.1",
+					expires_at: expect.any(String),
+				}),
+			);
+			expect(deps.kycRepository.getKycStatus).not.toHaveBeenCalled();
+			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
+				userId: "u-1",
+				sessionId: expect.any(String),
+				userType: UserType.BUSINESS,
+				walletAddress: "0xabc",
+				chainId: 8453,
+				kycStatus: VentairyKycStatus.PENDING,
+			});
+		});
+
+		it("should default deviceInfo and ipAddress to null when not provided", async () => {
+			await service.register({
+				siweMessage: "msg",
+				siweSignature: "0xsig",
+				userType: UserType.BUSINESS,
+			});
+
+			expect(deps.userSessionRepository.create_atomicCall).toHaveBeenCalledWith(
+				expect.objectContaining({
+					device_info: null,
+					ip_address: null,
+				}),
+			);
+		});
+
+		it("should return the user DTO, access token, and raw refresh token on success", async () => {
+			const result = await service.register(defaultParams);
+
+			expect(result.user).toBeInstanceOf(Object);
+			expect(result.user.id).toBe("u-1");
+			expect(result.user.walletAddress).toBe("0xabc");
+			expect(result.user.userType).toBe(UserType.BUSINESS);
+			expect(result.user.ventairyKycStatus).toBe(VentairyKycStatus.PENDING);
+			expect(result.accessToken).toBe("access-token-123");
+			expect(result.rawRefreshToken).toBeTruthy();
+		});
+
+		it("should throw UserAlreadyExistsException on duplicate wallet address", async () => {
+			deps.atomicExecutionService.execute.mockRejectedValue(
+				new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"),
+			);
+
+			await expect(service.register(defaultParams)).rejects.toThrow(UserAlreadyExistsException);
+		});
+
+		it("should re-throw non-unique database errors unchanged", async () => {
+			const genericError = new Error("Connection timeout");
+			deps.atomicExecutionService.execute.mockRejectedValue(genericError);
+
+			await expect(service.register(defaultParams)).rejects.toThrow(genericError);
+		});
+
+		it("should propagate errors from deleteExpired", async () => {
+			const deleteError = new Error("Session cleanup failed");
+			(deps.userSessionRepository.deleteExpired as any).mockRejectedValue(deleteError);
+
+			await expect(service.register(defaultParams)).rejects.toThrow("Session cleanup failed");
+		});
 	});
 
 	describe("login", () => {

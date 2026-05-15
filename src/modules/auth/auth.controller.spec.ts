@@ -27,6 +27,7 @@ describe("AuthController", () => {
 				.mockResolvedValue({ nonce: "abc123", expiresAt: "2026-01-01T00:00:00.000Z", walletAddress: "0xabc" }),
 		};
 		mockAuthService = {
+			register: vi.fn(),
 			login: vi.fn(),
 			refreshTokens: vi.fn(),
 			logout: vi.fn(),
@@ -35,6 +36,42 @@ describe("AuthController", () => {
 			logoutOthers: vi.fn(),
 		};
 		controller = new AuthController(mockWalletAuthService as any, mockAuthService as any);
+	});
+
+	describe("register", () => {
+		it("should call authService.register and set cookies", async () => {
+			mockAuthService.register.mockResolvedValue({
+				user: {
+					id: "u-1",
+					walletAddress: "0xabc",
+					chainId: SupportedBlockchain.BASE,
+					userType: UserType.BUSINESS,
+					ventairyKycStatus: VentairyKycStatus.PENDING,
+					createdAt: "2026-01-01T00:00:00.000Z",
+				},
+				accessToken: "access-token",
+				rawRefreshToken: "refresh-token",
+			});
+			const mockRes = createMockResponse();
+			const mockReq = { headers: { "user-agent": "Mozilla" }, ip: "127.0.0.1" };
+
+			const result = await controller.register(
+				{ userType: UserType.BUSINESS, siwe: { message: "msg", signature: "0xsig" } } as any,
+				mockReq as any,
+				mockRes as any,
+			);
+
+			expect(mockAuthService.register).toHaveBeenCalledWith({
+				siweMessage: "msg",
+				siweSignature: "0xsig",
+				deviceInfo: "Mozilla",
+				ipAddress: "127.0.0.1",
+				userType: UserType.BUSINESS,
+			});
+			expect(mockRes.cookie).toHaveBeenCalledTimes(2);
+			expect(result.id).toBe("u-1");
+			expect(result.walletAddress).toBe("0xabc");
+		});
 	});
 
 	describe("createNonce", () => {
