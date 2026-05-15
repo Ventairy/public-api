@@ -28,5 +28,6 @@ export { LiquidityProviderQuoteFailedException } from "./liquidity-provider-quot
 export { WalletNotFoundAtLiquidityProviderException as WalletAtLiquidityProviderMismatchException } from "./wallet-not-found-at-liquidity-provider.exception";
 export { LiquidityProviderApiException } from "./liquidity-provider-api.exception";
 export { KycNotApprovedException } from "./kyc-not-approved.exception";
+export { BusinessFieldImmutableException } from "./business-field-immutable.exception";
 export { KycStatusNotAllowedException } from "./kyc-status-not-allowed.exception";
 export { UserKycNotFoundException } from "./user-kyc-not-found.exception";

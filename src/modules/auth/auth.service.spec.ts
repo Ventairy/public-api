@@ -6,7 +6,7 @@ import { UserType, VentairyKycStatus } from "@shared/enums";
 import { AuthService } from "./auth.service";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
 import { UserRepository } from "@modules/user/repositories/user.repository";
-import { KycService } from "@modules/kyc/kyc.service";
+import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
@@ -38,9 +38,9 @@ function createMockAuthServiceDeps() {
 			deleteByUserId: vi.fn().mockResolvedValue(undefined),
 			deleteExpired: vi.fn().mockResolvedValue(0),
 		} as unknown as UserSessionRepository,
-		kycService: {
-			getRawKycStatus: vi.fn(),
-		} as unknown as KycService,
+		kycRepository: {
+			getKycStatus: vi.fn(),
+		} as unknown as KycRepository,
 	};
 }
 
@@ -58,7 +58,7 @@ describe("AuthService", () => {
 			deps.userRepository,
 			deps.jwtService,
 			deps.userSessionRepository,
-			deps.kycService,
+			deps.kycRepository,
 		);
 	});
 
@@ -70,7 +70,7 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.kycService.getRawKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.APPROVED);
+			deps.kycRepository.getKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.APPROVED);
 
 			const result = await service.login({
 				message: "siwe-message",
@@ -82,7 +82,7 @@ describe("AuthService", () => {
 				signature: "0xsig",
 			});
 			expect(deps.userRepository.findByWalletAddress).toHaveBeenCalledWith("0xabc");
-			expect(deps.kycService.getRawKycStatus).toHaveBeenCalledWith("u-1");
+			expect(deps.kycRepository.getKycStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.userSessionRepository.create).toHaveBeenCalled();
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
@@ -97,21 +97,21 @@ describe("AuthService", () => {
 			expect(result.rawRefreshToken).toBe("raw-refresh-token-64-chars-hex-string-abcdef123456");
 		});
 
-		it("should throw UserNotFoundException when KYC row is not found on login", async () => {
+		it("should throw when KYC row is not found on login", async () => {
 			deps.userRepository.findByWalletAddress = vi.fn().mockResolvedValue({
 				id: "u-1",
 				wallet_address: "0xabc",
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.kycService.getRawKycStatus = vi.fn().mockRejectedValue(new UserNotFoundException("u-1"));
+			deps.kycRepository.getKycStatus = vi.fn().mockRejectedValue(new Error("KYC row not found for user u-1"));
 
 			await expect(
 				service.login({
 					message: "siwe-message",
 					signature: "0xsig",
 				}),
-			).rejects.toThrow(UserNotFoundException);
+			).rejects.toThrow("KYC row not found for user u-1");
 		});
 
 		it("should throw UserNotFoundException when user does not exist", async () => {
@@ -181,13 +181,13 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.kycService.getRawKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.VERIFYING);
+			deps.kycRepository.getKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.VERIFYING);
 			const request = { headers: { cookie: "__Host-ventairy-refresh=valid-token" } } as Request;
 
 			const result = await service.refreshTokens(request);
 
 			expect(deps.userSessionRepository.updateRefreshTokenHash).toHaveBeenCalled();
-			expect(deps.kycService.getRawKycStatus).toHaveBeenCalledWith("u-1");
+			expect(deps.kycRepository.getKycStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
 				sessionId: "s-1",

@@ -13,6 +13,7 @@ Domain-specific exception classes for the Ventairy Public API. All exceptions ex
 | `business-not-found.exception.ts`                  | Business profile not found for the given user                                                                      |
 | `business-controller-not-found.exception.ts`       | Specific business controller not found                                                                             |
 | `business-controller-file-not-found.exception.ts`  | File not found for a specific business controller                                                                  |
+| `business-field-immutable.exception.ts`            | Immutable business field cannot be changed after KYC approval (409) — raised by `ImmutableBusinessGuard`           |
 | `business-file-not-found.exception.ts`             | File not found for a business                                                                                      |
 | `business-only.exception.ts`                       | Endpoint restricted to BUSINESS user type                                                                          |
 | `file-mime-type-mismatch.exception.ts`             | Uploaded file MIME type does not match the declared type                                                           |

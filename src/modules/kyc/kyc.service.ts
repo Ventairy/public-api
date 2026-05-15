@@ -170,12 +170,6 @@ export class KycService {
 		return kycStatus === VentairyKycStatus.PENDING && missing.fields.length === 0 && missing.files.length === 0;
 	}
 
-	public async getRawKycStatus(userId: string): Promise<VentairyKycStatus> {
-		const row = await this._getKycDatabaseRow(userId);
-
-		return row.ventairy_kyc_status;
-	}
-
 	private async _getKycDatabaseRow(userId: string): Promise<import("@db/schema/kyc-table").KycRow> {
 		const row = await this._kycRepository.findByUserId(userId);
 		if (!row) throw new UserKycNotFoundException(userId);

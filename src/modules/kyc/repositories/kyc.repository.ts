@@ -13,6 +13,17 @@ export class KycRepository {
 		return rows[0];
 	}
 
+	async getKycStatus(userId: string): Promise<VentairyKycStatus> {
+		const rows = await this._db
+			.select({ ventairy_kyc_status: kycTable.ventairy_kyc_status })
+			.from(kycTable)
+			.where(eq(kycTable.user_id, userId));
+
+		if (!rows[0]) throw new Error(`KYC row not found for user ${userId}`);
+
+		return rows[0].ventairy_kyc_status;
+	}
+
 	async create(data: NewKycRow): Promise<void> {
 		await this._db.insert(kycTable).values(data);
 	}

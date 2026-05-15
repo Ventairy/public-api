@@ -3,10 +3,49 @@ import { Expose, Type } from "class-transformer";
 import { IsArray, IsEmail, IsOptional, IsString, ValidateNested } from "class-validator";
 import { UserType } from "@shared/enums";
 import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
+import { Immutable } from "@shared/decorators/immutable.decorator";
 import { BusinessAddressInputDto } from "./business-address-input.dto";
 import { BusinessControllerInputDto } from "./business-controller-input.dto";
+import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
+import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 
 export class BusinessInputDto {
+	static fromDatabaseRow(row: BusinessDatabaseRow, controllers: BusinessControllerDatabaseRow[]): BusinessInputDto {
+		return new BusinessInputDto({
+			legalName: row.legal_name,
+			fantasyName: row.fantasy_name,
+			formationDate: row.formation_date,
+			email: row.email,
+			taxId: row.tax_id,
+			phoneNumber: row.phone_number,
+			website: row.website,
+			address: BusinessAddressInputDto.fromDatabaseRow(row),
+			controllers: controllers.map((controller) => BusinessControllerInputDto.fromDatabaseRow(controller)),
+		});
+	}
+
+	constructor(params?: {
+		legalName: string | null;
+		fantasyName: string | null;
+		formationDate: string | null;
+		email: string | null;
+		taxId: string | null;
+		phoneNumber: string | null;
+		website: string | null;
+		address: BusinessAddressInputDto | null;
+		controllers: BusinessControllerInputDto[] | null;
+	}) {
+		this.legalName = params?.legalName ?? null;
+		this.fantasyName = params?.fantasyName ?? null;
+		this.formationDate = params?.formationDate ?? null;
+		this.email = params?.email ?? null;
+		this.taxId = params?.taxId ?? null;
+		this.phoneNumber = params?.phoneNumber ?? null;
+		this.website = params?.website ?? null;
+		this.address = params?.address ?? null;
+		this.controllers = params?.controllers ?? null;
+	}
+
 	@ApiProperty({
 		name: "legal_name",
 		description: "Legal name of the business.",
@@ -14,10 +53,11 @@ export class BusinessInputDto {
 		required: false,
 	})
 	@Expose({ name: "legal_name" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
-	legalName?: string;
+	legalName: string | null;
 
 	@ApiProperty({
 		name: "fantasy_name",
@@ -26,9 +66,10 @@ export class BusinessInputDto {
 		required: false,
 	})
 	@Expose({ name: "fantasy_name" })
+	@Immutable()
 	@IsOptional()
 	@IsString()
-	fantasyName?: string;
+	fantasyName: string | null;
 
 	@ApiProperty({
 		name: "formation_date",
@@ -37,17 +78,19 @@ export class BusinessInputDto {
 		required: false,
 	})
 	@Expose({ name: "formation_date" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
-	formationDate?: string;
+	formationDate: string | null;
 
 	@ApiProperty({ name: "email", description: "Business email address.", example: "contact@acme.com", required: false })
 	@Expose({ name: "email" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsEmail()
-	email?: string;
+	email: string | null;
 
 	@ApiProperty({
 		name: "tax_id",
@@ -56,10 +99,11 @@ export class BusinessInputDto {
 		required: false,
 	})
 	@Expose({ name: "tax_id" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
-	taxId?: string;
+	taxId: string | null;
 
 	@ApiProperty({
 		name: "phone_number",
@@ -68,17 +112,19 @@ export class BusinessInputDto {
 		required: false,
 	})
 	@Expose({ name: "phone_number" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
-	phoneNumber?: string;
+	phoneNumber: string | null;
 
 	@ApiProperty({ name: "website", description: "Business website URL.", example: "https://acme.com", required: false })
 	@Expose({ name: "website" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
-	website?: string;
+	website: string | null;
 
 	@ApiProperty({
 		name: "address",
@@ -87,11 +133,12 @@ export class BusinessInputDto {
 		required: false,
 	})
 	@Expose({ name: "address" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@ValidateNested()
 	@Type(() => BusinessAddressInputDto)
-	address?: BusinessAddressInputDto;
+	address: BusinessAddressInputDto | null;
 
 	@ApiProperty({
 		name: "controllers",
@@ -101,10 +148,11 @@ export class BusinessInputDto {
 		required: false,
 	})
 	@Expose({ name: "controllers" })
+	@Immutable()
 	@RequiredForKYC([UserType.BUSINESS])
 	@IsOptional()
 	@IsArray()
 	@ValidateNested({ each: true })
 	@Type(() => BusinessControllerInputDto)
-	controllers?: BusinessControllerInputDto[];
+	controllers: BusinessControllerInputDto[] | null;
 }

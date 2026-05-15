@@ -48,6 +48,27 @@ describe("KycRepository", () => {
 		});
 	});
 
+	describe("getKycStatus", () => {
+		it("should return kyc status when found", async () => {
+			const expectedRow = { id: "kyc-1", user_id: "user-1", ventairy_kyc_status: VentairyKycStatus.APPROVED };
+			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
+			mockDb.select.mockReturnValue(selectBuilder);
+			selectBuilder.where.mockResolvedValue([expectedRow]);
+
+			const result = await repository.getKycStatus("user-1");
+
+			expect(result).toBe(VentairyKycStatus.APPROVED);
+		});
+
+		it("should throw when user not found", async () => {
+			const selectBuilder = { from: vi.fn().mockReturnThis(), where: vi.fn() };
+			mockDb.select.mockReturnValue(selectBuilder);
+			selectBuilder.where.mockResolvedValue([]);
+
+			await expect(repository.getKycStatus("nonexistent")).rejects.toThrow("KYC row not found for user nonexistent");
+		});
+	});
+
 	describe("create", () => {
 		it("should insert a kyc row", async () => {
 			const data = { id: "kyc-1", user_id: "user-1" };

@@ -1,9 +1,34 @@
+import "reflect-metadata";
 import { describe, it, expect } from "vitest";
 import { validate } from "class-validator";
 import { plainToInstance } from "class-transformer";
 import { BusinessControllerIdentificationInputDto } from "../business-controller-identification-input.dto";
+import type { BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 
 describe("ControllerIdentificationInputDto", () => {
+	describe("fromDatabaseRow", () => {
+		it("should map non-null fields from the database row", () => {
+			const row = {
+				identification_country_code: "BR",
+				identification_document_type: "PASSPORT",
+			} as BusinessControllerDatabaseRow;
+
+			const dto = BusinessControllerIdentificationInputDto.fromDatabaseRow(row);
+
+			expect(dto.countryCode).toBe("BR");
+			expect(dto.documentType).toBe("PASSPORT");
+		});
+
+		it("should convert null DB values to null", () => {
+			const row = {} as BusinessControllerDatabaseRow;
+
+			const dto = BusinessControllerIdentificationInputDto.fromDatabaseRow(row);
+
+			expect(dto.countryCode).toBeNull();
+			expect(dto.documentType).toBeNull();
+		});
+	});
+
 	it("should validate an empty dto (since all fields are optional)", async () => {
 		const input = {};
 		const dto = plainToInstance(BusinessControllerIdentificationInputDto, input);

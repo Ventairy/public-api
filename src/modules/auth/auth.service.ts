@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ForbiddenException } from "@nestjs/c
 import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
 import { UserRepository } from "@modules/user/repositories/user.repository";
-import { KycService } from "@modules/kyc/kyc.service";
+import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";
@@ -22,7 +22,7 @@ export class AuthService {
 		private readonly _userRepository: UserRepository,
 		private readonly _jwtService: JwtService,
 		private readonly _userSessionRepository: UserSessionRepository,
-		private readonly _kycService: KycService,
+		private readonly _kycRepository: KycRepository,
 	) {}
 
 	public async login(params: {
@@ -58,7 +58,7 @@ export class AuthService {
 				ip_address: params.ipAddress ?? null,
 				expires_at: expiresAt,
 			}),
-			this._kycService.getRawKycStatus(user.id),
+			this._kycRepository.getKycStatus(user.id),
 		]);
 
 		const accessToken = await this._jwtService.generateAccessToken({
@@ -109,7 +109,7 @@ export class AuthService {
 				expiresAt: newExpiresAt,
 				updatedAt: now.toISOString(),
 			}),
-			this._kycService.getRawKycStatus(currentSession.user_id),
+			this._kycRepository.getKycStatus(currentSession.user_id),
 		]);
 
 		if (!user) throw new UserNotFoundException(currentSession.user_id);

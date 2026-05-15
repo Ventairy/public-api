@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BusinessFileType } from "@shared/enums/business-file-type";
+import { plainToInstance } from "class-transformer";
 import { BusinessControllerFileType } from "@shared/enums/business-controller-file-type";
 import { BusinessControllerRole } from "@shared/enums/business-controller-role";
 import { R2BucketType } from "@shared/enums/r2-bucket-type";
@@ -13,6 +14,7 @@ import { BusinessNotFoundException } from "@shared/exceptions/business-not-found
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
 import { ObjectUtils } from "@shared/utils";
 import { BusinessService } from "../business.service";
+import { BusinessInputDto } from "../dto/business-input.dto";
 import { BUSINESS_MAX_FILE_SIZE_BYTES } from "../business.constants";
 import { businessesTable } from "@db/schema/businesses-table";
 import { businessControllersTable } from "@db/schema/business-controllers-table";
@@ -702,9 +704,9 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([]);
 			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
-			await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Only Name",
-			});
+			await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Only Name",
+			}));
 
 			expect(mockBusinessRepository.updateBusiness).toHaveBeenCalled();
 			expect(mockBusinessRepository.insertBusinessController).not.toHaveBeenCalled();
@@ -722,9 +724,9 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
 			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
-			await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Updated Corp",
-			});
+			await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Updated Corp",
+			}));
 
 			const setCallArgs = mockBusinessRepository.updateBusiness.mock.calls[0]![1] as Record<string, unknown>;
 
@@ -744,9 +746,9 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
 			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
-			await service.saveBusiness(MOCK_USER_ID, {
-				legalName: null as any,
-			});
+			await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: null,
+			}));
 
 			const setCallArgs = mockBusinessRepository.updateBusiness.mock.calls[0]![1] as Record<string, unknown>;
 
@@ -764,9 +766,9 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
 			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
-			await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Only Name",
-			});
+			await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Only Name",
+			}));
 
 			expect(mockBusinessRepository.updateBusiness).toHaveBeenCalled();
 			expect(mockBusinessRepository.insertBusiness).not.toHaveBeenCalled();
@@ -783,9 +785,9 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
 			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
-			const result = await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Updated Corp",
-			});
+			const result = await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Updated Corp",
+			}));
 
 			expect(result).toBeDefined();
 			expect(result.id).toBe(MOCK_BUSINESS_ID);
@@ -807,9 +809,9 @@ describe("BusinessService", () => {
 				new Map([[mockInsertedController.id, [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
 			);
 
-			const result = await service.saveBusiness(MOCK_USER_ID, {
+			const result = await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
 				controllers: [{ role: BusinessControllerRole.CONTROLLING_PERSON }],
-			});
+			}));
 
 			expect(result).toBeDefined();
 			expect(mockBusinessRepository.insertBusiness).toHaveBeenCalled();
@@ -832,13 +834,13 @@ describe("BusinessService", () => {
 				new Map([["ctrl-001", [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
 			);
 
-			await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Updated Corp",
+			await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Updated Corp",
 				controllers: [
 					{ id: "ctrl-001", role: BusinessControllerRole.CONTROLLING_PERSON },
-					{ legalFirstName: "New", role: BusinessControllerRole.CONTROLLING_PERSON },
+					{ legal_first_name: "New", role: BusinessControllerRole.CONTROLLING_PERSON },
 				],
-			});
+			}));
 
 			expect(mockBusinessRepository.updateBusinessController).toHaveBeenCalled();
 			expect(mockBusinessRepository.insertBusinessController).toHaveBeenCalled();
@@ -856,10 +858,10 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findBusinessFileTypesByUserId.mockResolvedValue([BusinessFileType.PROOF_OF_ADDRESS]);
 			mockBusinessRepository.findBusinessControllerFileTypesByControllerIds.mockResolvedValue(new Map());
 
-			await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Updated Corp",
+			await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Updated Corp",
 				controllers: [{ id: "ctrl-001" }],
-			});
+			}));
 
 			expect(mockBusinessRepository.updateBusinessController).not.toHaveBeenCalled();
 		});
@@ -880,10 +882,10 @@ describe("BusinessService", () => {
 				new Map([["ctrl-001", [BusinessControllerFileType.IDENTIFICATION_FRONT]]]),
 			);
 
-			const result = await service.saveBusiness(MOCK_USER_ID, {
-				legalName: "Updated Corp",
-				controllers: [{ id: "ctrl-001", legalFirstName: "NewName", role: BusinessControllerRole.CONTROLLING_PERSON }],
-			});
+			const result = await service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
+				legal_name: "Updated Corp",
+				controllers: [{ id: "ctrl-001", legal_first_name: "NewName", role: BusinessControllerRole.CONTROLLING_PERSON }],
+			}));
 
 			expect(mockBusinessRepository.updateBusinessController).toHaveBeenCalled();
 			expect(result.controllers[0]?.legalFirstName).toBe("NewName");
@@ -899,9 +901,9 @@ describe("BusinessService", () => {
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
 
 			await expect(
-				service.saveBusiness(MOCK_USER_ID, {
+				service.saveBusiness(MOCK_USER_ID, plainToInstance(BusinessInputDto, {
 					controllers: [{ id: "invalid-id", role: BusinessControllerRole.CONTROLLING_PERSON }],
-				}),
+				})),
 			).rejects.toThrow(BusinessControllerNotFoundException);
 		});
 	});

@@ -11,6 +11,7 @@ import {
 	Query,
 	StreamableFile,
 	UploadedFile,
+	UseGuards,
 	UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -19,6 +20,7 @@ import { BusinessUserOnly } from "@shared/decorators/user-type.decorator";
 import { RateLimit } from "@shared/rate-limit/rate-limit.decorator";
 import type { Actor } from "@shared/types/actor.type";
 import { BusinessService } from "./business.service";
+import { ImmutableBusinessGuard } from "./guards/immutable-business.guard";
 import { UploadBusinessFileBodyDto } from "./dto/upload-business-file-body.dto";
 import { UploadBusinessFileOutputDto } from "./dto/upload-business-file-output.dto";
 import { UploadBusinessControllerFileBodyDto } from "./dto/upload-business-controller-file-body.dto";
@@ -66,6 +68,7 @@ export class BusinessController {
 	}
 
 	@Put()
+	@UseGuards(ImmutableBusinessGuard)
 	@HttpCode(HttpStatus.OK)
 	@RateLimit({ limit: 20, ttlSeconds: 60 })
 	@ApiSaveBusinessDocs()

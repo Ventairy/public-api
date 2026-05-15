@@ -310,7 +310,7 @@ export class BusinessService {
 		existingControllers: BusinessControllerDatabaseRow[],
 		controllersToUpdate: BusinessInputDto["controllers"],
 	): Promise<BusinessControllerDatabaseRow[]> {
-		if (controllersToUpdate === undefined || controllersToUpdate.length === 0) {
+		if (!controllersToUpdate || controllersToUpdate.length === 0) {
 			return [...existingControllers];
 		}
 

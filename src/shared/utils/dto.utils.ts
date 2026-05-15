@@ -1,7 +1,8 @@
 // @ts-expect-error - internal module, types not exported
 import { defaultMetadataStorage } from "class-transformer/cjs/storage";
 
-type DtoClass<T = unknown> = new (...args: T[]) => T;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DtoClass = new (...args: any[]) => any;
 
 function snakeToCamel(str: string): string {
 	return str.replace(/_([a-z])/g, (_: string, letter: string) => letter.toUpperCase());
