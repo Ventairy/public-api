@@ -21,7 +21,7 @@ describe("AuthController rate limits", () => {
 		expectRateLimit(AuthController, "createNonce", { limit: 10, ttl: 60_000 });
 	});
 
-	it("POST /auth/wallet/login: 5 req / 300s", () => {
+	it("POST /auth/login: 5 req / 300s", () => {
 		expectRateLimit(AuthController, "login", { limit: 5, ttl: 300_000 });
 	});
 

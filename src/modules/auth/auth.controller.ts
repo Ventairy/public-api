@@ -63,7 +63,7 @@ export class AuthController {
 		return this._walletAuthService.createNonce(body.walletAddress, body.chainId);
 	}
 
-	@Post("wallet/login")
+	@Post("login")
 	@HttpCode(HttpStatus.OK)
 	@Public()
 	@RateLimit({ limit: 5, ttlSeconds: 300 })

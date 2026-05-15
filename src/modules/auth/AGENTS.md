@@ -23,7 +23,7 @@ Each subdirectory has its own `AGENTS.md` — refer to those for details on `con
 
 - `POST /v1/auth/register`
 - `POST /v1/auth/wallet/nonce/create`
-- `POST /v1/auth/wallet/login`
+- `POST /v1/auth/login`
 - `POST /v1/auth/refresh`
 
 ## Security
