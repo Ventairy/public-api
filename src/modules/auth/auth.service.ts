@@ -49,7 +49,7 @@ export class AuthService {
 		const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
 		try {
-			const [[userRow, verificationRow, session]] = await Promise.all([
+			const [[userRow, , session]] = await Promise.all([
 				this._atomicExecutionService.execute(
 					this._userRepository.create_atomicCall({
 						id: newUserId,
@@ -79,7 +79,6 @@ export class AuthService {
 				userType: params.userType,
 				walletAddress,
 				chainId,
-				verificationStatus: verificationRow.verification_status,
 			});
 
 			return {
@@ -114,17 +113,14 @@ export class AuthService {
 		const now = new Date();
 		const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
-		const [session, verificationStatus] = await Promise.all([
-			this._userSessionRepository.create({
-				id: crypto.randomUUID(),
-				user_id: user.id,
-				refresh_token_hash: refreshTokenHash,
-				device_info: params.deviceInfo ?? null,
-				ip_address: params.ipAddress ?? null,
-				expires_at: expiresAt,
-			}),
-			this._verificationRepository.getVerificationStatus(user.id),
-		]);
+		const session = await this._userSessionRepository.create({
+			id: crypto.randomUUID(),
+			user_id: user.id,
+			refresh_token_hash: refreshTokenHash,
+			device_info: params.deviceInfo ?? null,
+			ip_address: params.ipAddress ?? null,
+			expires_at: expiresAt,
+		});
 
 		const accessToken = await this._jwtService.generateAccessToken({
 			userId: user.id,
@@ -132,7 +128,6 @@ export class AuthService {
 			userType: user.user_type,
 			walletAddress: user.wallet_address,
 			chainId: user.chain_id,
-			verificationStatus,
 		});
 
 		return {
@@ -165,7 +160,7 @@ export class AuthService {
 		const newHash = CryptoUtils.hashSha256(newRawRefreshToken);
 		const newExpiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
-		const [user, , verificationStatus] = await Promise.all([
+		const [user] = await Promise.all([
 			this._userRepository.findById(currentSession.user_id),
 			this._userSessionRepository.updateRefreshTokenHash({
 				id: currentSession.id,
@@ -173,7 +168,6 @@ export class AuthService {
 				expiresAt: newExpiresAt,
 				updatedAt: now.toISOString(),
 			}),
-			this._verificationRepository.getVerificationStatus(currentSession.user_id),
 		]);
 
 		if (!user) throw new UserNotFoundException(currentSession.user_id);
@@ -184,7 +178,6 @@ export class AuthService {
 			userType: user.user_type,
 			walletAddress: user.wallet_address,
 			chainId: user.chain_id,
-			verificationStatus,
 		});
 
 		return {

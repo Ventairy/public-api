@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserType, BusinessFileType, BusinessControllerFileType, ControllerRole } from "@shared/enums";
-import { VerificationStatus } from "@shared/enums/verification-status";
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { KybService } from "./kyb.service";
 import type { Actor } from "@shared/types/actor.type";
 
 const MOCK_USER_ID = "user-123";
-const MOCK_ACTOR: Actor = { id: MOCK_USER_ID, sessionId: "session-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.VERIFIED };
+const MOCK_ACTOR: Actor = { id: MOCK_USER_ID, sessionId: "session-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 function createMockBusinessOutput(overrides: Record<string, unknown> = {}) {
 	const defaults = {

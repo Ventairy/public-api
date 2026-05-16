@@ -143,7 +143,7 @@ describe("AuthService", () => {
 			expect(deps.userSessionRepository.deleteExpired).toHaveBeenCalledTimes(1);
 		});
 
-		it("should create a session via atomic batch and generate a JWT using the KYC status from the atomic batch", async () => {
+		it("should create a session via atomic batch and generate a JWT", async () => {
 			await service.register(defaultParams);
 
 			expect(deps.userSessionRepository.create).not.toHaveBeenCalled();
@@ -163,7 +163,6 @@ describe("AuthService", () => {
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
-				verificationStatus: VerificationStatus.PENDING,
 			});
 		});
 
@@ -216,14 +215,13 @@ describe("AuthService", () => {
 	});
 
 	describe("login", () => {
-		it("should parse and verify SIWE, find user, create session, fetch KYC status, and return tokens", async () => {
+		it("should parse and verify SIWE, find user, create session, and return tokens", async () => {
 			deps.userRepository.findByWalletAddress = vi.fn().mockResolvedValue({
 				id: "u-1",
 				wallet_address: "0xabc",
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.verificationRepository.getVerificationStatus = vi.fn().mockResolvedValue(VerificationStatus.VERIFIED);
 
 			const result = await service.login({
 				message: "siwe-message",
@@ -235,7 +233,6 @@ describe("AuthService", () => {
 				signature: "0xsig",
 			});
 			expect(deps.userRepository.findByWalletAddress).toHaveBeenCalledWith("0xabc");
-			expect(deps.verificationRepository.getVerificationStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.userSessionRepository.create).toHaveBeenCalled();
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
@@ -243,28 +240,10 @@ describe("AuthService", () => {
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
-				verificationStatus: VerificationStatus.VERIFIED,
 			});
 			expect(result.output.expiresAt).toBeTruthy();
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.rawRefreshToken).toBe("raw-refresh-token-64-chars-hex-string-abcdef123456");
-		});
-
-		it("should throw when KYC row is not found on login", async () => {
-			deps.userRepository.findByWalletAddress = vi.fn().mockResolvedValue({
-				id: "u-1",
-				wallet_address: "0xabc",
-				chain_id: 8453,
-				user_type: UserType.BUSINESS,
-			});
-			deps.verificationRepository.getVerificationStatus = vi.fn().mockRejectedValue(new Error("KYC row not found for user u-1"));
-
-			await expect(
-				service.login({
-					message: "siwe-message",
-					signature: "0xsig",
-				}),
-			).rejects.toThrow("KYC row not found for user u-1");
 		});
 
 		it("should throw UserNotFoundException when user does not exist", async () => {
@@ -321,7 +300,7 @@ describe("AuthService", () => {
 			await expect(service.refreshTokens(request)).rejects.toThrow(SessionExpiredException);
 		});
 
-		it("should rotate tokens and return new ones with KYC status", async () => {
+		it("should rotate tokens and return new ones", async () => {
 			const futureDate = new Date(Date.now() + 86400000).toISOString();
 			deps.userSessionRepository.findByRefreshTokenHash = vi.fn().mockResolvedValue({
 				id: "s-1",
@@ -334,20 +313,17 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.verificationRepository.getVerificationStatus = vi.fn().mockResolvedValue(VerificationStatus.VERIFYING);
 			const request = { headers: { cookie: "__Host-ventairy-refresh=valid-token" } } as Request;
 
 			const result = await service.refreshTokens(request);
 
 			expect(deps.userSessionRepository.updateRefreshTokenHash).toHaveBeenCalled();
-			expect(deps.verificationRepository.getVerificationStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
 				sessionId: "s-1",
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
-				verificationStatus: VerificationStatus.VERIFYING,
 			});
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.output.expiresAt).toBeTruthy();

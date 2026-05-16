@@ -6,7 +6,7 @@ import type { Actor } from "@shared/types/actor.type";
 import { VerificationStatusOutputDto, VerificationMissingDto, VerificationSubmissionOutputDto } from "./dto";
 import { VerificationStatus } from "@shared/enums";
 
-const MOCK_ACTOR: Actor = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.VERIFIED };
+const MOCK_ACTOR: Actor = { id: "user-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 const MOCK_STATUS = new VerificationStatusOutputDto({
 	userId: "user-1",

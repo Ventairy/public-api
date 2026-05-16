@@ -11,7 +11,6 @@ import { UserTypeGuard } from "../guards/user-type.guard";
 import { JwtService } from "../jwt/jwt.service";
 import { JWT_CONFIG_KEY, type JwtConfig } from "@core/config";
 import { Public } from "@shared/decorators/public.decorator";
-import { VerificationStatus } from "@shared/enums";
 import { ACCESS_COOKIE_NAME } from "../constants/token.constants";
 
 @Controller("test")
@@ -95,7 +94,6 @@ describe("Guard ordering: JwtAuthGuard → RateLimitGuard → UserTypeGuard", ()
 			userType: "BUSINESS" as any,
 			walletAddress: "0x123",
 			chainId: 8453,
-			verificationStatus: VerificationStatus.VERIFIED,
 		});
 	}
 

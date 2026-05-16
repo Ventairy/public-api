@@ -1,5 +1,5 @@
 import { SupportedBlockchain } from "@shared/blockchain";
-import type { UserType, VerificationStatus } from "@shared/enums";
+import type { UserType } from "@shared/enums";
 
 export interface IAccessTokenPayload {
 	sub: string;
@@ -7,5 +7,4 @@ export interface IAccessTokenPayload {
 	user_type: UserType;
 	wallet_address: string;
 	chain_id: SupportedBlockchain;
-	verification_status: VerificationStatus;
 }

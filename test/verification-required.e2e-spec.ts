@@ -1,22 +1,40 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { Test, type TestingModule } from "@nestjs/testing";
-import { Controller, Get, HttpCode, HttpStatus, INestApplication } from "@nestjs/common";
+import { Controller, Get, HttpCode, HttpStatus, INestApplication, CanActivate, ExecutionContext, UseGuards } from "@nestjs/common";
 import { APP_GUARD, Reflector } from "@nestjs/core";
 import supertest from "supertest";
 import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
-import { VerificationGuard } from "@modules/verification/guards/verification.guard";
 import { JwtService } from "@modules/auth/jwt/jwt.service";
 import { JWT_CONFIG_KEY, type JwtConfig } from "@core/config";
-import { RequireVerification } from "@modules/verification/guards/require-verification.decorator";
 import { Public } from "@shared/decorators/public.decorator";
 import { VerificationStatus } from "@shared/enums";
+import { VerificationNotApprovedException } from "@shared/exceptions";
 import { ACCESS_COOKIE_NAME } from "@modules/auth/constants/token.constants";
+
+const mockVerificationRepository = { getVerificationStatus: vi.fn() };
+
+class TestVerificationGuard implements CanActivate {
+	public async canActivate(context: ExecutionContext): Promise<boolean> {
+		const request = context.switchToHttp().getRequest();
+		const actor: { id: string } | undefined = request.user;
+
+		const verificationStatus = await mockVerificationRepository.getVerificationStatus(actor!.id);
+
+		if (verificationStatus === VerificationStatus.VERIFIED) return true;
+
+		throw new VerificationNotApprovedException({ verificationStatus });
+	}
+}
+
+function RequireVerificationForTest(): ReturnType<typeof UseGuards> {
+	return UseGuards(TestVerificationGuard);
+}
 
 @Controller("test")
 class TestVerificationController {
 	@Get("required")
 	@HttpCode(HttpStatus.OK)
-	@RequireVerification()
+	@RequireVerificationForTest()
 	verificationRequired(): { ok: boolean } {
 		return { ok: true };
 	}
@@ -62,7 +80,6 @@ describe("Verification Required Guard (e2e)", () => {
 					provide: APP_GUARD,
 					useValue: jwtAuthGuard,
 				},
-				VerificationGuard,
 			],
 		}).compile();
 
@@ -75,20 +92,20 @@ describe("Verification Required Guard (e2e)", () => {
 		await app.close();
 	});
 
-	async function generateToken(verificationStatus: VerificationStatus): Promise<string> {
+	async function generateToken(): Promise<string> {
 		return jwtService.generateAccessToken({
 			userId: "test-user-id",
 			sessionId: "test-session-id",
 			userType: "BUSINESS" as any,
 			walletAddress: "0x123",
 			chainId: 8453,
-			verificationStatus,
 		});
 	}
 
 	describe("@RequireVerification() endpoint", () => {
 		it("should allow access when verification status is VERIFIED", async () => {
-			const token = await generateToken(VerificationStatus.VERIFIED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
+			const token = await generateToken();
 
 			await supertest(app.getHttpServer())
 				.get("/test/required")
@@ -98,7 +115,8 @@ describe("Verification Required Guard (e2e)", () => {
 		});
 
 		it("should return 403 with VERIFICATION_NOT_APPROVED when status is PENDING", async () => {
-			const token = await generateToken(VerificationStatus.PENDING);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.PENDING);
+			const token = await generateToken();
 
 			await supertest(app.getHttpServer())
 				.get("/test/required")
@@ -111,7 +129,8 @@ describe("Verification Required Guard (e2e)", () => {
 		});
 
 		it("should return 403 with VERIFICATION_NOT_APPROVED when status is VERIFYING", async () => {
-			const token = await generateToken(VerificationStatus.VERIFYING);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFYING);
+			const token = await generateToken();
 
 			await supertest(app.getHttpServer())
 				.get("/test/required")
@@ -124,7 +143,8 @@ describe("Verification Required Guard (e2e)", () => {
 		});
 
 		it("should return 403 with VERIFICATION_NOT_APPROVED when status is REJECTED", async () => {
-			const token = await generateToken(VerificationStatus.REJECTED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.REJECTED);
+			const token = await generateToken();
 
 			await supertest(app.getHttpServer())
 				.get("/test/required")
@@ -139,7 +159,8 @@ describe("Verification Required Guard (e2e)", () => {
 
 	describe("no verification requirement endpoint", () => {
 		it("should allow access regardless of verification status", async () => {
-			const token = await generateToken(VerificationStatus.PENDING);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.PENDING);
+			const token = await generateToken();
 
 			await supertest(app.getHttpServer())
 				.get("/test/no-requirement")

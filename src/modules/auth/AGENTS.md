@@ -19,7 +19,7 @@ Each subdirectory has its own `AGENTS.md` — refer to those for details on `con
 
 - Three global `APP_GUARD` providers run in order: `JwtAuthGuard` (authenticates), `RateLimitGuard` (rate limits), `UserTypeGuard` (authorizes by user type). Verification is enforced per-route via `@RequireVerification()` from `@modules/verification/guards/`.
 - Rate limiting is enforced globally via `RateLimitGuard` (registered 2nd, between JwtAuthGuard and UserTypeGuard). Authenticated endpoints are throttled by user ID; public endpoints by client IP.
-- Access tokens: HS256, 15-minute TTL, delivered via `__Host-ventairy-access` HTTP-only cookie (SameSite=Strict, Secure). Contains `user_type` for stateless user type authorization and `verification_status` for stateless Verification authorization.
+- Access tokens: HS256, 15-minute TTL, delivered via `__Host-ventairy-access` HTTP-only cookie (SameSite=Strict, Secure). Contains `user_type`, `wallet_address`, and `chain_id` claims. Verification status is fetched from the database on each guarded request.
 - Refresh tokens: 256-bit random, SHA-256 hashed in DB, rotated on every use, delivered via `__Host-ventairy-refresh` cookie
 - Lazy cleanup: `deleteExpired()` called at the start of every session operation
 - Session listing shows active sessions only (excludes expired), flags current session with `is_current`

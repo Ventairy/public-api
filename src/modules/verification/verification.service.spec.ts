@@ -9,7 +9,7 @@ import { VerificationMissingDto } from "./dto";
 import type { Actor } from "@shared/types/actor.type";
 
 const MOCK_USER_ID = "user-123";
-const MOCK_ACTOR: Actor = { id: MOCK_USER_ID, sessionId: "session-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.VERIFIED };
+const MOCK_ACTOR: Actor = { id: MOCK_USER_ID, sessionId: "session-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 function createMockMissingData(overrides: Partial<{ fields: string[]; files: string[] }> = {}): VerificationMissingDto {
 	return new VerificationMissingDto({ fields: overrides.fields ?? [], files: overrides.files ?? [] });

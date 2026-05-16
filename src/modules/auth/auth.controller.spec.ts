@@ -142,7 +142,7 @@ describe("AuthController", () => {
 	describe("listSessions", () => {
 		it("should return sessions for the current actor", async () => {
 			mockAuthService.listSessions.mockResolvedValue({ sessions: [] });
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.listSessions(actor);
 
@@ -154,7 +154,7 @@ describe("AuthController", () => {
 		it("should clear cookies when revoking own session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: true });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.revokeSession(actor, "s-1", mockRes as any);
 
@@ -164,7 +164,7 @@ describe("AuthController", () => {
 		it("should not clear cookies when revoking another session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: false });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.revokeSession(actor, "s-2", mockRes as any);
 
@@ -175,7 +175,7 @@ describe("AuthController", () => {
 	describe("logoutOthers", () => {
 		it("should call authService.logoutOthers and clear cookies", async () => {
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453 };
 
 			await controller.logoutOthers(actor, mockRes as any);
 

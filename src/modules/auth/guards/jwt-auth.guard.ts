@@ -34,7 +34,6 @@ export class JwtAuthGuard implements CanActivate {
 			userType: payload.user_type,
 			walletAddress: payload.wallet_address,
 			chainId: payload.chain_id,
-			verificationStatus: payload.verification_status,
 		};
 
 		return true;
