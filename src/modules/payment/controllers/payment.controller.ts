@@ -8,15 +8,15 @@ import {
 	ClassSerializerInterceptor,
 } from "@nestjs/common";
 import { CurrentActor } from "@shared/decorators/current-actor.decorator";
-import { KYCRequired } from "@shared/decorators";
 import { RateLimit } from "@shared/rate-limit/rate-limit.decorator";
 import type { Actor } from "@shared/types/actor.type";
 import { PaymentService } from "../payment.service";
 import { ReceiveQuoteInputDto, ReceiveQuoteOutputDto } from "../dto";
 import { ApiReceiveQuoteDocs } from "../docs/api-receive-quote-docs.decorator";
+import { RequireVerification } from "@modules/verification/guards/require-verification.decorator";
 
 @UseInterceptors(ClassSerializerInterceptor)
-@KYCRequired()
+@RequireVerification()
 @Controller("payment")
 export class PaymentController {
 	constructor(private readonly _paymentService: PaymentService) {}

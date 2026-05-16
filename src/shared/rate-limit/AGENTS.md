@@ -4,16 +4,6 @@
 
 Cross-cutting rate limiting infrastructure for the Ventairy API. Leverages `@nestjs/throttler` v6 for sliding-window rate limit counting, with a custom guard that differentiates between **authenticated routes** (track by user ID) and **public routes** (track by client IP).
 
-## Files
-
-| File                      | Description                                                                                                                                                                           |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rate-limit.decorator.ts` | `@RateLimit()` and `@SkipRateLimit()` decorators — uses `SetMetadata` to set the same metadata keys the `ThrottlerGuard` reads (`THROTTLER:LIMIT`, `THROTTLER:TTL`, `THROTTLER:SKIP`) |
-| `rate-limit.guard.ts`     | `RateLimitGuard extends ThrottlerGuard` — overrides tracker (user ID vs IP) and exception type                                                                                        |
-| `ip.utils.ts`             | `IpUtils.extractClientIp()` — extracts real client IP (CF-Connecting-IP → X-Forwarded-For → req.ip → 'unknown')                                                                       |
-| `index.ts`                | Barrel exports                                                                                                                                                                        |
-| `__tests__/`              | Unit tests for all files                                                                                                                                                              |
-
 ## Decorator API
 
 ```typescript

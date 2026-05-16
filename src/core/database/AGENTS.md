@@ -4,17 +4,6 @@
 
 Core database infrastructure for the Ventairy API. Manages the Cloudflare D1 connection via HTTP proxy (`drizzle-orm/sqlite-proxy`), provides the `DRIZZLE_DB` injectable token for repositories, and enables atomic batch operations via `AtomicExecutionService`.
 
-## Files
-
-| File                                   | Description                                                                                    |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `drizzle.service.ts`                   | Creates Drizzle ORM instance with HTTP-based D1 remote + batch callbacks                       |
-| `drizzle-db.provider.ts`               | Defines `DRIZZLE_DB` provider token, `DrizzleDb`, `AtomicDatabaseCall<TResult>` types          |
-| `atomic-database-execution.service.ts` | Injectable `AtomicDatabaseExecutionService` for atomic D1 batch execution                      |
-| `database.module.ts`                   | NestJS module — registers and exports `DrizzleService`, `AtomicExecutionService`, `DRIZZLE_DB` |
-| `index.ts`                             | Barrel exports for the module                                                                  |
-| `AGENTS.md`                            | This file                                                                                      |
-
 ## Key Types
 
 - **`DrizzleDb`** — `SqliteRemoteDatabase<typeof schema>`, injected into all repositories

@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
+import { VerificationStatus } from "@shared/enums/verification-status";
 import { UserType } from "@shared/enums/user-type";
 import { type UserRow } from "@db/schema/users-table";
 import { SupportedBlockchain } from "@shared/blockchain";
@@ -12,24 +12,17 @@ export class CreateUserOutputDto {
 			walletAddress: row.wallet_address,
 			chainId: row.chain_id,
 			userType: row.user_type,
-			ventairyKycStatus: VentairyKycStatus.PENDING,
+			verificationStatus: VerificationStatus.PENDING,
 			createdAt: row.created_at,
 		});
 	}
 
-	constructor(data: {
-		id: string;
-		walletAddress: string;
-		chainId: SupportedBlockchain;
-		userType: UserType;
-		ventairyKycStatus: VentairyKycStatus;
-		createdAt: string;
-	}) {
+	constructor(data: { id: string; walletAddress: string; chainId: SupportedBlockchain; userType: UserType; verificationStatus: VerificationStatus; createdAt: string }) {
 		this.id = data.id;
 		this.walletAddress = data.walletAddress;
 		this.chainId = data.chainId;
 		this.userType = data.userType;
-		this.ventairyKycStatus = data.ventairyKycStatus;
+		this.verificationStatus = data.verificationStatus;
 		this.createdAt = data.createdAt;
 	}
 
@@ -44,8 +37,7 @@ export class CreateUserOutputDto {
 
 	@ApiProperty({
 		name: "wallet_address",
-		description:
-			"Lowercased EVM wallet address associated with the user account. Used as the receiving wallet for stablecoin settlements.",
+		description: "Lowercased EVM wallet address associated with the user account. Used as the receiving wallet for stablecoin settlements.",
 		example: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
 	})
 	@Expose({ name: "wallet_address" })
@@ -70,14 +62,13 @@ export class CreateUserOutputDto {
 	userType: UserType;
 
 	@ApiProperty({
-		name: "ventairy_kyc_status",
-		description:
-			"Current Ventairy KYC review status. PENDING = not submitted, VERIFYING = under review, APPROVED = cleared, REJECTED = denied. New users always start as PENDING.",
-		enum: Object.values(VentairyKycStatus),
-		example: VentairyKycStatus.PENDING,
+		name: "verification_status",
+		description: "Current Ventairy KYC review status. PENDING = not submitted, VERIFYING = under review, APPROVED = cleared, REJECTED = denied. New users always start as PENDING.",
+		enum: Object.values(VerificationStatus),
+		example: VerificationStatus.PENDING,
 	})
-	@Expose({ name: "ventairy_kyc_status" })
-	ventairyKycStatus: VentairyKycStatus;
+	@Expose({ name: "verification_status" })
+	verificationStatus: VerificationStatus;
 
 	@ApiProperty({
 		name: "created_at",

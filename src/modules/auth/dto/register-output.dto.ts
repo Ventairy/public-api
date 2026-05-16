@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
-import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
+import { VerificationStatus } from "@shared/enums/verification-status";
 import { UserType } from "@shared/enums/user-type";
 import { type UserRow } from "@db/schema/users-table";
 import { SupportedBlockchain } from "@shared/blockchain";
@@ -12,17 +12,17 @@ export class RegisterOutputDto {
 			walletAddress: row.wallet_address,
 			chainId: row.chain_id,
 			userType: row.user_type,
-			ventairyKycStatus: VentairyKycStatus.PENDING,
+			verificationStatus: VerificationStatus.PENDING,
 			createdAt: row.created_at,
 		});
 	}
 
-	constructor(data: { id: string; walletAddress: string; chainId: SupportedBlockchain; userType: UserType; ventairyKycStatus: VentairyKycStatus; createdAt: string }) {
+	constructor(data: { id: string; walletAddress: string; chainId: SupportedBlockchain; userType: UserType; verificationStatus: VerificationStatus; createdAt: string }) {
 		this.id = data.id;
 		this.walletAddress = data.walletAddress;
 		this.chainId = data.chainId;
 		this.userType = data.userType;
-		this.ventairyKycStatus = data.ventairyKycStatus;
+		this.verification_status = data.verificationStatus;
 		this.createdAt = data.createdAt;
 	}
 
@@ -53,13 +53,13 @@ export class RegisterOutputDto {
 	userType: UserType;
 
 	@ApiProperty({
-		name: "ventairy_kyc_status",
-		description: "Current Ventairy KYC review status. New users always start as PENDING.",
-		enum: Object.values(VentairyKycStatus),
-		example: VentairyKycStatus.PENDING,
+		name: "verification_status",
+		description: "Current Ventairy verification status. New users always start as PENDING.",
+		enum: Object.values(VerificationStatus),
+		example: VerificationStatus.PENDING,
 	})
-	@Expose({ name: "ventairy_kyc_status" })
-	ventairyKycStatus: VentairyKycStatus;
+	@Expose({ name: "verification_status" })
+	verification_status: VerificationStatus;
 
 	@ApiProperty({ name: "created_at", description: "ISO-8601 timestamp marking when the user was created.", format: "date-time", example: "2026-05-04T14:48:00.000Z" })
 	@Expose({ name: "created_at" })

@@ -22,12 +22,3 @@ This folder contains the **Cloudflare Worker shim**. Instead of running the Nest
 2.  **No Direct Logic**: The worker should remain a thin proxy. Do NOT add business logic, validation, or complex transformations here. All logic belongs in the main NestJS application.
 3.  **Endpoint Sync**: If the global API prefix (currently `/v1`) or the health check path (currently `/health/live`) changes in the NestJS app, the `PING_ENDPOINT` in `src/worker/index.ts` MUST be updated accordingly.
 4.  **Port Sync**: The `CONTAINER_PORT` in `src/worker/index.ts` must match the `PORT` defined in `app.config.ts` (default: 3000).
-
-## Files
-
-| File            | Description                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `index.ts`      | Main entry point for the Cloudflare Worker. Handles container startup, environment variable injection, and request forwarding. |
-| `env.d.ts`      | TypeScript definitions for the Worker's environment bindings (Durable Objects, Secrets, Variables).                            |
-| `index.spec.ts` | Unit tests for the worker handler, ensuring correct container initialization and request forwarding.                           |
-| `AGENTS.md`     | This file. Documentation for AI agents working in this folder.                                                                 |

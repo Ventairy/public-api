@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { KycRepositoryModule } from "@modules/kyc/kyc-repository.module";
+import { VerificationRepositoryModule } from "@modules/verification/verification-repository.module";
 import { UserModule } from "@modules/user/user.module";
 import { APP_GUARD } from "@nestjs/core";
 import { RateLimitGuard } from "@shared/rate-limit/rate-limit.guard";
@@ -13,10 +13,9 @@ import { UserSessionRepository } from "./repositories/user-session.repository";
 import { JwtService } from "./jwt/jwt.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { UserTypeGuard } from "./guards/user-type.guard";
-import { KYCGuard } from "./guards/kyc.guard";
 
 @Module({
-	imports: [UserModule, KycRepositoryModule],
+	imports: [UserModule, VerificationRepositoryModule],
 	controllers: [AuthController],
 	providers: [
 		AuthService,
@@ -37,10 +36,6 @@ import { KYCGuard } from "./guards/kyc.guard";
 		{
 			provide: APP_GUARD,
 			useClass: UserTypeGuard,
-		},
-		{
-			provide: APP_GUARD,
-			useClass: KYCGuard,
 		},
 	],
 	exports: [AuthService, WalletAuthService, WalletNonceService, SiweVerifierService, SignatureNonceRepository, UserSessionRepository, JwtService],

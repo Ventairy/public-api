@@ -4,13 +4,6 @@
 
 Data access layer for the Business module. Encapsulates all database queries related to businesses, controllers, and file uploads.
 
-## Files
-
-| File                          | Description                                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `business.repository.ts`      | CRUD operations across 4 tables: `businesses`, `business_controllers`, `business_files`, `business_controller_files` (16 methods) |
-| `business.repository.spec.ts` | Unit tests for BusinessRepository                                                                                                 |
-
 ## Methods
 
 ### Business table

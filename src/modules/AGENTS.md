@@ -6,15 +6,15 @@ Feature modules for the Ventairy Public API. Each module is self-contained with 
 
 ## Subdirectories
 
-| Directory    | Description                                                                 |
-| ------------ | --------------------------------------------------------------------------- |
-| `auth/`      | SIWE authentication, JWT sessions, refresh token rotation                   |
-| `business/`  | Business registration, business controller management, business file upload |
-| `health/`    | Health check endpoints                                                      |
-| `kyc/`       | KYC submission and status workflows                                         |
-| `payment/`   | Payment operations: quoting, execution, and status tracking                 |
-| `providers/` | User liquidity provider assignment management — read-only queries           |
-| `user/`      | User profile and account management                                         |
+| Directory       | Description                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `auth/`         | SIWE authentication, JWT sessions, refresh token rotation                   |
+| `business/`     | Business registration, business controller management, business file upload |
+| `health/`       | Health check endpoints                                                      |
+| `verification/` | Identity verification (KYC/KYB) submission and status workflows             |
+| `payment/`      | Payment operations: quoting, execution, and status tracking                 |
+| `providers/`    | User liquidity provider assignment management — read-only queries           |
+| `user/`         | User profile and account management                                         |
 
 ## Principles
 

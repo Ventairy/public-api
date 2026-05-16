@@ -1,6 +1,0 @@
-export enum VentairyKycStatus {
-	APPROVED = "APPROVED",
-	PENDING = "PENDING",
-	VERIFYING = "VERIFYING",
-	REJECTED = "REJECTED",
-}

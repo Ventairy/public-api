@@ -16,9 +16,8 @@ export { FileMimeTypeMismatchException } from "./file-mime-type-mismatch.excepti
 export { BusinessFileNotFoundException } from "./business-file-not-found.exception";
 export { BusinessControllerFileNotFoundException } from "./business-controller-file-not-found.exception";
 export { BusinessControllerNotFoundException } from "./business-controller-not-found.exception";
-export { KycSubmissionNotFoundException } from "./kyc-submission-not-found.exception";
-export { KycSubmissionLockedException } from "./kyc-submission-locked.exception";
-export { KycSubmissionRequirementsNotMetException } from "./kyc-submission-requirements-not-met.exception";
+export { VerificationSubmissionLockedException } from "./verification-submission-locked.exception";
+export { VerificationSubmissionRequirementsNotMetException } from "./verification-submission-requirements-not-met.exception";
 export { BusinessNotFoundException } from "./business-not-found.exception";
 export { SessionNotFoundException } from "./session-not-found.exception";
 export { SessionExpiredException } from "./session-expired.exception";
@@ -27,8 +26,8 @@ export { NoActiveLiquidityProviderException } from "./no-active-liquidity-provid
 export { LiquidityProviderQuoteFailedException } from "./liquidity-provider-quote-failed.exception";
 export { WalletNotFoundAtLiquidityProviderException as WalletAtLiquidityProviderMismatchException } from "./wallet-not-found-at-liquidity-provider.exception";
 export { LiquidityProviderApiException } from "./liquidity-provider-api.exception";
-export { KycNotApprovedException } from "./kyc-not-approved.exception";
+export { VerificationNotApprovedException } from "./verification-not-approved.exception";
 export { BusinessFieldImmutableException } from "./business-field-immutable.exception";
 export { BusinessFileImmutableException } from "./business-file-immutable.exception";
-export { KycStatusNotAllowedException } from "./kyc-status-not-allowed.exception";
-export { UserKycNotFoundException } from "./user-kyc-not-found.exception";
+export { VerificationStatusNotAllowedException } from "./verification-status-not-allowed.exception";
+export { UserVerificationNotFoundException } from "./user-verification-not-found.exception";

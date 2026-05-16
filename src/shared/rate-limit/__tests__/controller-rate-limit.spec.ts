@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { describe, it, expect } from "vitest";
 import { AuthController } from "@modules/auth/auth.controller";
-import { KycController } from "@modules/kyc/kyc.controller";
+import { VerificationController } from "@modules/verification/verification.controller";
 import { BusinessController } from "@modules/business/business.controller";
 import { HealthController } from "@modules/health/health.controller";
 
@@ -50,13 +50,13 @@ describe("AuthController rate limits", () => {
 	});
 });
 
-describe("KycController rate limits", () => {
-	it("POST /kyc/submit: 3 req / 900s", () => {
-		expectRateLimit(KycController, "submitKyc", { limit: 3, ttl: 900_000 });
+describe("VerificationController rate limits", () => {
+	it("POST /verification/submit: 3 req / 900s", () => {
+		expectRateLimit(VerificationController, "submitVerification", { limit: 3, ttl: 900_000 });
 	});
 
-	it("GET /kyc/status: 20 req / 60s", () => {
-		expectRateLimit(KycController, "getKycStatus", { limit: 20, ttl: 60_000 });
+	it("GET /verification/status: 20 req / 60s", () => {
+		expectRateLimit(VerificationController, "getVerificationStatus", { limit: 20, ttl: 60_000 });
 	});
 });
 

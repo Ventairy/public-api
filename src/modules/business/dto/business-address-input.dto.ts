@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsEnum, IsISO31661Alpha2, IsOptional, IsString } from "class-validator";
 import { ProofAddressType, UserType } from "@shared/enums";
-import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
+import { RequiredForVerification } from "@shared/decorators/required-for-verification.decorator";
 import { Immutable } from "@shared/decorators/immutable.decorator";
 import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
 
@@ -42,7 +42,7 @@ export class BusinessAddressInputDto {
 	})
 	@Expose({ name: "country_code" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	@IsISO31661Alpha2()
@@ -51,7 +51,7 @@ export class BusinessAddressInputDto {
 	@ApiProperty({ name: "street", description: "Street address.", example: "123 Main St", required: false })
 	@Expose({ name: "street" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	street: string | null;
@@ -59,7 +59,7 @@ export class BusinessAddressInputDto {
 	@ApiProperty({ name: "city", description: "City.", example: "Sao Paulo", required: false })
 	@Expose({ name: "city" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	city: string | null;
@@ -67,7 +67,7 @@ export class BusinessAddressInputDto {
 	@ApiProperty({ name: "state", description: "State, province, or region.", example: "SP", required: false })
 	@Expose({ name: "state" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	state: string | null;
@@ -75,7 +75,7 @@ export class BusinessAddressInputDto {
 	@ApiProperty({ name: "postal_code", description: "Postal code.", example: "01310-100", required: false })
 	@Expose({ name: "postal_code" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	postalCode: string | null;
@@ -88,7 +88,7 @@ export class BusinessAddressInputDto {
 	})
 	@Expose({ name: "address_proof_type" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsEnum(ProofAddressType)
 	addressProofType: ProofAddressType | null;

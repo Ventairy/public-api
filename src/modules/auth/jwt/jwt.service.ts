@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { JWT_CONFIG_KEY, type JwtConfig } from "@core/config";
 import type { UserType } from "@shared/enums/user-type";
-import type { VentairyKycStatus } from "@shared/enums";
+import type { VerificationStatus } from "@shared/enums";
 import { ACCESS_TOKEN_TTL_SECONDS } from "../constants/token.constants";
 import type { IAccessTokenPayload } from "./interfaces/access-token-payload.interface";
 import { SupportedBlockchain } from "@shared/blockchain";
@@ -25,7 +25,7 @@ export class JwtService {
 		userType: UserType;
 		walletAddress: string;
 		chainId: SupportedBlockchain;
-		kycStatus: VentairyKycStatus;
+		verificationStatus: VerificationStatus;
 	}): Promise<string> {
 		const jwtPayload: JWTPayload & IAccessTokenPayload = {
 			sub: params.userId,
@@ -33,7 +33,7 @@ export class JwtService {
 			user_type: params.userType,
 			wallet_address: params.walletAddress,
 			chain_id: params.chainId,
-			kyc_status: params.kycStatus,
+			verification_status: params.verificationStatus,
 		};
 
 		const jwt = await new SignJWT(jwtPayload)
@@ -55,7 +55,7 @@ export class JwtService {
 				user_type: this._getRequiredClaimString(payload, "user_type") as UserType,
 				wallet_address: this._getRequiredClaimString(payload, "wallet_address"),
 				chain_id: Number(this._getRequiredClaimString(payload, "chain_id")),
-				kyc_status: this._getRequiredClaimString(payload, "kyc_status") as VentairyKycStatus,
+				verification_status: this._getRequiredClaimString(payload, "verification_status") as VerificationStatus,
 				iat: payload.iat ?? 0,
 				exp: payload.exp ?? 0,
 			};

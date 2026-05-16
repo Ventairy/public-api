@@ -2,10 +2,10 @@ import { Injectable } from "@nestjs/common";
 import { R2StorageService } from "@core/storage/r2-storage.service";
 import { UserRepository } from "@modules/user/repositories/user.repository";
 import { BusinessRepository } from "./repositories/business.repository";
-import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
+import { VerificationRepository } from "@modules/verification/repositories/verification.repository";
 import { type BusinessDatabaseRow } from "@db/schema/businesses-table";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
-import { BusinessFileType, BusinessControllerFileType, R2BucketType, VentairyKycStatus } from "@shared/enums";
+import { BusinessFileType, BusinessControllerFileType, R2BucketType, VerificationStatus } from "@shared/enums";
 import { FileTooLargeException } from "@shared/exceptions/file-too-large.exception";
 import { InvalidFileMimeTypeException, FileMimeTypeMismatchException } from "@shared/exceptions";
 import { BusinessFileImmutableException } from "@shared/exceptions/business-file-immutable.exception";
@@ -19,7 +19,7 @@ import { BusinessControllerNotFoundException } from "@shared/exceptions/business
 import { BusinessNotFoundException } from "@shared/exceptions/business-not-found.exception";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
 import { fileTypeFromBuffer } from "file-type";
-import { ObjectUtils, KycUtils } from "@shared/utils";
+import { ObjectUtils, VerificationUtils } from "@shared/utils";
 import { BUSINESS_MAX_FILE_SIZE_BYTES } from "./business.constants";
 import { BusinessInputDto, UploadFileOutputDto, BusinessOutputDto, UploadBusinessControllerFileOutputDto } from "./dto";
 
@@ -28,7 +28,7 @@ export class BusinessService {
 	constructor(
 		private readonly _userRepository: UserRepository,
 		private readonly _businessRepository: BusinessRepository,
-		private readonly _kycRepository: KycRepository,
+		private readonly _verificationRepository: VerificationRepository,
 		private readonly r2StorageService: R2StorageService,
 	) {}
 
@@ -59,8 +59,8 @@ export class BusinessService {
 		]);
 
 		if (oldFile) {
-			const kycStatus = await this._kycRepository.getKycStatus(userId);
-			if (!KycUtils.canKycStatusModifyKycData(kycStatus)) throw new BusinessFileImmutableException({ fileType });
+			const verificationStatus = await this._verificationRepository.getVerificationStatus(userId);
+			if (!VerificationUtils.canModifyVerificationData(verificationStatus)) throw new BusinessFileImmutableException({ fileType });
 
 			const updatedRow = await this._businessRepository.updateBusinessFile(oldFile.id, {
 				file_name: newFile.originalname,
@@ -123,8 +123,8 @@ export class BusinessService {
 		]);
 
 		if (oldFile) {
-			const kycStatus = await this._kycRepository.getKycStatus(userId);
-			if (!KycUtils.canKycStatusModifyKycData(kycStatus)) throw new BusinessFileImmutableException({ fileType });
+			const verificationStatus = await this._verificationRepository.getVerificationStatus(userId);
+			if (!VerificationUtils.canModifyVerificationData(verificationStatus)) throw new BusinessFileImmutableException({ fileType });
 
 			const updatedRow = await this._businessRepository.updateBusinessControllerFile(oldFile.id, {
 				file_name: newFile.originalname,
@@ -160,14 +160,14 @@ export class BusinessService {
 		let existingBusinessControllers: BusinessControllerDatabaseRow[] = [];
 
 		if (existingBusiness) {
-			let kycStatus: VentairyKycStatus;
+			let verificationStatus: VerificationStatus;
 
-			[existingBusinessControllers, kycStatus] = await Promise.all([
+			[existingBusinessControllers, verificationStatus] = await Promise.all([
 				this._businessRepository.findControllersByBusinessId(existingBusiness.id),
-				this._kycRepository.getKycStatus(userId),
+				this._verificationRepository.getVerificationStatus(userId),
 			]);
 
-			if (!KycUtils.canKycStatusModifyKycData(kycStatus)) {
+			if (!VerificationUtils.canModifyVerificationData(verificationStatus)) {
 				const existingBusinessAsInputDto = BusinessInputDto.fromDatabaseRow(existingBusiness, existingBusinessControllers);
 
 				if (ImmutableFieldUtils.hasImmutableViolations({ requestDto: business, databaseDto: existingBusinessAsInputDto, dtoClass: BusinessInputDto })) {

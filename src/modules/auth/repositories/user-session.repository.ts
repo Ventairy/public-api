@@ -44,12 +44,7 @@ export class UserSessionRepository {
 		return this._db.select().from(userSessionsTable).where(eq(userSessionsTable.user_id, userId));
 	}
 
-	async updateRefreshTokenHash(params: {
-		id: string;
-		refreshTokenHash: string;
-		expiresAt: string;
-		updatedAt: string;
-	}): Promise<UserSessionRow> {
+	async updateRefreshTokenHash(params: { id: string; refreshTokenHash: string; expiresAt: string; updatedAt: string }): Promise<UserSessionRow> {
 		const rows = await this._db
 			.update(userSessionsTable)
 			.set({
@@ -75,10 +70,7 @@ export class UserSessionRepository {
 	}
 
 	async deleteExpired(): Promise<number> {
-		const rows = await this._db
-			.delete(userSessionsTable)
-			.where(lte(userSessionsTable.expires_at, new Date().toISOString()))
-			.returning();
+		const rows = await this._db.delete(userSessionsTable).where(lte(userSessionsTable.expires_at, new Date().toISOString())).returning();
 
 		return rows.length;
 	}

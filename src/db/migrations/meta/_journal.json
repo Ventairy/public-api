@@ -120,6 +120,13 @@
 			"when": 1778758184558,
 			"tag": "0016_zippy_misty_knight",
 			"breakpoints": true
+		},
+		{
+			"idx": 17,
+			"version": "6",
+			"when": 1778883910755,
+			"tag": "0017_rename_kyc_to_verification",
+			"breakpoints": true
 		}
 	]
 }

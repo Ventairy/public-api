@@ -5,7 +5,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { CoreModule } from "./core";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user";
-import { KycModule } from "./modules/kyc";
+import { VerificationModule } from "./modules/verification";
 import { BusinessModule } from "./modules/business";
 import { PaymentModule } from "./modules/payment";
 import { UserLiquidityProvidersModule } from "@modules/providers";
@@ -15,7 +15,7 @@ import { UserLiquidityProvidersModule } from "@modules/providers";
 		CoreModule,
 		AuthModule,
 		UserModule,
-		KycModule,
+		VerificationModule,
 		BusinessModule,
 		UserLiquidityProvidersModule,
 		PaymentModule,

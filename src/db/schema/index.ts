@@ -1,6 +1,6 @@
 export { signatureNoncesTable as signatureNonces } from "./signature-nonces-table";
 export { usersTable as users } from "./users-table";
-export { kycTable as kyc } from "./kyc-table";
+export { verificationTable as verification } from "./verifications-table";
 export { businessesTable as businesses } from "./businesses-table";
 export { businessControllersTable as businessControllers } from "./business-controllers-table";
 export { businessFilesTable as businessFiles } from "./business-files-table";

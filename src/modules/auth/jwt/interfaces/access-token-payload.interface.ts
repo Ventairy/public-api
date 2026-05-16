@@ -1,5 +1,5 @@
 import { SupportedBlockchain } from "@shared/blockchain";
-import type { UserType, VentairyKycStatus } from "@shared/enums";
+import type { UserType, VerificationStatus } from "@shared/enums";
 
 export interface IAccessTokenPayload {
 	sub: string;
@@ -7,5 +7,5 @@ export interface IAccessTokenPayload {
 	user_type: UserType;
 	wallet_address: string;
 	chain_id: SupportedBlockchain;
-	kyc_status: VentairyKycStatus;
+	verification_status: VerificationStatus;
 }

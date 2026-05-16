@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SupportedBlockchain } from "@shared/blockchain";
-import { UserType, VentairyKycStatus } from "@shared/enums";
+import { UserType, VerificationStatus } from "@shared/enums";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 
@@ -46,7 +46,7 @@ describe("AuthController", () => {
 					walletAddress: "0xabc",
 					chainId: SupportedBlockchain.BASE,
 					userType: UserType.BUSINESS,
-					ventairyKycStatus: VentairyKycStatus.PENDING,
+					ventairyKycStatus: VerificationStatus.PENDING,
 					createdAt: "2026-01-01T00:00:00.000Z",
 				},
 				accessToken: "access-token",
@@ -142,7 +142,7 @@ describe("AuthController", () => {
 	describe("listSessions", () => {
 		it("should return sessions for the current actor", async () => {
 			mockAuthService.listSessions.mockResolvedValue({ sessions: [] });
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
 
 			await controller.listSessions(actor);
 
@@ -154,7 +154,7 @@ describe("AuthController", () => {
 		it("should clear cookies when revoking own session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: true });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
 
 			await controller.revokeSession(actor, "s-1", mockRes as any);
 
@@ -164,7 +164,7 @@ describe("AuthController", () => {
 		it("should not clear cookies when revoking another session", async () => {
 			mockAuthService.revokeSession.mockResolvedValue({ isCurrentSession: false });
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
 
 			await controller.revokeSession(actor, "s-2", mockRes as any);
 
@@ -175,7 +175,7 @@ describe("AuthController", () => {
 	describe("logoutOthers", () => {
 		it("should call authService.logoutOthers and clear cookies", async () => {
 			const mockRes = createMockResponse();
-			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, kycStatus: VentairyKycStatus.PENDING };
+			const actor = { id: "u-1", sessionId: "s-1", userType: UserType.BUSINESS, walletAddress: "0xabc", chainId: 8453, verificationStatus: VerificationStatus.PENDING };
 
 			await controller.logoutOthers(actor, mockRes as any);
 

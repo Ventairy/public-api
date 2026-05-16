@@ -1,0 +1,6 @@
+export enum VerificationStatus {
+	VERIFIED = "VERIFIED",
+	PENDING = "PENDING",
+	VERIFYING = "VERIFYING",
+	REJECTED = "REJECTED",
+}

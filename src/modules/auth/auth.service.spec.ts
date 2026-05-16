@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
-import { UserType, VentairyKycStatus } from "@shared/enums";
+import { UserType, VerificationStatus } from "@shared/enums";
 import type { AtomicCall } from "@core/database";
 import { AuthService } from "./auth.service";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
 import { UserRepository } from "@modules/user/repositories/user.repository";
-import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
+import { VerificationRepository } from "@modules/verification/repositories/verification.repository";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";
 import { UserNotFoundException } from "@shared/exceptions/user-not-found.exception";
@@ -43,11 +43,11 @@ function createMockAuthServiceDeps() {
 			deleteByUserId: vi.fn().mockResolvedValue(undefined),
 			deleteExpired: vi.fn().mockResolvedValue(0),
 		} as unknown as UserSessionRepository,
-		kycRepository: {
+		verificationRepository: {
 			create: vi.fn().mockResolvedValue(undefined),
 			create_atomicCall: vi.fn(),
-			getKycStatus: vi.fn(),
-		} as unknown as KycRepository,
+			getVerificationStatus: vi.fn(),
+		} as unknown as VerificationRepository,
 		atomicExecutionService: {
 			execute: vi.fn(),
 		},
@@ -68,14 +68,14 @@ describe("AuthService", () => {
 			deps.userRepository,
 			deps.jwtService,
 			deps.userSessionRepository,
-			deps.kycRepository,
+			deps.verificationRepository,
 			deps.atomicExecutionService as any,
 		);
 	});
 
 	describe("register", () => {
 		const defaultUserRow = { id: "u-1", wallet_address: "0xabc", chain_id: 8453, user_type: UserType.BUSINESS, created_at: "2026-05-04T14:48:00.000Z" };
-		const defaultKycRow = { id: "kyc-1", user_id: "u-1", ventairy_kyc_status: VentairyKycStatus.PENDING };
+		const defaultVerificationRow = { id: "kyc-1", user_id: "u-1", verification_status: VerificationStatus.PENDING };
 		const defaultParams = {
 			siweMessage: "siwe-message",
 			siweSignature: "0xsig",
@@ -84,12 +84,19 @@ describe("AuthService", () => {
 			userType: UserType.BUSINESS,
 		};
 
-		const defaultSessionRow = { id: "s-1", user_id: "u-1", refresh_token_hash: "hashed-raw-refresh-token-64-chars-hex-string-abcdef123456", device_info: "Mozilla", ip_address: "127.0.0.1", expires_at: "2026-05-15T17:00:00.000Z" };
+		const defaultSessionRow = {
+			id: "s-1",
+			user_id: "u-1",
+			refresh_token_hash: "hashed-raw-refresh-token-64-chars-hex-string-abcdef123456",
+			device_info: "Mozilla",
+			ip_address: "127.0.0.1",
+			expires_at: "2026-05-15T17:00:00.000Z",
+		};
 
 		beforeEach(() => {
-			deps.atomicExecutionService.execute.mockResolvedValue([defaultUserRow, defaultKycRow, defaultSessionRow]);
+			deps.atomicExecutionService.execute.mockResolvedValue([defaultUserRow, defaultVerificationRow, defaultSessionRow]);
 			(deps.userRepository.create_atomicCall as any).mockReturnValue({ query: "user-query", processResult: vi.fn() });
-			(deps.kycRepository.create_atomicCall as any).mockReturnValue({ query: "kyc-query", processResult: vi.fn() });
+			(deps.verificationRepository.create_atomicCall as any).mockReturnValue({ query: "verification-query", processResult: vi.fn() });
 			(deps.userSessionRepository.create_atomicCall as any).mockReturnValue({ query: "session-query", processResult: vi.fn() });
 		});
 
@@ -123,7 +130,7 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			expect(deps.kycRepository.create_atomicCall).toHaveBeenCalledWith({
+			expect(deps.verificationRepository.create_atomicCall).toHaveBeenCalledWith({
 				id: "00000000-0000-0000-0000-000000000002",
 				user_id: "00000000-0000-0000-0000-000000000001",
 			});
@@ -149,14 +156,14 @@ describe("AuthService", () => {
 					expires_at: expect.any(String),
 				}),
 			);
-			expect(deps.kycRepository.getKycStatus).not.toHaveBeenCalled();
+			expect(deps.verificationRepository.getVerificationStatus).not.toHaveBeenCalled();
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
 				sessionId: expect.any(String),
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
-				kycStatus: VentairyKycStatus.PENDING,
+				verificationStatus: VerificationStatus.PENDING,
 			});
 		});
 
@@ -182,15 +189,13 @@ describe("AuthService", () => {
 			expect(result.user.id).toBe("u-1");
 			expect(result.user.walletAddress).toBe("0xabc");
 			expect(result.user.userType).toBe(UserType.BUSINESS);
-			expect(result.user.ventairyKycStatus).toBe(VentairyKycStatus.PENDING);
+			expect(result.user.verification_status).toBe(VerificationStatus.PENDING);
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.rawRefreshToken).toBeTruthy();
 		});
 
 		it("should throw UserAlreadyExistsException on duplicate wallet address", async () => {
-			deps.atomicExecutionService.execute.mockRejectedValue(
-				new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"),
-			);
+			deps.atomicExecutionService.execute.mockRejectedValue(new Error("SqliteError: UNIQUE constraint failed: users.wallet_address"));
 
 			await expect(service.register(defaultParams)).rejects.toThrow(UserAlreadyExistsException);
 		});
@@ -218,7 +223,7 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.kycRepository.getKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.APPROVED);
+			deps.verificationRepository.getVerificationStatus = vi.fn().mockResolvedValue(VerificationStatus.VERIFIED);
 
 			const result = await service.login({
 				message: "siwe-message",
@@ -230,7 +235,7 @@ describe("AuthService", () => {
 				signature: "0xsig",
 			});
 			expect(deps.userRepository.findByWalletAddress).toHaveBeenCalledWith("0xabc");
-			expect(deps.kycRepository.getKycStatus).toHaveBeenCalledWith("u-1");
+			expect(deps.verificationRepository.getVerificationStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.userSessionRepository.create).toHaveBeenCalled();
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
@@ -238,7 +243,7 @@ describe("AuthService", () => {
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
-				kycStatus: VentairyKycStatus.APPROVED,
+				verificationStatus: VerificationStatus.VERIFIED,
 			});
 			expect(result.output.expiresAt).toBeTruthy();
 			expect(result.accessToken).toBe("access-token-123");
@@ -252,7 +257,7 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.kycRepository.getKycStatus = vi.fn().mockRejectedValue(new Error("KYC row not found for user u-1"));
+			deps.verificationRepository.getVerificationStatus = vi.fn().mockRejectedValue(new Error("KYC row not found for user u-1"));
 
 			await expect(
 				service.login({
@@ -329,20 +334,20 @@ describe("AuthService", () => {
 				chain_id: 8453,
 				user_type: UserType.BUSINESS,
 			});
-			deps.kycRepository.getKycStatus = vi.fn().mockResolvedValue(VentairyKycStatus.VERIFYING);
+			deps.verificationRepository.getVerificationStatus = vi.fn().mockResolvedValue(VerificationStatus.VERIFYING);
 			const request = { headers: { cookie: "__Host-ventairy-refresh=valid-token" } } as Request;
 
 			const result = await service.refreshTokens(request);
 
 			expect(deps.userSessionRepository.updateRefreshTokenHash).toHaveBeenCalled();
-			expect(deps.kycRepository.getKycStatus).toHaveBeenCalledWith("u-1");
+			expect(deps.verificationRepository.getVerificationStatus).toHaveBeenCalledWith("u-1");
 			expect(deps.jwtService.generateAccessToken).toHaveBeenCalledWith({
 				userId: "u-1",
 				sessionId: "s-1",
 				userType: UserType.BUSINESS,
 				walletAddress: "0xabc",
 				chainId: 8453,
-				kycStatus: VentairyKycStatus.VERIFYING,
+				verificationStatus: VerificationStatus.VERIFYING,
 			});
 			expect(result.accessToken).toBe("access-token-123");
 			expect(result.output.expiresAt).toBeTruthy();
@@ -441,9 +446,7 @@ describe("AuthService", () => {
 			const { ForbiddenException } = await import("@nestjs/common");
 			deps.userSessionRepository.findById = vi.fn().mockResolvedValue({ id: "s-1", user_id: "u-2" });
 
-			await expect(service.revokeSession({ sessionId: "s-1", userId: "u-1", currentSessionId: "s-2" })).rejects.toThrow(
-				ForbiddenException,
-			);
+			await expect(service.revokeSession({ sessionId: "s-1", userId: "u-1", currentSessionId: "s-2" })).rejects.toThrow(ForbiddenException);
 
 			expect(deps.userSessionRepository.deleteById).not.toHaveBeenCalled();
 		});
@@ -451,9 +454,7 @@ describe("AuthService", () => {
 		it("should throw SessionNotFoundException when session does not exist", async () => {
 			deps.userSessionRepository.findById = vi.fn().mockResolvedValue(null);
 
-			await expect(
-				service.revokeSession({ sessionId: "nonexistent", userId: "u-1", currentSessionId: "s-1" }),
-			).rejects.toThrow(SessionNotFoundException);
+			await expect(service.revokeSession({ sessionId: "nonexistent", userId: "u-1", currentSessionId: "s-1" })).rejects.toThrow(SessionNotFoundException);
 
 			expect(deps.userSessionRepository.deleteById).not.toHaveBeenCalled();
 		});

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PaymentController } from "./payment.controller";
-import { PaymentMethod, VentairyKycStatus } from "@shared/enums";
+import { PaymentMethod, VerificationStatus } from "@shared/enums";
 import type { Actor } from "@shared/types/actor.type";
 import type { UserType } from "@shared/enums/user-type";
 import { ReceiveQuoteInputDto } from "../dto";
@@ -11,7 +11,7 @@ const MOCK_ACTOR: Actor = {
 	userType: "BUSINESS" as UserType,
 	walletAddress: "0x742d35cc6634c0532925a3b844bc9e7595f0beb1",
 	chainId: 8453,
-	kycStatus: VentairyKycStatus.APPROVED,
+	verificationStatus: VerificationStatus.VERIFIED,
 };
 
 describe("PaymentController", () => {

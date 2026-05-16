@@ -4,13 +4,6 @@
 
 Data access layer for the User module. Encapsulates all database queries related to user accounts.
 
-## Files
-
-| File                      | Description                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------ |
-| `user.repository.ts`      | CRUD operations on the `users` table (findById, create, create_atomicCall for batch) |
-| `user.repository.spec.ts` | Unit tests for UserRepository                                                        |
-
 ## Principles
 
 - Repository methods are single-purpose and thin — they translate a method call into a Drizzle query and return raw DB row types

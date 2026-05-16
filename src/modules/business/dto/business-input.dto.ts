@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 import { IsArray, IsEmail, IsOptional, IsString, ValidateNested } from "class-validator";
 import { UserType } from "@shared/enums";
-import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
+import { RequiredForVerification } from "@shared/decorators/required-for-verification.decorator";
 import { Immutable } from "@shared/decorators/immutable.decorator";
 import { BusinessAddressInputDto } from "./business-address-input.dto";
 import { BusinessControllerInputDto } from "./business-controller-input.dto";
@@ -54,7 +54,7 @@ export class BusinessInputDto {
 	})
 	@Expose({ name: "legal_name" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	legalName: string | null;
@@ -79,7 +79,7 @@ export class BusinessInputDto {
 	})
 	@Expose({ name: "formation_date" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	formationDate: string | null;
@@ -87,7 +87,7 @@ export class BusinessInputDto {
 	@ApiProperty({ name: "email", description: "Business email address.", example: "contact@acme.com", required: false })
 	@Expose({ name: "email" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsEmail()
 	email: string | null;
@@ -100,7 +100,7 @@ export class BusinessInputDto {
 	})
 	@Expose({ name: "tax_id" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	taxId: string | null;
@@ -113,7 +113,7 @@ export class BusinessInputDto {
 	})
 	@Expose({ name: "phone_number" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	phoneNumber: string | null;
@@ -121,7 +121,7 @@ export class BusinessInputDto {
 	@ApiProperty({ name: "website", description: "Business website URL.", example: "https://acme.com", required: false })
 	@Expose({ name: "website" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	website: string | null;
@@ -134,7 +134,7 @@ export class BusinessInputDto {
 	})
 	@Expose({ name: "address" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@ValidateNested()
 	@Type(() => BusinessAddressInputDto)
@@ -149,7 +149,7 @@ export class BusinessInputDto {
 	})
 	@Expose({ name: "controllers" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsArray()
 	@ValidateNested({ each: true })

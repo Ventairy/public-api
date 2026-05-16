@@ -4,12 +4,6 @@
 
 Defines the contract and implementations for external liquidity provider integrations. Each provider (e.g., Blindpay) implements the `ILiquidityProvider` interface and is injected into the providers module via `LIQUIDITY_PROVIDERS_INJECTION_TOKEN`.
 
-## Files
-
-| File       | Description                                     |
-| ---------- | ----------------------------------------------- |
-| `index.ts` | Barrel export for the liquidity-provider module |
-
 ## Subdirectories
 
 | Directory          | Description                                                       |

@@ -226,18 +226,21 @@ describe("SiweVerifierService", () => {
 			).rejects.toThrow("Signature verification is currently unavailable");
 		});
 
-		it("should throw NonceNotFoundException when nonce has already been consumed (delete returns 0 rows)", async () => {
+		it("should not block verification when nonce deletion fails (fire-and-forget)", async () => {
 			mockSiweMessageConstructor.mockReturnValue(createMockSiweMessage());
 			setupNonceFound(WALLET_ADDRESS, new Date(Date.now() + 180_000).toISOString());
 			mockVerifyMessage.mockResolvedValue(true);
 			mockNonceService.deleteNonce.mockRejectedValueOnce(new Error("The provided nonce does not exist"));
 
-			await expect(
-				service.parseAndVerifyMessage({
-					message: "some-message",
-					signature: validSignature,
-				}),
-			).rejects.toThrow("The provided nonce does not exist");
+			const result = await service.parseAndVerifyMessage({
+				message: "some-message",
+				signature: validSignature,
+			});
+
+			expect(result).toEqual({
+				walletAddress: WALLET_ADDRESS,
+				chainId: 8453,
+			});
 		});
 
 		it("should successfully verify, consume nonce, and return wallet + chainId when all checks pass", async () => {

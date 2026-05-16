@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 import { IsEnum, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from "class-validator";
 import { ControllerRole, UserType } from "@shared/enums";
-import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
+import { RequiredForVerification } from "@shared/decorators/required-for-verification.decorator";
 import { Immutable } from "@shared/decorators/immutable.decorator";
 import { BusinessControllerIdentificationInputDto } from "./business-controller-identification-input.dto";
 import { BusinessControllerAddressInputDto } from "./business-controller-address-input.dto";
@@ -63,7 +63,7 @@ export class BusinessControllerInputDto {
 	@ApiProperty({ name: "role", description: "Role of the controller.", enum: ControllerRole, required: false })
 	@Expose({ name: "role" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsEnum(ControllerRole)
 	role: ControllerRole | null;
@@ -76,7 +76,7 @@ export class BusinessControllerInputDto {
 	})
 	@Expose({ name: "ownership_percentage" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsNumber()
 	@Min(0)
@@ -91,7 +91,7 @@ export class BusinessControllerInputDto {
 	})
 	@Expose({ name: "title" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	title: string | null;
@@ -99,7 +99,7 @@ export class BusinessControllerInputDto {
 	@ApiProperty({ name: "legal_first_name", description: "Legal first name.", example: "João", required: false })
 	@Expose({ name: "legal_first_name" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	legalFirstName: string | null;
@@ -107,7 +107,7 @@ export class BusinessControllerInputDto {
 	@ApiProperty({ name: "legal_last_name", description: "Legal last name.", example: "Silva", required: false })
 	@Expose({ name: "legal_last_name" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	legalLastName: string | null;
@@ -120,7 +120,7 @@ export class BusinessControllerInputDto {
 	})
 	@Expose({ name: "date_of_birth" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	dateOfBirth: string | null;
@@ -133,7 +133,7 @@ export class BusinessControllerInputDto {
 	})
 	@Expose({ name: "tax_id" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	taxId: string | null;
@@ -146,7 +146,7 @@ export class BusinessControllerInputDto {
 	})
 	@Expose({ name: "identification" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@ValidateNested()
 	@Type(() => BusinessControllerIdentificationInputDto)
@@ -160,7 +160,7 @@ export class BusinessControllerInputDto {
 	})
 	@Expose({ name: "address" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@ValidateNested()
 	@Type(() => BusinessControllerAddressInputDto)

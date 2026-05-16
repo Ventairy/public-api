@@ -3,12 +3,12 @@ import type { Request } from "express";
 import { CryptoUtils } from "@shared/utils/crypto.utils";
 import { UserType } from "@shared/enums/user-type";
 import { UserRepository } from "@modules/user/repositories/user.repository";
-import { KycRepository } from "@modules/kyc/repositories/kyc.repository";
+import { VerificationRepository } from "@modules/verification/repositories/verification.repository";
 import { SiweVerifierService } from "./verification/siwe-verifier.service";
 import { JwtService } from "./jwt/jwt.service";
 import { UserSessionRepository } from "./repositories/user-session.repository";
 import { AtomicExecutionService } from "@core/database";
-import { REFRESH_TOKEN_TTL_SECONDS, REFRESH_TOKEN_BYTE_LENGTH } from "./constants/token.constants";
+import { REFRESH_TOKEN_TTL_SECONDS, REFRESH_TOKEN_BYTE_LENGTH, REFRESH_COOKIE_NAME } from "./constants/token.constants";
 import { CookieUtils } from "./utils/cookie.utils";
 import { LoginOutputDto } from "./dto/login-output.dto";
 import { RegisterOutputDto } from "./dto/register-output.dto";
@@ -26,7 +26,7 @@ export class AuthService {
 		private readonly _userRepository: UserRepository,
 		private readonly _jwtService: JwtService,
 		private readonly _userSessionRepository: UserSessionRepository,
-		private readonly _kycRepository: KycRepository,
+		private readonly _verificationRepository: VerificationRepository,
 		private readonly _atomicExecutionService: AtomicExecutionService,
 	) {}
 
@@ -49,7 +49,7 @@ export class AuthService {
 		const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
 		try {
-			const [[userRow, kycRow, session]] = await Promise.all([
+			const [[userRow, verificationRow, session]] = await Promise.all([
 				this._atomicExecutionService.execute(
 					this._userRepository.create_atomicCall({
 						id: newUserId,
@@ -57,7 +57,7 @@ export class AuthService {
 						chain_id: chainId,
 						user_type: params.userType,
 					}),
-					this._kycRepository.create_atomicCall({
+					this._verificationRepository.create_atomicCall({
 						id: crypto.randomUUID(),
 						user_id: newUserId,
 					}),
@@ -79,7 +79,7 @@ export class AuthService {
 				userType: params.userType,
 				walletAddress,
 				chainId,
-				kycStatus: kycRow.ventairy_kyc_status,
+				verificationStatus: verificationRow.verification_status,
 			});
 
 			return {
@@ -114,7 +114,7 @@ export class AuthService {
 		const now = new Date();
 		const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
-		const [session, kycStatus] = await Promise.all([
+		const [session, verificationStatus] = await Promise.all([
 			this._userSessionRepository.create({
 				id: crypto.randomUUID(),
 				user_id: user.id,
@@ -123,7 +123,7 @@ export class AuthService {
 				ip_address: params.ipAddress ?? null,
 				expires_at: expiresAt,
 			}),
-			this._kycRepository.getKycStatus(user.id),
+			this._verificationRepository.getVerificationStatus(user.id),
 		]);
 
 		const accessToken = await this._jwtService.generateAccessToken({
@@ -132,7 +132,7 @@ export class AuthService {
 			userType: user.user_type,
 			walletAddress: user.wallet_address,
 			chainId: user.chain_id,
-			kycStatus,
+			verificationStatus,
 		});
 
 		return {
@@ -147,12 +147,11 @@ export class AuthService {
 		accessToken: string;
 		newRawRefreshToken: string;
 	}> {
-		const rawRefreshToken = CookieUtils.extractCookie(request, "__Host-ventairy-refresh");
+		const rawRefreshToken = CookieUtils.extractCookie(request, REFRESH_COOKIE_NAME);
 		if (!rawRefreshToken) throw new UnauthorizedException("Refresh token is missing");
 
 		const refreshTokenHash = CryptoUtils.hashSha256(rawRefreshToken);
 		const currentSession = await this._userSessionRepository.findByRefreshTokenHash(refreshTokenHash);
-
 		if (!currentSession) throw new UnauthorizedException("Refresh token is invalid or session has been revoked");
 
 		const now = new Date();
@@ -166,7 +165,7 @@ export class AuthService {
 		const newHash = CryptoUtils.hashSha256(newRawRefreshToken);
 		const newExpiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
 
-		const [user, , kycStatus] = await Promise.all([
+		const [user, , verificationStatus] = await Promise.all([
 			this._userRepository.findById(currentSession.user_id),
 			this._userSessionRepository.updateRefreshTokenHash({
 				id: currentSession.id,
@@ -174,7 +173,7 @@ export class AuthService {
 				expiresAt: newExpiresAt,
 				updatedAt: now.toISOString(),
 			}),
-			this._kycRepository.getKycStatus(currentSession.user_id),
+			this._verificationRepository.getVerificationStatus(currentSession.user_id),
 		]);
 
 		if (!user) throw new UserNotFoundException(currentSession.user_id);
@@ -185,7 +184,7 @@ export class AuthService {
 			userType: user.user_type,
 			walletAddress: user.wallet_address,
 			chainId: user.chain_id,
-			kycStatus,
+			verificationStatus,
 		});
 
 		return {

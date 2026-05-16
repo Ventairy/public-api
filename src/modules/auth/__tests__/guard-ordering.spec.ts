@@ -8,20 +8,17 @@ import supertest from "supertest";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 import { RateLimitGuard } from "@shared/rate-limit/rate-limit.guard";
 import { UserTypeGuard } from "../guards/user-type.guard";
-import { KYCGuard } from "../guards/kyc.guard";
 import { JwtService } from "../jwt/jwt.service";
 import { JWT_CONFIG_KEY, type JwtConfig } from "@core/config";
-import { KYCRequired } from "@shared/decorators";
 import { Public } from "@shared/decorators/public.decorator";
-import { VentairyKycStatus } from "@shared/enums";
+import { VerificationStatus } from "@shared/enums";
 import { ACCESS_COOKIE_NAME } from "../constants/token.constants";
 
 @Controller("test")
 class TestGuardOrderController {
-	@Get("kyc-required")
+	@Get("protected")
 	@HttpCode(HttpStatus.OK)
-	@KYCRequired()
-	kycRequired(): { ok: boolean } {
+	protectedRoute(): { ok: boolean } {
 		return { ok: true };
 	}
 
@@ -33,7 +30,7 @@ class TestGuardOrderController {
 	}
 }
 
-describe("Guard ordering: JwtAuthGuard → RateLimitGuard → UserTypeGuard → KYCGuard", () => {
+describe("Guard ordering: JwtAuthGuard → RateLimitGuard → UserTypeGuard", () => {
 	let app: INestApplication;
 	let jwtService: JwtService;
 	const testSecret = "test-secret-that-is-long-enough-for-hs256-algorithm!";
@@ -64,7 +61,6 @@ describe("Guard ordering: JwtAuthGuard → RateLimitGuard → UserTypeGuard → 
 			reflector,
 		);
 		const userTypeGuard = new UserTypeGuard(reflector);
-		const kycGuard = new KYCGuard(reflector);
 
 		const module: TestingModule = await Test.createTestingModule({
 			controllers: [TestGuardOrderController],
@@ -81,10 +77,6 @@ describe("Guard ordering: JwtAuthGuard → RateLimitGuard → UserTypeGuard → 
 					provide: APP_GUARD,
 					useValue: userTypeGuard,
 				},
-				{
-					provide: APP_GUARD,
-					useValue: kycGuard,
-				},
 			],
 		}).compile();
 
@@ -96,50 +88,38 @@ describe("Guard ordering: JwtAuthGuard → RateLimitGuard → UserTypeGuard → 
 		await app.close();
 	});
 
-	async function generateToken(kycStatus: VentairyKycStatus): Promise<string> {
+	async function generateToken(): Promise<string> {
 		return jwtService.generateAccessToken({
 			userId: "test-user-id",
 			sessionId: "test-session-id",
 			userType: "BUSINESS" as any,
 			walletAddress: "0x123",
 			chainId: 8453,
-			kycStatus,
+			verificationStatus: VerificationStatus.VERIFIED,
 		});
 	}
 
-	describe("Ordering proof: JwtAuthGuard runs before KYCGuard", () => {
-		it("should return 401 (not 403) when no token is sent to a protected route", async () => {
+	describe("JwtAuthGuard runs first", () => {
+		it("should return 401 when no token is sent to a protected route", async () => {
 			await supertest(app.getHttpServer())
-				.get("/test/kyc-required")
+				.get("/test/protected")
 				.expect(HttpStatus.UNAUTHORIZED);
 		});
 
-		it("should return 401 (not 403) when an invalid token is sent", async () => {
+		it("should return 401 when an invalid token is sent", async () => {
 			await supertest(app.getHttpServer())
-				.get("/test/kyc-required")
+				.get("/test/protected")
 				.set("Cookie", `${ACCESS_COOKIE_NAME}=invalid-token`)
 				.expect(HttpStatus.UNAUTHORIZED);
-		});
-
-		it("should return 403 with KYC_NOT_APPROVED when token has non-APPROVED KYC status", async () => {
-			const token = await generateToken(VentairyKycStatus.PENDING);
-
-			await supertest(app.getHttpServer())
-				.get("/test/kyc-required")
-				.set("Cookie", `${ACCESS_COOKIE_NAME}=${token}`)
-				.expect(HttpStatus.FORBIDDEN)
-				.expect((res: Response) => {
-					expect(res.body.code).toBe("KYC_NOT_APPROVED");
-				});
 		});
 	});
 
 	describe("Full chain passes for legitimate requests", () => {
-		it("should allow access when token has APPROVED KYC status", async () => {
-			const token = await generateToken(VentairyKycStatus.APPROVED);
+		it("should allow access when token is valid", async () => {
+			const token = await generateToken();
 
 			await supertest(app.getHttpServer())
-				.get("/test/kyc-required")
+				.get("/test/protected")
 				.set("Cookie", `${ACCESS_COOKIE_NAME}=${token}`)
 				.expect(HttpStatus.OK)
 				.expect({ ok: true });

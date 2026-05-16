@@ -1,5 +1,5 @@
 export { MimeType } from "./mime-type";
-export { VentairyKycStatus } from "./ventairy-kyc-status";
+export { VerificationStatus } from "./verification-status";
 export { BusinessFileType } from "./business-file-type";
 export { BusinessControllerFileType } from "./business-controller-file-type";
 export { BusinessControllerRole, BusinessControllerRole as ControllerRole } from "./business-controller-role";

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BusinessFileType } from "@shared/enums/business-file-type";
-import { VentairyKycStatus } from "@shared/enums/ventairy-kyc-status";
+import { VerificationStatus } from "@shared/enums/verification-status";
 import { plainToInstance } from "class-transformer";
 import { BusinessControllerFileType } from "@shared/enums/business-controller-file-type";
 import { BusinessControllerRole } from "@shared/enums/business-controller-role";
@@ -164,8 +164,8 @@ describe("BusinessService", () => {
 		findBusinessControllerFile: ReturnType<typeof vi.fn>;
 		findBusinessControllerFileTypesByControllerIds: ReturnType<typeof vi.fn>;
 	};
-	let mockKycRepository: {
-		getKycStatus: ReturnType<typeof vi.fn>;
+	let mockVerificationRepository: {
+		getVerificationStatus: ReturnType<typeof vi.fn>;
 	};
 	let mockR2StorageService: {
 		uploadFile: ReturnType<typeof vi.fn>;
@@ -197,8 +197,8 @@ describe("BusinessService", () => {
 			findBusinessControllerFile: vi.fn(),
 			findBusinessControllerFileTypesByControllerIds: vi.fn(),
 		};
-		mockKycRepository = {
-			getKycStatus: vi.fn().mockResolvedValue(VentairyKycStatus.PENDING),
+		mockVerificationRepository = {
+			getVerificationStatus: vi.fn().mockResolvedValue(VerificationStatus.PENDING),
 		};
 		mockR2StorageService = {
 			uploadFile: vi.fn().mockResolvedValue(undefined),
@@ -209,7 +209,7 @@ describe("BusinessService", () => {
 		service = new BusinessService(
 			mockUserRepository as any,
 			mockBusinessRepository as any,
-			mockKycRepository as any,
+			mockVerificationRepository as any,
 			mockR2StorageService as any,
 		);
 	});
@@ -287,7 +287,7 @@ describe("BusinessService", () => {
 		});
 
 		it("should throw BusinessFileImmutableException when KYC is APPROVED and file already exists", async () => {
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockBusinessRepository.findBusinessFile.mockResolvedValue(createMockFileRow());
 
 			await expect(
@@ -296,7 +296,7 @@ describe("BusinessService", () => {
 		});
 
 		it("should allow re-upload when KYC is not APPROVED and file already exists", async () => {
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.PENDING);
 			mockBusinessRepository.findBusinessFile.mockResolvedValue(createMockFileRow());
 			mockBusinessRepository.updateBusinessFile.mockResolvedValue(createMockFileRow());
 
@@ -306,7 +306,7 @@ describe("BusinessService", () => {
 		});
 
 		it("should allow upload when KYC is APPROVED and no existing file", async () => {
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockBusinessRepository.insertBusinessFile.mockResolvedValue(createMockFileRow());
 
 			const result = await service.uploadBusinessFile(MOCK_USER_ID, validFile, BusinessFileType.INCORPORATION_DOCUMENT);
@@ -547,7 +547,7 @@ describe("BusinessService", () => {
 			const mockController = createMockController();
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockBusinessRepository.findBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
 
 			await expect(
@@ -565,7 +565,7 @@ describe("BusinessService", () => {
 			const mockController = createMockController();
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.PENDING);
 			mockBusinessRepository.findBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
 			mockBusinessRepository.updateBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
 
@@ -584,7 +584,7 @@ describe("BusinessService", () => {
 			const mockController = createMockController();
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findBusinessControllerById.mockResolvedValue(mockController);
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockBusinessRepository.insertBusinessControllerFile.mockResolvedValue(createMockControllerFileRow());
 
 			const result = await service.uploadBusinessControllerFile(
@@ -1004,7 +1004,7 @@ describe("BusinessService", () => {
 			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockUserRepository.findById.mockResolvedValue(mockUser);
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
@@ -1018,7 +1018,7 @@ describe("BusinessService", () => {
 			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockUserRepository.findById.mockResolvedValue(mockUser);
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
@@ -1035,7 +1035,7 @@ describe("BusinessService", () => {
 			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness({ fantasy_name: null });
 
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockUserRepository.findById.mockResolvedValue(mockUser);
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
@@ -1056,7 +1056,7 @@ describe("BusinessService", () => {
 			const mockBusiness = createMockBusiness();
 			const mockController = createMockController({ id: "ctrl-1", legal_first_name: "João" });
 
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockUserRepository.findById.mockResolvedValue(mockUser);
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([mockController]);
@@ -1073,7 +1073,7 @@ describe("BusinessService", () => {
 			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockUserRepository.findById.mockResolvedValue(mockUser);
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.findControllersByBusinessId.mockResolvedValue([]);
@@ -1094,7 +1094,7 @@ describe("BusinessService", () => {
 			const mockUser = createMockUser();
 			const mockBusiness = createMockBusiness();
 
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.PENDING);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.PENDING);
 			mockUserRepository.findById.mockResolvedValue(mockUser);
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(mockBusiness);
 			mockBusinessRepository.updateBusiness.mockResolvedValue(mockBusiness);
@@ -1111,7 +1111,7 @@ describe("BusinessService", () => {
 		it("should allow business creation when KYC is APPROVED and no business exists", async () => {
 			const mockUser = createMockUser();
 
-			mockKycRepository.getKycStatus.mockResolvedValue(VentairyKycStatus.APPROVED);
+			mockVerificationRepository.getVerificationStatus.mockResolvedValue(VerificationStatus.VERIFIED);
 			mockUserRepository.findById.mockResolvedValue(mockUser);
 			mockBusinessRepository.findBusinessByUserId.mockResolvedValue(null);
 			mockBusinessRepository.insertBusiness.mockResolvedValue(createMockBusiness());

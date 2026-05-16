@@ -21,10 +21,7 @@ export class SiweVerifierService {
 		private readonly configService: ConfigService,
 	) {}
 
-	public async parseAndVerifyMessage(params: {
-		message: string;
-		signature: string;
-	}): Promise<{ walletAddress: string; chainId: SupportedBlockchain }> {
+	public async parseAndVerifyMessage(params: { message: string; signature: string }): Promise<{ walletAddress: string; chainId: SupportedBlockchain }> {
 		const siweConfig = this.configService.get<SiweConfig>(SIWE_CONFIG_KEY);
 		if (!siweConfig) throw new Error("SIWE configuration is missing");
 
@@ -32,6 +29,8 @@ export class SiweVerifierService {
 
 		const nonceRow = await this.nonceService.findNonce(siweMessage.nonce);
 		if (!nonceRow) throw new NonceNotFoundException(siweMessage.nonce);
+
+		this.nonceService.deleteNonce(siweMessage.nonce, siweMessage.address.toLowerCase());
 
 		if (nonceRow.wallet_address !== siweMessage.address.toLowerCase()) {
 			throw new NonceWalletMismatchException({
@@ -54,8 +53,6 @@ export class SiweVerifierService {
 		}
 
 		await this._verifySignatureOnChain(siweMessage, params.signature as Hex);
-
-		await this.nonceService.deleteNonce(siweMessage.nonce, siweMessage.address.toLowerCase());
 
 		return {
 			walletAddress: siweMessage.address.toLowerCase(),

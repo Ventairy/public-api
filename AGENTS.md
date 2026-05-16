@@ -16,7 +16,7 @@
 **Agent Value Proposition Goals:**
 
 - **Best-Rate Routing:** Maximize client stablecoin yield.
-- **Infrastructure Abstraction:** Hide KYC, API, and regulatory complexities from the end-user.
+- **Infrastructure Abstraction:** Hide verification, API, and regulatory complexities from the end-user.
 - **Flawless Liquidity:** Ensure state consistency between Fiat in and Crypto out.
 
 ### API Scope: Public
@@ -29,11 +29,11 @@ This repository is the **Ventairy Public API** — an open-source payment orches
 - Payment generation and initiation on behalf of a user
 - Payment querying and reporting for the authenticated user
 - Features tied to a single end-user's payment flow (quotes, payment requests, status tracking)
-- Business registration and KYC submission workflows
+- Business registration and verification submission workflows
 
 **What this API does NOT handle:**
 
-- Admin-level operations (view all users, approve/reject KYC, ban users, etc.) — these are in a separate Admin API
+- Admin-level operations (view all users, approve/reject verification, ban users, etc.) — these are in a separate Admin API
 - Ventairy-internal back-office dashboards and infrastructure tooling
 
 ### Authentication
@@ -122,12 +122,9 @@ This project uses **Bun** as the JavaScript runtime and package manager. NEVER u
 Every directory that represents a distinct module or concern MUST have its own `AGENTS.md` file explaining:
 
 - **Purpose:** What the folder is for and what problems it solves.
-- **Files:** A table listing each file with a brief description.
 - **Principles/Conventions:** Any folder-specific rules (e.g., "pure functions only", "no side effects").
 
 This ensures that AI agents can quickly understand the structure and intent of any folder without reading every file. The root `AGENTS.md` describes global conventions; folder-level `AGENTS.md` files describe local ones.
-
-**STRICT RULE:** Whenever you add a new file or a new public function to an existing file inside a folder, you MUST update that folder's `AGENTS.md` to reflect the change. This is not optional — the file table must always be an accurate, up-to-date inventory of the folder's contents. If you create a new folder, you MUST create its `AGENTS.md` at the same time.
 
 **STRICT RULE:** A parent AGENTS.md MUST NOT list files from its subdirectories. Each subdirectory documents its own contents in its own `AGENTS.md`. The parent may list subdirectory names (e.g., "see `constants/`, `docs/`") but never the individual files within them.
 

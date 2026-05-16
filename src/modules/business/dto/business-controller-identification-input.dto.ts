@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { IsEnum, IsISO31661Alpha2, IsOptional, IsString } from "class-validator";
 import { IdentificationDocumentType, UserType } from "@shared/enums";
-import { RequiredForKYC } from "@shared/decorators/required-for-kyc.decorator";
+import { RequiredForVerification } from "@shared/decorators/required-for-verification.decorator";
 import { Immutable } from "@shared/decorators/immutable.decorator";
 import { type BusinessControllerDatabaseRow } from "@db/schema/business-controllers-table";
 
@@ -30,7 +30,7 @@ export class BusinessControllerIdentificationInputDto {
 	})
 	@Expose({ name: "country_code" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsString()
 	@IsISO31661Alpha2()
@@ -44,7 +44,7 @@ export class BusinessControllerIdentificationInputDto {
 	})
 	@Expose({ name: "document_type" })
 	@Immutable()
-	@RequiredForKYC([UserType.BUSINESS])
+	@RequiredForVerification([UserType.BUSINESS])
 	@IsOptional()
 	@IsEnum(IdentificationDocumentType)
 	documentType: IdentificationDocumentType | null;

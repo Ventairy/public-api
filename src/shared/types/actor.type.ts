@@ -1,6 +1,6 @@
 import { SupportedBlockchain } from "@shared/blockchain";
 import type { UserType } from "@shared/enums/user-type";
-import type { VentairyKycStatus } from "@shared/enums";
+import type { VerificationStatus } from "@shared/enums";
 
 export interface Actor {
 	id: string;
@@ -8,5 +8,5 @@ export interface Actor {
 	userType: UserType;
 	walletAddress: string;
 	chainId: SupportedBlockchain;
-	kycStatus: VentairyKycStatus;
+	verificationStatus: VerificationStatus;
 }
