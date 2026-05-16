@@ -2,10 +2,10 @@ import { Module } from "@nestjs/common";
 import { PaymentController } from "./controllers/payment.controller";
 import { PaymentService } from "./payment.service";
 import { UserLiquidityProvidersModule } from "@modules/providers/user-liquidity-providers.module";
-import { VerificationModule } from "@modules/verification/verification.module";
+import { VerificationRepositoryModule } from "@modules/verification/verification-repository.module";
 
 @Module({
-	imports: [UserLiquidityProvidersModule, VerificationModule],
+	imports: [UserLiquidityProvidersModule, VerificationRepositoryModule],
 	controllers: [PaymentController],
 	providers: [PaymentService],
 })
